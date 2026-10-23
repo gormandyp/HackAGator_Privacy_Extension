@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PrivaC dashboard</title>
+  <link rel="stylesheet" href="../shared/theme.css">
+  <link rel="stylesheet" href="dashboard.css">
+</head>
+<body>
+  <header class="top">
+    <div class="wrap top-inner">
+      <span id="wordmark"></span>
+      <button class="btn secondary" id="clear">Clear my PrivaC data</button>
+    </div>
+  </header>
+  <div id="sample-note" class="sample-note" hidden>Showing sample data. Browse with PrivaC on and your own sites will appear here.</div>
+
+  <main class="wrap">
+    <section class="intro" id="intro"></section>
+
+    <section class="block">
+      <h2>Who followed you across sites</h2>
+      <p class="lede">Each dot means that company's tracker loaded while you were on that site. A company that shows up on many sites has a chance to connect those visits into one picture of you.</p>
+      <div class="matrix-scroll"><table class="matrix" id="matrix"></table></div>
+      <p class="callout" id="callout"></p>
+    </section>
+
+    <section class="block">
+      <h2>Your sites</h2>
+      <p class="lede">Open a site to see exactly what raised or lowered its grade.</p>
+      <div id="sites"></div>
+    </section>
+
+    <section class="block">
+      <h2>How the grade works</h2>
+      <p class="lede">The exposure score runs from 0 (barely exposed) to 100 (heavily exposed). It's our team's rubric, not a probability that your data will be sold or breached.</p>
+      <div class="rubric">
+        <table>
+          <thead><tr><th>What we check</th><th>Points</th></tr></thead>
+          <tbody>
+            <tr><td>Each tracker connection to an outside company</td><td>5 each, up to 40</td></tr>
+            <tr><td>Each one used for advertising or data brokering</td><td>5 each, up to 20</td></tr>
+            <tr><td>Cookie choice: accepted all / none recorded / declined</td><td>10 / 5 / 0</td></tr>
+            <tr><td>Any company based in a listed foreign-adversary country</td><td>15</td></tr>
+            <tr><td>Privacy policy: sells / shares / neither / not reviewed</td><td>15 / 8 / 0 / 5</td></tr>
+          </tbody>
+        </table>
+        <div class="grades-key" id="grades-key"></div>
+      </div>
+
+      <div class="evidence">
+        <div>
+          <h3>Observed</h3>
+          <p>Connections your browser actually made while you were on a site. PrivaC sees these directly.</p>
+        </div>
+        <div>
+          <h3>Disclosed</h3>
+          <p>What a company says in its own privacy policy, like whether it sells or shares your information.</p>
+        </div>
+        <div>
+          <h3>Unknown</h3>
+          <p>What happens after data reaches a company's servers. Companies can pass it along server to server, out of any browser's view.</p>
+        </div>
+      </div>
+      <p class="fine">Foreign-adversary countries follow the U.S. Commerce Department list in 15 CFR § 7.4. A flag means a tracker belongs to a company based there, not that your data was sent to a government.</p>
+    </section>
+  </main>
+
+  <footer class="wrap foot">
+    Everything PrivaC records stays in this browser. Nothing about your browsing is uploaded.
+  </footer>
+
+  <script src="../shared/mascot.js"></script>
+  <script src="../shared/data.js"></script>
+  <script src="dashboard.js"></script>
+</body>
+</html>

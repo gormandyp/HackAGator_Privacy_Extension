@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Prompt preview</title>
+  <style>
+    body { margin: 0; font-family: Georgia, serif; background: #fbfbf8; color: #222; }
+    header { padding: 18px 32px; border-bottom: 1px solid #ddd; font-size: 26px; font-weight: bold; }
+    article { max-width: 640px; padding: 24px 32px 200px; }
+    .ph { height: 12px; background: #e6e6e1; border-radius: 4px; margin: 12px 0; }
+    .ph.s { width: 70%; }
+    .banner { position: fixed; left: 0; right: 0; bottom: 0; background: #fff; border-top: 1px solid #ccc; padding: 16px 32px; font-family: Arial, sans-serif; font-size: 14px; display: flex; gap: 12px; align-items: center; }
+    .banner button { padding: 8px 14px; }
+    .controls { position: fixed; top: 14px; right: 20px; display: flex; gap: 8px; font-family: Arial, sans-serif; }
+  </style>
+</head>
+<body>
+  <header>Any News Site</header>
+  <div class="controls">
+    <button id="show-cookie">Show cookie prompt</button>
+    <button id="show-adv">Show foreign-adversary alert</button>
+  </div>
+  <article>
+    <h1>Preview of C's on-page prompt</h1>
+    <div class="ph"></div><div class="ph"></div><div class="ph s"></div>
+    <div class="ph"></div><div class="ph"></div><div class="ph s"></div>
+  </article>
+  <div class="banner" id="banner">We use cookies to personalize ads. <button>Accept all</button><button id="reject">Reject all</button></div>
+
+  <script src="../shared/mascot.js"></script>
+  <script src="../content/c-prompt.js"></script>
+  <script>
+    const showCookie = () => PrivaCPrompt.cookie({
+      onDecline: async () => { document.getElementById("banner").remove(); return true; },
+      onChoose: () => alert("Here PrivaC would open the site's own cookie settings.")
+    });
+    document.getElementById("show-cookie").onclick = showCookie;
+    document.getElementById("show-adv").onclick = () => PrivaCPrompt.adversary({ companies: ["Yandex (Russia)", "Baidu (China)"] });
+    showCookie();
+  </script>
+</body>
+</html>

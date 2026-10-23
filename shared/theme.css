@@ -1,0 +1,100 @@
+/* PrivaC design tokens — every page imports this file. */
+@import url("https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Figtree:wght@400;500;600;700&display=swap");
+
+:root {
+  --ink: #16233f;          /* navy: text, mascot limbs */
+  --ink-2: #4a5672;        /* secondary text */
+  --ink-3: #7d879c;        /* hints, captions */
+  --paper: #f2f4f7;        /* page background */
+  --surface: #ffffff;      /* panels */
+  --line: #dde2ea;         /* borders */
+  --orange: #fa4616;       /* C only — the mascot and brand mark */
+  --orange-soft: #ffe7de;
+
+  /* Grade colors: used ONLY for grades and risk, never decoration */
+  --grade-a: #1f8a5b;
+  --grade-b: #5a9a2e;
+  --grade-c: #c99100;
+  --grade-d: #df6d14;
+  --grade-f: #cc2f2a;
+  --flag: #b4232a;
+  --flag-soft: #fde8e8;
+
+  --font-display: "Bricolage Grotesque", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  --font-body: "Figtree", "Segoe UI", system-ui, -apple-system, sans-serif;
+
+  --r-sm: 6px;
+  --r-md: 12px;
+  --r-lg: 20px;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 14px;
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3 { font-family: var(--font-display); margin: 0; line-height: 1.15; }
+
+button {
+  font: inherit;
+  cursor: pointer;
+}
+
+:focus-visible {
+  outline: 3px solid var(--orange);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.btn {
+  border: 0;
+  border-radius: 999px;
+  padding: 9px 16px;
+  font-weight: 600;
+  font-size: 13px;
+  background: var(--ink);
+  color: #fff;
+}
+.btn:hover { background: #24345a; }
+.btn.secondary {
+  background: transparent;
+  color: var(--ink);
+  box-shadow: inset 0 0 0 1.5px var(--line);
+}
+.btn.secondary:hover { box-shadow: inset 0 0 0 1.5px var(--ink-3); }
+
+.grade-A { --g: var(--grade-a); }
+.grade-B { --g: var(--grade-b); }
+.grade-C { --g: var(--grade-c); }
+.grade-D { --g: var(--grade-d); }
+.grade-F { --g: var(--grade-f); }
+
+.chip {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #eaedf2;
+  color: var(--ink-2);
+  white-space: nowrap;
+}
+
+.sample-note {
+  font-size: 12px;
+  color: var(--ink-2);
+  background: #e8ebf1;
+  padding: 6px 12px;
+  text-align: center;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
