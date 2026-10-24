@@ -18,7 +18,7 @@ function files() {
     if (fs.statSync(full).isDirectory()) for (const f of fs.readdirSync(full).sort()) walk(path.join(rel, f));
     else if (!/\.DS_Store$|(^|\/)README\.md$/.test(rel) || rel === "PRIVACY.md") out.push(rel);
   };
-  INCLUDE.forEach(walk);
+  INCLUDE.filter((rel) => fs.existsSync(path.join(root, rel))).forEach(walk);
   return out;
 }
 
@@ -27,7 +27,7 @@ if (require.main === module) {
   fs.mkdirSync(path.join(root, "dist"), { recursive: true });
   const zip = path.join("dist", `privac-${version}.zip`);
   try { fs.unlinkSync(path.join(root, zip)); } catch (e) { /* first build */ }
-  execFileSync("zip", ["-q", "-X", "-r", zip, ...INCLUDE, "-x", ...EXCLUDE], { cwd: root, stdio: "inherit" });
+  execFileSync("zip", ["-q", "-X", "-r", zip, ...INCLUDE.filter((rel) => fs.existsSync(path.join(root, rel))), "-x", ...EXCLUDE], { cwd: root, stdio: "inherit" });
   const mb = (fs.statSync(path.join(root, zip)).size / 1e6).toFixed(1);
   console.log(`Wrote ${zip} (${mb} MB, ${files().length} files). Upload it at https://chrome.google.com/webstore/devconsole`);
 }

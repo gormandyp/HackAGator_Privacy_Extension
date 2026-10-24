@@ -2,7 +2,7 @@
 
 _Last updated: October 24, 2026_
 
-PrivaC is a free Chrome extension that shows which companies track you on the websites you visit, grades each site's privacy from A to F, and lets C, its on-screen character, decline extra cookies for you. This policy explains exactly what PrivaC handles, where it goes, and how to delete it. The rules for using PrivaC are in [TERMS.md](TERMS.md).
+PrivaC is a free Chrome extension that shows which companies track you on the websites you visit, grades each site's privacy from A to F, and lets C, its on-screen character, decline extra cookies for you. PrivaC comes in two versions that handle data the same way: the main version runs C's AI inside Chrome, and the Ollama version uses the Ollama app on your computer instead. Lines that apply to only one version say so. This policy explains exactly what PrivaC handles, where it goes, and how to delete it. The rules for using PrivaC are in [TERMS.md](TERMS.md).
 
 **The short version:** what PrivaC learns about your browsing stays on your computer. We (the PrivaC team) never receive it, and PrivaC never sells it, shares it, or sends it to an AI company, an advertiser or any server of ours. We have no servers, no accounts, no analytics and no ads.
 
@@ -21,7 +21,7 @@ PrivaC needs to see the websites you visit to do its one job: telling you who tr
 | The sites open in your tabs right now, and the sites C has already warned you about since Chrome started | So C doesn't warn you twice and the panel knows which site a tab shows | Until you close Chrome |
 | Your questions to C and C's answers | To show the conversation | Only while the page you asked on is open |
 | Your settings (light/dark, glass color, which pop-ups C may show, Ollama or in-browser AI) | To remember your choices | Until you change them or remove PrivaC |
-| C's AI model, if you download it (about 2 GB, in Chrome's cache) | So C can answer on your computer | Until you click **Delete download** or remove PrivaC |
+| C's AI model, if you download it (main version only: about 2 GB, in Chrome's cache) | So C can answer on your computer | Until you click **Delete download** or remove PrivaC |
 | Public lists of data breaches and data brokers | To flag breached sites and data-broker trackers | Replaced once a day |
 
 PrivaC never reads or stores what you type into websites, passwords, form contents, cookie contents, page contents, or full web addresses of the pages you visit.
@@ -42,7 +42,7 @@ PrivaC downloads whole public files (the same file for everyone) and does all ma
 |---|---|---|
 | `haveibeenpwned.com` (public list of data breaches) | About once a day (when Chrome starts, if the copy is over a day old) | An ordinary request for the whole list. No site names. |
 | `cppa.ca.gov` (California Data Broker Registry) | About once a day (when Chrome starts, if the copy is over a day old) | An ordinary request for the whole list. No site names. |
-| `huggingface.co` (C's AI model, Gemma 4, about 2 GB) | Only when you click **Download C's brain** | An ordinary file download. No browsing data. |
+| `huggingface.co` (C's AI model, Gemma 4, about 2 GB; main version only) | Only when you click **Download C's brain** | An ordinary file download. No browsing data. |
 | A site's own privacy-policy page | When you visit a site that links to its privacy policy and policy reading is on (**Settings › On this computer**) | A request to that same site for the page its own "Privacy" link points to, sent **without your cookies** so you aren't identified. If the site forwards the request to another address, PrivaC follows it. After a successful read, PrivaC waits a week before reading that site's policy again. If C's AI isn't set up yet, nothing is saved and PrivaC may fetch the page again on a later visit. |
 | `localhost:11434` (Ollama, only if you installed it) | When you ask C a question, or a policy is read, and Ollama is the AI in use | Your question (or the policy text) and a summary of your PrivaC data, sent to the Ollama app **on your own computer**. PrivaC uses only models that run on your computer, never Ollama's cloud models. |
 
@@ -59,7 +59,7 @@ The use of information received from Chrome APIs by PrivaC adheres to the [Chrom
 ## Deleting your data
 
 - **Settings › Clear my PrivaC data** deletes your site history and daily totals right away, and forgets the sites in your open tabs. Your settings stay.
-- **Delete download** on the Ask C card deletes C's 2 GB AI model.
+- **Delete download** on the Ask C card deletes C's 2 GB AI model (main version).
 - Closing Chrome deletes the open-tab and already-warned lists.
 - Removing the extension in `chrome://extensions` deletes all of it.
 

@@ -42,7 +42,7 @@ test("a privacy policy with the Limited Use statement is in the repo", () => {
   const p = read("PRIVACY.md");
   assert.match(p, /Limited Use/);
   assert.match(p, /never sells?/i);
-  for (const thing of ["haveibeenpwned.com", "cppa.ca.gov", "huggingface.co", "localhost:11434"]) assert.ok(p.includes(thing), `names ${thing}`);
+  for (const thing of ["haveibeenpwned.com", "cppa.ca.gov", "huggingface.co", "localhost:11434"]) assert.ok(p.includes(thing), `names ${thing}`);   // same policy on every branch
 });
 
 test("on first install PrivaC opens the welcome page that says what it records", () => {
@@ -58,13 +58,15 @@ test("the store package includes every file the manifest, pages and scripts load
   const needed = [manifest.background.service_worker, ...Object.values(manifest.icons), ...manifest.content_scripts.flatMap((c) => c.js)];
   const bg = read("background.js").match(/importScripts\(([^)]*)\)/)[1].match(/"([^"]+)"/g).map((s) => s.slice(1, -1));
   needed.push(...bg);
-  for (const page of ["popup/popup.html", "dashboard/dashboard.html", "offscreen/brain.html", "welcome/welcome.html"]) {
+  // offscreen/ and vendor/ exist only in the in-browser AI version (main), not on ui-glass or ollama.
+  for (const page of ["popup/popup.html", "dashboard/dashboard.html", "offscreen/brain.html", "welcome/welcome.html"].filter((f) => fs.existsSync(path.join(root, f)))) {
     needed.push(page);
     for (const m of read(page).matchAll(/(?:src|href)="(\.\.\/)?([^"#?:]+\.(?:js|css|mjs))"/g)) {
       needed.push(path.posix.normalize(path.posix.join(path.posix.dirname(page), (m[1] || "") + m[2])));
     }
   }
-  needed.push("shared/fonts/bricolage-grotesque.woff2", "shared/fonts/figtree.woff2", "vendor/litert-lm/wasm/litertlm_wasm_internal.wasm");
+  needed.push("shared/fonts/bricolage-grotesque.woff2", "shared/fonts/figtree.woff2");
+  if (fs.existsSync(path.join(root, "vendor"))) needed.push("vendor/litert-lm/wasm/litertlm_wasm_internal.wasm");
   for (const f of needed) assert.ok(packed.has(f), `missing from the store zip: ${f}`);
   for (const f of packed) assert.ok(!/^(tests|docs|scripts|models)\//.test(f), `shouldn't ship: ${f}`);
 });

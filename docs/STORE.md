@@ -15,6 +15,7 @@ What's left is the account, the upload and the forms below; every answer is writ
 - [ ] **Retake screenshots with real browsing** (optional but better): the ones in `store/` use the dashboard's sample data and show a "Sample data" badge.
 
 ## 2. Build the upload
+Upload from **main** (the in-browser AI version). The `ollama` branch carries the same PRIVACY.md, TERMS.md and welcome page so its download tells people the same thing, but it needs the separate Ollama app, so it isn't the Store version.
 ```
 node --test                       # everything must pass
 node scripts/package-store.js     # makes dist/privac-<version>.zip (about 8 MB)
