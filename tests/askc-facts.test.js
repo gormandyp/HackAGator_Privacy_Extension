@@ -21,7 +21,7 @@ test("RegTrack facts reach Gemma with page numbers and the [RegTrack] tag", () =
 
 test("a tracker from a 1260H company is marked with the list and its date", () => {
   const ctx = buildContext({ sites: [site("news.example", [tracker("Baidu", "CN")])] }, "2026-10-24", [], facts);
-  assert.match(ctx, /Baidu \(Analytics, based in CN\) \[Tracker Radar\], on the Pentagon's Section 1260H list of Chinese military companies \(June 2026\) \[Government list\]/);
+  assert.match(ctx, /Baidu \(Analytics, based in China\) \[Tracker Radar\], on the Pentagon's Section 1260H list of Chinese military companies \(June 2026\) \[Government list\]/);
 });
 
 test("Alibaba is flagged with its court challenge; ByteDance is never called a 1260H company", () => {

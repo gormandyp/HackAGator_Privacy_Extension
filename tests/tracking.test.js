@@ -18,15 +18,19 @@ function load(openTabs = [], frames = null) {
     webNavigation: { onCommitted: on("nav"), ...(frames ? { getFrame: async ({ tabId }) => (frames[tabId] ? { url: frames[tabId] } : null) } : {}) },
     webRequest: { onBeforeRequest: on("req"), onResponseStarted: on("resp") },
     tabs: { onRemoved: on("closed"), query: async () => openTabs },
-    runtime: { onMessage: on("msg") }
+    runtime: { id: "privacid", onMessage: on("msg"), onStartup: on("startup") },
+    alarms: { create: () => {}, onAlarm: on("alarm") }
   };
   const ctx = { chrome, console, URL, Promise, setTimeout };
+  vm.runInNewContext(fs.readFileSync(__dirname + "/../background/senders.js", "utf8"), ctx);   // loaded first by background.js
   ctx.window = ctx;   // shared/data.js (country web addresses, F1) loads first in the real extension too
   vm.runInNewContext(fs.readFileSync(__dirname + "/../shared/data.js", "utf8"), ctx);
   vm.runInNewContext(fs.readFileSync(__dirname + "/../shared/ipgeo.js", "utf8"), ctx);   // server location (F3)
   vm.runInNewContext(fs.readFileSync(__dirname + "/../background/tracking.js", "utf8") + "\n;this.flush = async () => { await atlasReady; await tabsReady; for (let i = 0; i < 5; i++) await new Promise(r => setTimeout(r, 0)); await saveChain; }; this.setAtlas = setAtlas; this.update = updateCookieChoice; this.ownerOf = ownerOf;", ctx);
   return { writes: () => writes, listeners, store: () => store, setStore: (s) => { store = s; }, flush: () => ctx.flush(), setAtlas: ctx.setAtlas, update: (d, c) => ctx.update(d, c), ownerOf: (d) => ctx.ownerOf(d), ip: ctx.PrivaCIP, parseRir: (t) => require("../scripts/build-ip-countries.js").parse([t]) };
 }
+
+const POPUP = { id: "privacid", url: "chrome-extension://privacid/popup/popup.html" };   // the sender Chrome gives the popup
 
 test("records known trackers per site and keeps earlier sites", async () => {
   const t = load();
@@ -96,6 +100,21 @@ test("visits older than 7 days are deleted automatically", async () => {
   t.listeners.nav({ frameId: 0, tabId: 7, url: "https://new.example/" });
   await t.flush();
   assert.deepStrictEqual(t.store().privacData.sites.map(s => s.domain), ["new.example"]);
+});
+
+// docs/STORE.md section 6, fix 3: "7 days" holds even when you don't browse (PrivaC sits idle).
+test("old visits are also deleted when Chrome starts and once a day, without browsing", async () => {
+  const old = new Date(Date.now() - 8 * 86400000).toISOString();
+  const recent = new Date(Date.now() - 1 * 86400000).toISOString();
+  const sites = () => ({ privacData: { sample: false, sites: [{ domain: "old.example", lastVisit: old, trackers: [] }, { domain: "recent.example", lastVisit: recent, trackers: [] }] } });
+  for (const fire of [(t) => t.listeners.startup(), (t) => t.listeners.alarm({ name: "privac-prune" })]) {
+    const t = load();
+    await t.flush();
+    t.setStore(sites());
+    fire(t);
+    await t.flush();
+    assert.deepStrictEqual(t.store().privacData.sites.map(s => s.domain), ["recent.example"]);
+  }
 });
 
 test("cookie choices: declined/accepted win over no-reject, and stick through tracker updates", async () => {
@@ -206,7 +225,7 @@ test("the popup can ask which site a tab is on (when Chrome hides the tab's addr
   t.listeners.nav({ frameId: 0, tabId: 31, url: "https://www.google.com/" });
   await t.flush();
   let answer;
-  t.listeners.msg({ type: "privac-tab-site", tabId: 31 }, {}, (a) => { answer = a; });
+  t.listeners.msg({ type: "privac-tab-site", tabId: 31 }, POPUP, (a) => { answer = a; });
   assert.strictEqual(answer.domain, "google.com");
 });
 
@@ -217,7 +236,7 @@ test("once a tab shows one of Chrome's own pages (new tab, settings), the popup 
   t.listeners.nav({ frameId: 0, tabId: 41, url: "https://mlh.com/" });
   await t.flush();
   frames[41] = "chrome://new-tab-page/";   // Chrome sends extensions no navigation event for its own pages
-  const answer = await new Promise((r) => t.listeners.msg({ type: "privac-tab-site", tabId: 41 }, {}, r));
+  const answer = await new Promise((r) => t.listeners.msg({ type: "privac-tab-site", tabId: 41 }, POPUP, r));
   assert.strictEqual(answer.domain, null);
 });
 
@@ -226,6 +245,18 @@ test("the popup is told the website the tab really shows right now", async () =>
   const t = load([], frames);
   t.listeners.nav({ frameId: 0, tabId: 42, url: "https://mlh.com/" });   // an older record for this tab
   await t.flush();
-  const answer = await new Promise((r) => t.listeners.msg({ type: "privac-tab-site", tabId: 42 }, {}, r));
+  const answer = await new Promise((r) => t.listeners.msg({ type: "privac-tab-site", tabId: 42 }, POPUP, r));
   assert.strictEqual(answer.domain, "google.com");
+});
+
+// docs/STORE.md section 6, fix 4: only PrivaC's own pages may ask which site a tab is on.
+test("a script inside a website can't ask which site another tab is on", async () => {
+  const t = load();
+  t.listeners.nav({ frameId: 0, tabId: 51, url: "https://bank.example/" });
+  await t.flush();
+  let answered = false;
+  const keep = t.listeners.msg({ type: "privac-tab-site", tabId: 51 }, { id: "privacid", url: "https://news.example/", tab: { id: 52 } }, () => { answered = true; });
+  await new Promise(r => setTimeout(r, 5));
+  assert.strictEqual(answered, false);
+  assert.notStrictEqual(keep, true);
 });
