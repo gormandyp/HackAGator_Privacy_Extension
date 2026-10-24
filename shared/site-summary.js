@@ -1,6 +1,7 @@
 // What the toolbar popup shows first for the site you're on, most important first:
 // C's verdict, alerts (state-run media, foreign-adversary links, a breach this year), the reasons that added
-// points (biggest first, adding up to the score), the checks that added nothing, and who saw your visit.
+// points (biggest first, adding up to the score), the checks that added nothing, how fully the site was checked,
+// and who saw your visit.
 // Pure: reads a scored site from shared/data.js, no Chrome calls. Tests: tests/site-summary.test.js.
 (function () {
   const root = typeof window !== "undefined" ? window : self;
@@ -96,6 +97,43 @@
     return { headline: first, cookieNote: note, verdict: note ? `${first} ${note}` : first };
   }
 
+  // Fully / Partly checked, next to the score (shared/data.js range, coverage, unknowns).
+  function checkedFor(site) {
+    const D = root.PrivaCData;
+    const range = site.range || { min: site.score, max: site.score };
+    const unknowns = site.unknowns || [];
+    const coverage = Math.round((site.coverage == null ? 1 : site.coverage) * 100);
+    if (!unknowns.length) {
+      return { full: true, label: "Fully checked", coverage, range,
+        note: "Every line of the grade has an answer. What companies do with data on their own servers is still unknown." };
+    }
+    const worst = D && D.gradeFor ? D.gradeFor(range.max) : "";
+    const what = unknowns.join(", and ");
+    const g = worst === site.grade ? `still ${/^[AEF]/.test(worst) ? "an" : "a"} ${worst}` : worst;
+    return { full: false, label: "Partly checked", coverage, range,
+      note: `${what[0].toUpperCase()}${what.slice(1)}, so this could be as high as ${range.max} of 100 (${g}).` };
+  }
+
+  // "How this grade was calculated", five numbered steps with this site's own numbers (dashboard site detail).
+  const RANGES = { A: "0-20", B: "21-40", C: "41-60", D: "61-80", F: "81-100" };
+  function steps(site) {
+    const D = root.PrivaCData;
+    const parts = site.parts || [];
+    const pts = parts.filter((p) => p.points > 0).map((p) => p.points);
+    const total = pts.reduce((n, x) => n + x, 0);
+    const c = checkedFor(site);
+    const open = parts.filter((p) => p.unknown);
+    return [
+      `What PrivaC looked at: your visits to ${site.domain} in the last 7 days (trackers and cookies), public lists (data breaches, data brokers, U.S. government lists) and, when it's been read, the site's privacy policy.`,
+      pts.length ? `Each rule adds points for what was found: ${pts.join(" + ")} = ${total}${total > 100 ? ", capped at 100" : ""}.` : "Nothing added points, so the score is 0.",
+      `An exposure score of ${site.score} is ${/^[AEF]/.test(site.grade) ? "an" : "a"} ${site.grade} (${site.grade} is ${RANGES[site.grade]}). Higher means more exposed.`,
+      open.length
+        ? `Unknown things add nothing to the score, but they set the range. ${open.map((p) => `${p.unknown[0].toUpperCase()}${p.unknown.slice(1)}: up to +${p.worst - p.points} more`).join("; ")}, so the range is ${c.range.min}-${c.range.max} (${D && D.gradeFor ? D.gradeFor(c.range.min) : site.grade} to ${D && D.gradeFor ? D.gradeFor(c.range.max) : site.grade}).`
+        : `Nothing is unknown, so the range is just ${site.score}.`,
+      `${c.label}: ${c.coverage}% of the grade's ${(D && D.RUBRIC_MAX) || 115} possible points have an answer.`
+    ];
+  }
+
   function summarize(site, opts) {
     const now = (opts && opts.now) || Date.now();
     const adv = ADV();
@@ -133,6 +171,7 @@
       score: site.score,
       words: root.PrivaCData && root.PrivaCData.GRADE_WORDS ? root.PrivaCData.GRADE_WORDS[site.grade] : "",
       ...verdictFor(site, companyList.length),
+      checked: checkedFor(site),
       alerts: alertsFor(site, now),
       reasons,
       checks,
@@ -143,5 +182,5 @@
     };
   }
 
-  root.PrivaCSiteSummary = { summarize, purposeOf, PURPOSES };
+  root.PrivaCSiteSummary = { summarize, purposeOf, PURPOSES, checkedFor, steps };
 })();

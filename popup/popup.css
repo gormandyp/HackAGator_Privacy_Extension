@@ -71,6 +71,11 @@ main { display: grid; gap: 8px; margin-top: 8px; }
 .meter span { display: block; height: 100%; border-radius: 99px; background: linear-gradient(90deg, color-mix(in oklab, var(--g) 55%, #fff), var(--g)); }
 .score { font-size: 12px; color: var(--text-3); white-space: nowrap; font-variant-numeric: tabular-nums; }
 .score b { font-size: 15px; font-weight: 700; color: var(--text); }
+.checked { display: flex; gap: 6px; align-items: flex-start; margin: 8px 0 0; font-size: 11.5px; line-height: 1.4; color: var(--text-2); }
+.checked svg { flex: none; margin-top: 1px; }
+.checked.full svg { color: var(--good); }
+.checked.part svg { color: var(--warn); }
+.checked b { color: var(--text); font-weight: 650; }
 .verdict { margin: 9px 0 0; font-size: 13px; line-height: 1.45; color: var(--text); }
 .who-line { margin: 10px 0 0; padding-top: 9px; border-top: 1px solid var(--hair); font-size: 12px; font-weight: 600; color: var(--text-2); }
 
