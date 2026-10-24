@@ -1,11 +1,14 @@
 # PrivaC
 
-A Chrome extension that shows which companies a website connects you to, what it stores in your browser, and grades the site's privacy A to F. **C**, a letter-C character, pops up to decline cookie tracking for you and answers questions like "Who is LiveRamp and should I worry?", using **Gemma 4 running on your own computer**.
+> **This is the in-browser AI version.** C's AI, Gemma 4 E2B, runs inside Chrome on your computer's graphics chip
+> (Google's LiteRT-LM, WebGPU): no Ollama needed. Setup, needs and measured speed: [docs/IN-BROWSER-AI.md](docs/IN-BROWSER-AI.md).
+
+A Chrome extension that shows which companies a website connects you to, what it stores in your browser, and grades the site's privacy A to F. **C**, a letter-C character, pops up to decline cookie tracking for you and answers questions like "Who is LiveRamp and should I worry?", using **Gemma 4 running on your own computer** (here: inside Chrome).
 
 Built at Gator Hack V (UF AI Days 2026) for the "Fresh off the frontier" challenge.
 
 ## What's recent (and central)
-- **Gemma 4** (Google, released March 31, 2026): C's brain, run locally through Ollama. Your browsing and questions never leave the computer.
+- **Gemma 4** (Google, released March 31, 2026): C's brain, running inside Chrome with Google's **LiteRT-LM web runtime** (first published May 18, 2026; we use 0.18.0 from Oct 6, 2026), or through Ollama. Your browsing and questions never leave the computer.
 - **RegTrack** (arXiv 2603.02679, March 2026): measured how accepting cookies changes tracking on 743 websites. C quotes it. *(in progress)*
 - **Pentagon 1260H list** (updated June 8, 2026, adds Alibaba and Baidu): powers the foreign-adversary flag. *(in progress)*
 - **California Data Broker Registry 2026** and **Have I Been Pwned**: downloaded fresh every day.
@@ -20,10 +23,18 @@ Built at Gator Hack V (UF AI Days 2026) for the "Fresh off the frontier" challen
 ## Privacy
 PrivaC downloads whole public lists and matches them on your computer. It never sends what you visit to anyone. It stores site names and cookie names only (never full addresses or cookie contents) and deletes history after 7 days. Daily totals (numbers only, no site names) are kept 90 days for the week and month views. "Clear my PrivaC data" erases everything.
 
+## Download
+| Version | C's AI runs on | Download |
+|---|---|---|
+| **PrivaC** (main) | Gemma 4 E4B through the Ollama app on your computer | [main.zip](https://github.com/gormandyp/HackAGator_Privacy_Extension/archive/refs/heads/main.zip) · setup: [docs/OLLAMA.md](docs/OLLAMA.md) |
+| **PrivaC (in-browser AI)** | Gemma 4 E2B inside Chrome (WebGPU): nothing else to install | [in-browser-ai.zip](https://github.com/gormandyp/HackAGator_Privacy_Extension/archive/refs/heads/in-browser-ai.zip) · setup: [docs/IN-BROWSER-AI.md](https://github.com/gormandyp/HackAGator_Privacy_Extension/blob/in-browser-ai/docs/IN-BROWSER-AI.md) |
+
+Unzip, open `chrome://extensions`, turn on **Developer mode**, click **Load unpacked** and pick the unzipped folder. Load one version at a time.
+
 ## Try it
-1. Install Ollama and Gemma 4, and allow Chrome extensions: see [docs/OLLAMA.md](docs/OLLAMA.md).
-2. In Chrome, go to `chrome://extensions`, turn on **Developer mode**, click **Load unpacked**, and pick this folder.
-3. Pin PrivaC (puzzle-piece menu), browse a few sites, then click the C icon and open the dashboard.
+1. In Chrome, go to `chrome://extensions`, turn on **Developer mode**, click **Load unpacked**, and pick this folder.
+2. Pin PrivaC (puzzle-piece menu), browse a few sites, then click the C icon and open the dashboard.
+3. In **Ask C**, click **Download C's brain** (2.0 GB, one time). Nothing else to install. Prefer Ollama? See [docs/OLLAMA.md](docs/OLLAMA.md).
 
 After you change any file, click the circular reload arrow on the PrivaC card in `chrome://extensions`. Tests: `node --test`.
 
