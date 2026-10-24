@@ -53,7 +53,7 @@
       <div class="brain-text"><b>${esc(v.title)}</b>${v.text ? `<span>${esc(v.text)}</span>` : ""}
         ${typeof v.progress === "number" ? `<div class="brain-bar" role="progressbar" aria-valuenow="${v.progress}" aria-valuemin="0" aria-valuemax="100"><i style="width:${v.progress}%"></i></div>` : ""}
       </div>
-      ${v.actions.length ? `<div class="brain-actions">${v.actions.map(([cmd, label], i) => `<button type="button" data-brain="${cmd}" class="${i ? "brain-link" : "brain-btn"}">${esc(label)}</button>`).join("")}</div>` : ""}
+      ${v.actions.length ? `<div class="brain-actions">${v.actions.map(([cmd, label], i) => `<button type="button" data-brain="${cmd}" class="${i || v.tone === "quiet" ? "brain-link" : "brain-btn"}">${esc(label)}</button>`).join("")}</div>` : ""}
     </div>`;
   }
 
