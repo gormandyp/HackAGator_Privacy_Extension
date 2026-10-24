@@ -11,6 +11,19 @@
     try { chrome.runtime.sendMessage(msg); } catch (e) { /* extension reloaded; ignore */ }
   }
   const event = (name) => send({ type: "privac-event", event: name, domain: domain() });
+
+  // Settings: which of C's pop-ups may show (dashboard > Settings > C on websites). Default: all on.
+  const allowed = { cookie: true, acceptOnly: true, adversary: true };
+  function useSettings(s) {
+    const p = (s && s.popups) || {};
+    for (const k of Object.keys(allowed)) allowed[k] = p[k] !== false;
+  }
+  try {
+    chrome.storage.local.get("privacSettings").then((r) => useSettings(r && r.privacSettings)).catch(() => {});
+    chrome.storage.onChanged.addListener((changes, area) => {
+      if (area === "local" && changes.privacSettings) useSettings(changes.privacSettings.newValue);
+    });
+  } catch (e) { /* storage unavailable: keep defaults */ }
   const choice = (c) => send({ type: "cookieChoice", domain: domain(), choice: c });
 
   function label(el) {
@@ -23,11 +36,13 @@
       .some(b => /^do not sell or share my personal information$/i.test(label(b)));
   }
 
-  // Run `before` (counting), then the original pop-up exactly as it was.
-  function wrap(name, before) {
+  // Run `before` (counting), then the original pop-up exactly as it was, unless that pop-up is turned off
+  // in Settings (`setting`); then nothing shows and nothing is counted. Cookie choices are still recorded.
+  function wrap(name, before, setting, always) {
     const orig = P[name];
     if (typeof orig !== "function") return;
     P[name] = function (...args) {
+      if (setting && !allowed[setting]) { try { if (always) always(...args); } catch (e) { /* ignore */ } return; }
       try { before(...args); } catch (e) { /* counting must never break C */ }
       return orig.apply(this, args);
     };
@@ -49,9 +64,10 @@
       const choose = opts.onChoose;
       opts.onChoose = (...a) => { event("choose-click"); return choose(...a); };
     }
-  });
-  wrap("acceptOnly", () => { event("popup-accept-only"); if (!hasOptOut()) choice("no-reject"); });
-  wrap("adversary", () => event("popup-adversary"));
+  }, "cookie");
+  const noReject = () => { if (!hasOptOut()) choice("no-reject"); };
+  wrap("acceptOnly", () => { event("popup-accept-only"); noReject(); }, "acceptOnly", noReject);
+  wrap("adversary", () => event("popup-adversary"), "adversary");
   wrap("ignored", () => { event("rejected-on-site"); choice("declined"); });   // you clicked the site's own Reject
 
   // You clicked a cookie banner's "Accept all" yourself.

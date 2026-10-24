@@ -36,6 +36,8 @@
   async function check(domain, links) {
     await mapReady;
     if (!MAP || inFlight.has(domain)) return;
+    const prefs = (await chrome.storage.local.get("privacSettings")).privacSettings;
+    if (prefs && prefs.policyReader === false) return;     // turned off in Settings
     const res = await chrome.storage.local.get("privacData");
     const site = res.privacData && Array.isArray(res.privacData.sites) && res.privacData.sites.find((s) => s.domain === domain);
     if (!site) return;                                       // only sites PrivaC has recorded

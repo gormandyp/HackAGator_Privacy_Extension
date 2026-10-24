@@ -1,64 +1,132 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="light" data-style="glass">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
   <title>PrivaC dashboard</title>
   <link rel="stylesheet" href="../shared/theme.css">
   <link rel="stylesheet" href="dashboard.css">
+  <script src="../shared/settings.js"></script>
+  <script src="../shared/theme-boot.js"></script>
 </head>
 <body>
-  <header class="top">
-    <div class="wrap top-inner">
-      <span id="wordmark"></span>
-      <button class="btn secondary" id="clear">Clear my PrivaC data</button>
+  <div class="backdrop" aria-hidden="true"></div>
+
+  <header class="toolbar">
+    <div class="toolbar-inner glass">
+      <span class="brand"><span id="wordmark"></span><span id="sample-note" class="sample-badge" title="Browse with PrivaC on and your own sites appear here." hidden>Sample data</span></span>
+      <nav class="segmented" id="tabs" role="tablist" aria-label="Dashboard sections">
+        <span class="seg-thumb" aria-hidden="true"></span>
+        <button role="tab" id="tab-overview" aria-controls="panel-overview" data-tab="overview">Overview</button>
+        <button role="tab" id="tab-sites" aria-controls="panel-sites" data-tab="sites">Sites</button>
+        <button role="tab" id="tab-impact" aria-controls="panel-impact" data-tab="impact">C's impact</button>
+        <button role="tab" id="tab-safety" aria-controls="panel-safety" data-tab="safety">Safety</button>
+        <button role="tab" id="tab-ask" aria-controls="panel-ask" data-tab="ask">Ask C</button>
+        <button role="tab" id="tab-grades" aria-controls="panel-grades" data-tab="grades">Grades</button>
+      </nav>
+      <button class="icon-btn" id="open-settings" aria-label="Settings" aria-haspopup="dialog" aria-controls="settings">
+        <svg viewBox="0 0 24 24" width="19" height="19" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" d="M12 15.2a3.2 3.2 0 1 0 0-6.4 3.2 3.2 0 0 0 0 6.4Z"/><path fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" d="M19.4 13.5a7.7 7.7 0 0 0 0-3l2-1.6-2-3.4-2.4 1a7.6 7.6 0 0 0-2.6-1.5L14 2.5h-4l-.4 2.5a7.6 7.6 0 0 0-2.6 1.5l-2.4-1-2 3.4 2 1.6a7.7 7.7 0 0 0 0 3l-2 1.6 2 3.4 2.4-1a7.6 7.6 0 0 0 2.6 1.5l.4 2.5h4l.4-2.5a7.6 7.6 0 0 0 2.6-1.5l2.4 1 2-3.4-2-1.6Z"/></svg>
+      </button>
     </div>
   </header>
-  <div id="sample-note" class="sample-note" hidden>Showing sample data. Browse with PrivaC on and your own sites will appear here.</div>
 
-  <main class="wrap">
-    <section class="intro" id="intro"></section>
+  <main class="page">
+    <!-- Overview -->
+    <section class="panel" id="panel-overview" role="tabpanel" aria-labelledby="tab-overview">
+      <div class="ov-grid">
+        <div class="hero glass" id="intro"></div>
+        <div class="card glass gauge-card" id="exposure"></div>
+        <div class="card glass facts-card" id="facts"></div>
+        <div class="card glass week-card" id="week"></div>
+        <div class="card glass" id="purposes"></div>
+        <div class="card glass" id="cookies-card"></div>
+        <div class="card glass" id="countries"></div>
+        <div class="card glass follow-card" id="follow"></div>
+      </div>
+    </section>
 
-    <section class="block" id="ask-c" aria-labelledby="ask-c-title">
-      <h2 id="ask-c-title">Ask C</h2>
-      <p class="lede">Ask about any company or site. C searches tracker, data-broker, breach and research records on this computer and labels where each fact came from.</p>
-      <div class="ask-card">
-        <div class="ask-face" id="ask-c-face" aria-hidden="true"></div>
-        <div class="ask-main">
-          <div class="ask-thread" id="ask-thread" aria-live="polite">
-            <p class="ask-empty" id="ask-empty">Try a question below, or type your own.</p>
+    <!-- Sites -->
+    <section class="panel" id="panel-sites" role="tabpanel" aria-labelledby="tab-sites" hidden>
+      <div class="panel-head">
+        <h1>Your sites</h1>
+        <p>Pick a site to see what raised or lowered its grade. Each site combines your visits from the last 7 days.</p>
+      </div>
+      <div class="split">
+        <div class="site-index glass" id="sites" role="listbox" aria-label="Your sites"></div>
+        <article class="site-detail glass" id="site-detail" aria-live="polite"></article>
+      </div>
+    </section>
+
+    <!-- C's impact -->
+    <section class="panel" id="panel-impact" role="tabpanel" aria-labelledby="tab-impact" hidden>
+      <div class="panel-head with-range">
+        <div>
+          <h1>What C did for you</h1>
+          <p>Every time C stepped in on a website, and what you did next. PrivaC doesn't block anything; it warns you and helps you say no.</p>
+        </div>
+        <div class="range segmented small" data-range-for="impact" role="radiogroup" aria-label="Time range">
+          <span class="seg-thumb" aria-hidden="true"></span>
+          <button role="radio" data-range="day">Today</button>
+          <button role="radio" data-range="week">7 days</button>
+          <button role="radio" data-range="month">30 days</button>
+        </div>
+      </div>
+      <div id="impact"></div>
+    </section>
+
+    <!-- Safety over time -->
+    <section class="panel" id="panel-safety" role="tabpanel" aria-labelledby="tab-safety" hidden>
+      <div class="panel-head with-range">
+        <div>
+          <h1>Your safety over time</h1>
+          <p>How risky the sites you visited were, day by day. PrivaC keeps daily totals for 90 days, numbers only, no site names.</p>
+        </div>
+        <div class="range segmented small" data-range-for="safety" role="radiogroup" aria-label="Time range">
+          <span class="seg-thumb" aria-hidden="true"></span>
+          <button role="radio" data-range="day">Today</button>
+          <button role="radio" data-range="week">7 days</button>
+          <button role="radio" data-range="month">30 days</button>
+        </div>
+      </div>
+      <div id="safety"></div>
+    </section>
+
+    <!-- Ask C -->
+    <section class="panel" id="panel-ask" role="tabpanel" aria-labelledby="ask-c-title" hidden>
+      <div class="chat glass" id="ask-c">
+        <div class="chat-head">
+          <div class="ask-face" id="ask-c-face" aria-hidden="true"></div>
+          <div>
+            <b id="ask-c-title">Ask C</b>
+            <span>Gemma 4 runs right in your browser, on this computer. Your questions and browsing never leave it.</span>
           </div>
+        </div>
+        <div class="ask-thread" id="ask-thread" aria-live="polite">
+          <p class="ask-empty" id="ask-empty"><strong>Ask about any company or site.</strong>C checks tracker, data-broker, breach and research records on this computer and labels where each fact came from.</p>
+        </div>
+        <div class="chat-foot">
           <div class="ask-suggest" id="ask-suggest"></div>
           <form class="ask-form" id="ask-form">
             <label class="visually-hidden" for="ask-input">Your question for C</label>
             <input id="ask-input" type="text" autocomplete="off" placeholder="Who is Criteo? Which sites shared the most?">
             <button class="btn" id="ask-send" type="submit">Ask</button>
           </form>
-          <p class="ask-fine">C runs on this computer: Gemma 4 in your browser (or Ollama). Your questions and browsing never leave it.</p>
         </div>
       </div>
     </section>
 
-    <section class="block">
-      <h2>Who followed you across sites</h2>
-      <p class="lede">Each dot means that company's tracker loaded while you were on that site. A company that shows up on many sites has a chance to connect those visits into one picture of you.</p>
-      <div class="matrix-scroll"><table class="matrix" id="matrix"></table></div>
-      <p class="callout" id="callout"></p>
-    </section>
-
-    <section class="block">
-      <h2>Your sites</h2>
-      <p class="lede">Open a site to see exactly what raised or lowered its grade.</p>
-      <div id="sites"></div>
-    </section>
-
-    <section class="block">
-      <h2>How the grade works</h2>
-      <p class="lede">The exposure score runs from 0 (barely exposed) to 100 (heavily exposed). It's our team's rubric, not a probability that your data will be sold or breached. Only things PrivaC actually saw or found on record add points; anything unknown adds nothing.</p>
+    <!-- How grades work -->
+    <section class="panel" id="panel-grades" role="tabpanel" aria-labelledby="tab-grades" hidden>
+      <div class="panel-head">
+        <h1>How the grade works</h1>
+        <p>The exposure score runs from 0 (barely exposed) to 100 (heavily exposed). It's our team's rubric, not a probability that your data will be sold or breached. Only things PrivaC saw or found on record add points; anything unknown adds nothing.</p>
+      </div>
       <div class="rubric">
-        <table>
-          <thead><tr><th>What we check</th><th>Points</th></tr></thead>
-          <tbody>
+        <div class="card glass">
+          <table id="rubric">
+            <thead><tr><th>What we check</th><th>Points</th><th><span class="visually-hidden">Ask C</span></th></tr></thead>
+            <tbody>
             <tr><td>Each tracker connection to an outside company</td><td>5 each, up to 40</td></tr>
             <tr><td>Each one used for advertising, data brokering or screen recording</td><td>5 each, up to 20</td></tr>
             <tr><td>Cookies: accepted all, banner had no Reject button, or no banner while the site tracks you / declined, or no banner and no tracking</td><td>10 / 0</td></tr>
@@ -66,38 +134,88 @@
             <tr><td>Privacy policy: sells / shares / neither / not checked yet</td><td>15 / 8 / 0 / 0</td></tr>
             <tr><td>The site's own data breaches (Have I Been Pwned), all listed, worst one counts: reported in the last 12 months / in the last 5 years or 100 million+ accounts / older</td><td>15 / 5 / 0</td></tr>
           </tbody>
-        </table>
-        <div class="grades-key" id="grades-key"></div>
+          </table>
+        </div>
+        <div class="card glass grades-key" id="grades-key"></div>
       </div>
-
       <div class="evidence">
-        <div>
-          <h3>Observed</h3>
-          <p>Connections your browser actually made while you were on a site. PrivaC sees these directly.</p>
-        </div>
-        <div>
-          <h3>Disclosed</h3>
-          <p>What a company says in its own privacy policy, like whether it sells or shares your information.</p>
-        </div>
-        <div>
-          <h3>Unknown</h3>
-          <p>What happens after data reaches a company's servers. Companies can pass it along server to server, out of any browser's view.</p>
-        </div>
+        <div class="glass"><h3>Observed</h3><p>Connections your browser actually made while you were on a site. PrivaC sees these directly.</p></div>
+        <div class="glass"><h3>Disclosed</h3><p>What a company says in its own privacy policy, like whether it sells or shares your information.</p></div>
+        <div class="glass"><h3>Unknown</h3><p>What happens after data reaches a company's servers. Companies can pass it along server to server, out of any browser's view.</p></div>
       </div>
       <p class="fine">Foreign-adversary countries follow the U.S. Commerce Department list in 15 CFR § 7.4. A flag means a tracker belongs to a company based there, not that your data was sent to a government.</p>
+      <footer class="foot">
+        <p><b>Your browsing and your questions to C stay on this computer.</b> PrivaC only downloads public lists (trackers, data breaches, data brokers) and never sends anything about what you visit. It saves site names and cookie names only (never full web addresses or what's inside a cookie), and deletes history older than 7 days on its own. Daily totals (numbers only, no site names) are kept for 90 days so you can see your week and month.</p>
+        <p class="sources">Sources: tracker data from <a href="https://github.com/duckduckgo/tracker-radar" target="_blank" rel="noopener">DuckDuckGo Tracker Radar</a> (CC BY-NC-SA 4.0) · breach data from <a href="https://haveibeenpwned.com" target="_blank" rel="noopener">Have I Been Pwned</a> (CC BY 4.0) · data broker list from the <a href="https://cppa.ca.gov/data_broker_registry/" target="_blank" rel="noopener">California Privacy Protection Agency</a> · cookie purposes from the <a href="https://github.com/jkwakman/Open-Cookie-Database" target="_blank" rel="noopener">Open Cookie Database</a> (Apache 2.0) · AI: Gemma 4 running in your browser with <a href="https://ai.google.dev/edge/litert-lm" target="_blank" rel="noopener">LiteRT-LM</a> (Apache 2.0), or locally with Ollama.</p>
+      </footer>
     </section>
   </main>
 
-  <footer class="wrap foot">
-    <p><b>Your browsing and your questions to C stay on this computer.</b> PrivaC only downloads public lists (trackers, data breaches, data brokers) and never sends anything about what you visit. It saves site names and cookie names only (never full web addresses or what's inside a cookie), and deletes history older than 7 days on its own. Daily totals (numbers only, no site names) are kept for 90 days so you can see your week and month.</p>
-    <p class="sources">Sources: tracker data from <a href="https://github.com/duckduckgo/tracker-radar" target="_blank" rel="noopener">DuckDuckGo Tracker Radar</a> (CC BY-NC-SA 4.0) · breach data from <a href="https://haveibeenpwned.com" target="_blank" rel="noopener">Have I Been Pwned</a> (CC BY 4.0) · data broker list from the <a href="https://cppa.ca.gov/data_broker_registry/" target="_blank" rel="noopener">California Privacy Protection Agency</a> · cookie purposes from the <a href="https://github.com/jkwakman/Open-Cookie-Database" target="_blank" rel="noopener">Open Cookie Database</a> (Apache 2.0) · AI: Gemma 4 running in your browser with <a href="https://ai.google.dev/edge/litert-lm" target="_blank" rel="noopener">LiteRT-LM</a> (Apache 2.0), or locally with Ollama.</p>
-  </footer>
+  <!-- Settings -->
+  <div class="sheet-scrim" id="settings-scrim" hidden></div>
+  <aside class="sheet glass" id="settings" role="dialog" aria-modal="true" aria-labelledby="settings-title" hidden>
+    <div class="sheet-head">
+      <h2 id="settings-title">Settings</h2>
+      <button class="icon-btn" id="close-settings" aria-label="Close settings">
+        <svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+
+    <h3 class="group-title">Appearance</h3>
+    <div class="group">
+      <div class="row">
+        <span>Mode</span>
+        <div class="segmented small" data-setting="appearance" role="radiogroup" aria-label="Mode">
+          <span class="seg-thumb" aria-hidden="true"></span>
+          <button role="radio" data-value="system">Auto</button>
+          <button role="radio" data-value="light">Light</button>
+          <button role="radio" data-value="dark">Dark</button>
+        </div>
+      </div>
+      <div class="row">
+        <span>Style</span>
+        <div class="segmented small" data-setting="style" role="radiogroup" aria-label="Style">
+          <span class="seg-thumb" aria-hidden="true"></span>
+          <button role="radio" data-value="glass">Liquid glass</button>
+          <button role="radio" data-value="clean">Clean</button>
+        </div>
+      </div>
+    </div>
+    <p class="group-note">Auto follows your Mac's light and dark mode.</p>
+
+    <h3 class="group-title">C on websites</h3>
+    <div class="group">
+      <label class="row"><span>Offer to decline cookies<small>When a banner has a Reject button</small></span><input type="checkbox" class="switch" data-popup="cookie"></label>
+      <label class="row"><span>Warn about banners with no Reject<small>"Beware" when a banner only has Accept</small></span><input type="checkbox" class="switch" data-popup="acceptOnly"></label>
+      <label class="row"><span>Foreign-adversary alerts<small>When a page connects to a company in a listed country</small></span><input type="checkbox" class="switch" data-popup="adversary"></label>
+    </div>
+    <p class="group-note">A pop-up you turn off stays off on every site. PrivaC still grades the site.</p>
+
+    <h3 class="group-title">On this computer</h3>
+    <div class="group">
+      <label class="row"><span>Read privacy policies with Gemma<small>Checks whether a site says it sells or shares your data</small></span><input type="checkbox" class="switch" data-setting-bool="policyReader"></label>
+    </div>
+
+    <h3 class="group-title">Your data</h3>
+    <div class="group">
+      <button class="row destructive" id="clear" type="button">Clear my PrivaC data</button>
+    </div>
+    <p class="group-note">Site history is deleted after 7 days on its own. Daily totals (numbers only) are kept for 90 days. Settings stay.</p>
+  </aside>
+
+  <div class="chart-tip" id="chart-tip" role="tooltip" hidden></div>
 
   <script src="../shared/mascot.js"></script>
   <script src="../shared/lists.js"></script>
   <script src="../shared/cookies.js"></script>
   <script src="../shared/data.js"></script>
+  <script src="../shared/stats.js"></script>
+  <script src="../shared/highlights.js"></script>
+  <script src="explain.js"></script>
   <script src="dashboard.js"></script>
+  <script src="activity.js"></script>
+  <script src="overview.js"></script>
+  <script src="tabs.js"></script>
   <script src="ask-c.js"></script>
   <script src="brain-card.js"></script>
 </body>
