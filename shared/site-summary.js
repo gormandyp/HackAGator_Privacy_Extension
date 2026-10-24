@@ -116,6 +116,10 @@
 
   // "How this grade was calculated", five numbered steps with this site's own numbers (dashboard site detail).
   const RANGES = { A: "0-20", B: "21-40", C: "41-60", D: "61-80", F: "81-100" };
+  function spread(D, range) {
+    const lo = D.gradeFor(range.min), hi = D.gradeFor(range.max);
+    return lo === hi ? `${/^[AEF]/.test(lo) ? "an" : "a"} ${lo} either way` : `${lo} to ${hi}`;
+  }
   function steps(site) {
     const D = root.PrivaCData;
     const parts = site.parts || [];
@@ -128,7 +132,7 @@
       pts.length ? `Each rule adds points for what was found: ${pts.join(" + ")} = ${total}${total > 100 ? ", capped at 100" : ""}.` : "Nothing added points, so the score is 0.",
       `An exposure score of ${site.score} is ${/^[AEF]/.test(site.grade) ? "an" : "a"} ${site.grade} (${site.grade} is ${RANGES[site.grade]}). Higher means more exposed.`,
       open.length
-        ? `Unknown things add nothing to the score, but they set the range. ${open.map((p) => `${p.unknown[0].toUpperCase()}${p.unknown.slice(1)}: up to +${p.worst - p.points} more`).join("; ")}, so the range is ${c.range.min}-${c.range.max} (${D && D.gradeFor ? D.gradeFor(c.range.min) : site.grade} to ${D && D.gradeFor ? D.gradeFor(c.range.max) : site.grade}).`
+        ? `Unknown things add nothing to the score, but they set the range. ${open.map((p) => `${p.unknown[0].toUpperCase()}${p.unknown.slice(1)}: up to +${p.worst - p.points} more`).join("; ")}, so the range is ${c.range.min}-${c.range.max} (${spread(D, c.range)}).`
         : `Nothing is unknown, so the range is just ${site.score}.`,
       `${c.label}: ${c.coverage}% of the grade's ${(D && D.RUBRIC_MAX) || 115} possible points have an answer.`
     ];

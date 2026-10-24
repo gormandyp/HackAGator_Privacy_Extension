@@ -134,6 +134,9 @@ test("steps: the site's own points add up, then the letter, the unknowns and the
   assert.match(s[1], /15 \+ 15 \+ 10 = 40/);
   assert.match(s[2], /40 is a B \(B is 21-40\)/);
   assert.match(s[3], /privacy policy isn't read yet: up to \+15 more, so the range is 40-55/);
+  assert.match(s[3], /range is 40-55 \(B to C\)/);
+  const one = steps(scored({ domain: "n.example", trackers: [T.gAds, T.fb, T.amzn, T.gAn], cookieChoice: "accepted", policy: {} }));
+  assert.match(one[3], /range is 45-60 \(a C either way\)/);
   assert.match(s[4], /Partly checked: 87% of the grade's 115 possible points have an answer/);
   const clean = steps(scored({ domain: "q.example", trackers: [], cookieChoice: "declined", policy: { sells: false, shares: false } }));
   assert.match(clean[1], /Nothing added points, so the score is 0/);
