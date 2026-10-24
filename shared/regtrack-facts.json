@@ -1,0 +1,65 @@
+{
+  "paper": "RegTrack: Uncovering Global Disparities in Third-party Advertising and Tracking",
+  "authors": "Tanya Prasad, Rut Vora, Soo Yee Lim, Nguyen Phong Hoang, Thomas Pasquier (University of British Columbia)",
+  "venue": "NDSS Workshop on Measurements, Attacks, and Defenses for the Web (MADWeb) 2026",
+  "firstPublic": "February 2026 (MADWeb); arXiv 2603.02679, March 2026",
+  "pdf": "https://www.ndss-symposium.org/wp-content/uploads/madweb2026-10.pdf",
+  "arxiv": "https://arxiv.org/abs/2603.02679",
+  "code": "https://github.com/ubc-spg/RegTrack",
+  "pageNumbers": "Pages refer to the NDSS PDF above (title page = page 1).",
+  "terms": "A&T = advertising and tracking third-party domains.",
+  "rules": [
+    "The paper tested only two consent states: no click and accept-all. It did NOT test rejecting. Never say 'rejecting removes X trackers'.",
+    "These are averages from a crawl of 743 sites, not measurements of the site you are on."
+  ],
+  "facts": [
+    {
+      "id": "scope",
+      "text": "RegTrack crawled 743 websites from 8 locations, with 4 browsers and 2 cookie-consent states.",
+      "page": 1,
+      "section": "Abstract"
+    },
+    {
+      "id": "accept-us",
+      "text": "From Ohio, clicking accept-all raised the average number of advertising and tracking domains per site from 48.5 to 56.2, about 16% more.",
+      "page": 4,
+      "section": "IV-B"
+    },
+    {
+      "id": "accept-eu",
+      "text": "From France, clicking accept-all raised the average number of advertising and tracking domains per site from 9.3 to 33.9, about 265% more.",
+      "page": 4,
+      "section": "IV-B"
+    },
+    {
+      "id": "us-before-consent",
+      "text": "Before any click, sites without a cookie banner loaded 37 to 58 advertising and tracking domains for visitors outside the EU, versus 8 to 10 for EU visitors.",
+      "page": 4,
+      "section": "IV-B"
+    },
+    {
+      "id": "brave",
+      "text": "In Ohio, the Brave browser saw 31% fewer advertising and tracking domains than Chrome.",
+      "page": 3,
+      "section": "IV-A"
+    },
+    {
+      "id": "concentration",
+      "text": "Half of the sites accounted for 97% of the advertising and tracking domains observed.",
+      "page": 4,
+      "section": "IV-B"
+    },
+    {
+      "id": "us-in-region",
+      "text": "For U.S. visitors (Ohio and California), about 69% to 72% of tracking requests went to servers in the same region.",
+      "page": 4,
+      "section": "IV-C, Table I"
+    },
+    {
+      "id": "limits",
+      "text": "The authors note they modeled only two consent states (no click and accept-all).",
+      "page": 6,
+      "section": "V-B"
+    }
+  ]
+}
