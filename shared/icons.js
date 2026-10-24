@@ -29,15 +29,22 @@
     breach: '<rect x="5" y="10.5" width="14" height="10" rx="2.6"/><path d="M8.2 10.5V8a3.8 3.8 0 0 1 7.3-1.5"/><path d="M12 14v2.6"/>'
   };
 
+  const root = typeof window !== "undefined" ? window : self;
+  // C is the mascot, not a letter (Max, IDEA.md): "c" draws C's face from shared/mascot.js. Decoration only,
+  // since a text label always sits beside it.
+  const face = (size) => root.PrivaCMascot.svg("happy", { body: false, size: size || 16, label: "C" })
+    .replace(/role="img" aria-label="C"/, 'aria-hidden="true" focusable="false"');
+
   // icon("eye") -> a bare glyph; tile("eye", "purple") -> the glyph on a colored rounded square.
   function icon(name, size) {
+    if (name === "c" && root.PrivaCMascot) return face(size);
     const g = GLYPHS[name] || GLYPHS.list;
     return size ? S(g).replace('width="16" height="16"', `width="${size}" height="${size}"`) : S(g);
   }
   function tile(name, color, size) {
+    if (name === "c" && root.PrivaCMascot) return `<span class="icon-tile tile-face${size ? " tile-" + size : ""} c-face" aria-hidden="true">${face()}</span>`;
     return `<span class="icon-tile tile-${color || "gray"}${size ? " tile-" + size : ""}" aria-hidden="true">${icon(name)}</span>`;
   }
 
-  const root = typeof window !== "undefined" ? window : self;
   root.PrivaCIcons = { icon, tile, GLYPHS };
 })();

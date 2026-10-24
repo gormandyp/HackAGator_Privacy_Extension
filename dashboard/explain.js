@@ -3,13 +3,13 @@
 // "Continue in Ask C" moves the question and answer into the chat. Answers are kept for this visit.
 (function () {
   const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-  const GLYPH = `<svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path d="M16.6 7.3a6.6 6.6 0 1 0 0 9.4" fill="none" stroke="#fa4616" stroke-width="3.4" stroke-linecap="round"/></svg>`;
+  const GLYPH = window.PrivaCIcons ? PrivaCIcons.icon("c", 15) : "C";   // C's face (shared/icons.js)
   const answers = new Map();   // question -> { html } | Promise
   let pop = null, anchor = null;
 
   // The button every list row uses. `about` is what the screen reader hears ("Ask C about Google").
   function button(question, about) {
-    return `<button type="button" class="ask-btn" data-ask="${esc(question)}" aria-label="Ask C about ${esc(about || "this")}" title="Ask C">${GLYPH}</button>`;
+    return `<button type="button" class="ask-btn c-face" data-ask="${esc(question)}" aria-label="Ask C about ${esc(about || "this")}" title="Ask C">${GLYPH}</button>`;
   }
 
   function hasRuntime() {

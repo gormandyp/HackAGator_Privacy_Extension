@@ -164,6 +164,11 @@ h1, h2, h3 { font-family: var(--font-display); color: var(--text); font-weight: 
 .tile-blue { --tile: var(--t-blue); } .tile-green { --tile: var(--t-green); } .tile-indigo { --tile: var(--t-indigo); }
 .tile-orange { --tile: var(--t-orange); } .tile-pink { --tile: var(--t-pink); } .tile-purple { --tile: var(--t-purple); }
 .tile-red { --tile: var(--t-red); } .tile-teal { --tile: var(--t-teal); } .tile-gray { --tile: var(--t-gray); }
+/* C's face instead of a letter on an orange square (shared/icons.js); his navy lines turn light in dark mode. */
+.icon-tile.tile-face { background: var(--fill); }
+.icon-tile.tile-face svg { width: 80%; height: auto; }
+[data-theme="dark"] .c-face svg [stroke="#16233f"] { stroke: #dfe5ef; }
+[data-theme="dark"] .c-face svg [fill="#16233f"] { fill: #dfe5ef; }
 .tile-c { --tile: var(--t-c); } .tile-grade { --tile: var(--gs); }
 .tile-yellow { --tile: var(--t-yellow); color: #4a3500; }
 .head-title { display: flex; align-items: flex-start; gap: 10px; min-width: 0; }
