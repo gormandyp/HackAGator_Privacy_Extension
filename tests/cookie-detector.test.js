@@ -44,11 +44,24 @@ function load(controls, { hosts = [], cookie = "" } = {}) {
     isCelebrating: () => false
   };
   const saved = [];
+  const later = new Map();   // the detector's own timers over 200 ms, run by clock.tick()
+  const clock = { now: 0, nextId: 1, checks: 0 };
+  clock.tick = (ms) => {
+    const end = clock.now + ms;
+    for (;;) {
+      const due = [...later].filter(([, t]) => t.at <= end).sort((a, b) => a[1].at - b[1].at)[0];
+      if (!due) break;
+      later.delete(due[0]);
+      clock.now = due[1].at;
+      due[1].fn();
+    }
+    clock.now = end;
+  };
   const document = {
     cookie,
     documentElement: {},
     querySelectorAll(sel) {
-      if (sel === "*") return hosts;
+      if (sel === "*") { clock.checks++; return hosts; }
       const withLinks = /(^|,\s*)a(\[|,|$)/.test(sel);
       return controls.filter((c) => c.kind === "button" || withLinks);
     }
@@ -56,12 +69,20 @@ function load(controls, { hosts = [], cookie = "" } = {}) {
   const ctx = {
     console: { log() {}, warn() {}, table() {}, error() {} },
     document, location: { hostname: "www.shop.example" }, innerWidth: 1440, innerHeight: 900,
-    MutationObserver: class { observe() {} },
+    MutationObserver: class {
+      constructor(callback) { ctx.observer = { callback }; }
+      observe(target, options) { ctx.observer.options = options; }
+    },
     getComputedStyle: () => ({ display: "block", visibility: "visible" }),
-    // onDecline's 200 ms waits run right away; the detector's own 1.5 s and 4 s re-checks are left out
-    // so each test decides how many checks run.
-    setTimeout: (fn, ms) => { if (ms <= 200) setImmediate(fn); return 0; },
-    clearTimeout() {},
+    // onDecline's 200 ms waits run right away; the detector's own longer timers (its 1.5 s and 4 s re-checks,
+    // the re-check after the page changes) only run when a test calls clock.tick(ms).
+    setTimeout: (fn, ms) => {
+      if (ms <= 200) { setImmediate(fn); return 0; }
+      const id = clock.nextId++;
+      later.set(id, { fn, at: clock.now + ms });
+      return id;
+    },
+    clearTimeout(id) { later.delete(id); },
     atob: (s) => Buffer.from(s, "base64").toString("binary"),
     chrome: { storage: { local: { get: async () => ({ privacData: { sites: [] } }), set: async (v) => saved.push(v) } } }
   };
@@ -69,7 +90,7 @@ function load(controls, { hosts = [], cookie = "" } = {}) {
   ctx.top = ctx;   // the top page, not a frame
   ctx.PrivaCPrompt = P;
   vm.runInNewContext(SRC, ctx);
-  return { calls, ctx, saved, kinds: () => calls.map((c) => c[0]) };
+  return { calls, ctx, saved, clock, kinds: () => calls.map((c) => c[0]) };
 }
 
 // Each new Reject label: C offers to decline, on a banner with only that button and Accept.
@@ -232,4 +253,40 @@ test("banner still showing but the consent record says declined: confirmed", asy
 test("banner still showing and no record: C honestly says it didn't work", async () => {
   assert.strictEqual(await declineWhere(() => {}), "failed");
   assert.strictEqual(await declineWhere((b) => { b.checkVisibility = () => true; }), "failed");
+});
+
+// C staying silent (R14). The detector re-checks the page after it changes, since pop-ups often load late.
+const pageChange = { target: { closest: () => null } };
+
+test("a busy page (a price ticker changing every 100 ms) still gets re-checked: C asks about a late pop-up", () => {
+  const controls = [];
+  const page = load(controls);
+  page.clock.tick(5000);   // the 1.5 s and 4 s re-checks: nothing there yet
+  controls.push(...bannerWith(["Accept all", "Reject all"]).controls);
+  for (let i = 0; i < 20; i++) {   // 2 seconds of the ticker changing the page
+    page.ctx.observer.callback([pageChange]);
+    page.clock.tick(100);
+  }
+  assert.deepStrictEqual(page.kinds(), ["cookie"]);
+});
+
+test("a pop-up already in the page but shown later by a style or class change is noticed", () => {
+  const page = load([]);
+  const { options } = page.ctx.observer;
+  assert.strictEqual(options.childList, true);
+  assert.strictEqual(options.subtree, true);
+  assert.strictEqual(options.attributes, true, "watches attribute changes, not only added elements");
+  for (const name of ["style", "class", "hidden"]) assert.ok(options.attributeFilter.includes(name), name);
+});
+
+test("C moving himself around doesn't make the detector re-check the page", () => {
+  const page = load([]);
+  page.clock.tick(5000);
+  const before = page.clock.checks;
+  const cMoved = { target: { closest: (sel) => (sel === "privac-prompt" ? {} : null) } };
+  for (let i = 0; i < 10; i++) { page.ctx.observer.callback([cMoved]); page.clock.tick(100); }
+  assert.strictEqual(page.clock.checks, before);
+  page.ctx.observer.callback([cMoved, pageChange]);
+  page.clock.tick(400);
+  assert.ok(page.clock.checks > before, "a real page change still does");
 });

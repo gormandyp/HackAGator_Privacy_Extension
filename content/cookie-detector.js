@@ -529,15 +529,23 @@
 
   const check = inFrame ? checkFrame : checkForCookieBanner;
 
-  // Cookie banners often load after the webpage itself.
-  const observer = new MutationObserver(() => {
-    clearTimeout(timer);
-    timer = setTimeout(check, 350);
+  // Cookie banners often load after the webpage itself, or are already in the page and shown later by a
+  // style or class change. Check at most every 350 ms while the page changes: a timer that restarted on
+  // every change never ran on busy pages (a price ticker, a carousel). C moving himself doesn't count.
+  const observer = new MutationObserver((records) => {
+    if (timer) return;
+    if (records.every(r => r.target.closest && r.target.closest("privac-prompt"))) return;
+    timer = setTimeout(() => {
+      timer = null;
+      check();
+    }, 350);
   });
 
   observer.observe(document.documentElement, {
     childList: true,
-    subtree: true
+    subtree: true,
+    attributes: true,
+    attributeFilter: ["style", "class", "hidden", "open", "aria-hidden"]
   });
 
   // Lets the tests run a re-check (tests/cookie-detector.test.js).
