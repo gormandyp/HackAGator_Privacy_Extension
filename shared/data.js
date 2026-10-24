@@ -242,8 +242,10 @@
   }
   function annotateListed(data, file) {
     const list = (file && file.companies) || [];
+    const byName = new Map();   // first entry per company name, like list.find
+    for (const c of list) { const k = c.atlasCompany.toLowerCase(); if (!byName.has(k)) byName.set(k, c); }
     for (const s of (data && data.sites) || []) for (const t of s.trackers || []) {
-      const hit = list.find(c => c.atlasCompany.toLowerCase() === String(t.company || "").toLowerCase());
+      const hit = byName.get(String(t.company || "").toLowerCase());
       t.listed = hit ? { list: "Section 1260H", date: file.listDate, contested: /sued|contest/i.test(hit.note || "") } : null;
     }
     return data;

@@ -58,7 +58,18 @@
 
   // ---------- matching (pure) ----------
   const SUFFIX = /\b(inc|llc|l\.l\.c|corp|corporation|co|company|ltd|limited|plc|sa|ag|gmbh|bv|holdings?|group|the)\b\.?/g;
-  function norm(s) { return String(s || "").toLowerCase().replace(/&/g, " and ").replace(SUFFIX, " ").replace(/[^a-z0-9 ]/g, " ").replace(/\s+/g, " ").trim(); }
+  // Company names repeat on almost every site (Google, Meta...), so each cleaned name is remembered.
+  const NORMED = new Map();
+  function norm(s) {
+    const key = String(s || "");
+    let v = NORMED.get(key);
+    if (v === undefined) {
+      v = key.toLowerCase().replace(/&/g, " and ").replace(SUFFIX, " ").replace(/[^a-z0-9 ]/g, " ").replace(/\s+/g, " ").trim();
+      if (NORMED.size > 20000) NORMED.clear();
+      NORMED.set(key, v);
+    }
+    return v;
+  }
 
   function suffixes(host) {
     const p = String(host || "").split("."); const out = [];
@@ -66,21 +77,44 @@
     return out;
   }
 
-  // Is this tracker's company a registered California data broker? Returns the registry entry or null.
-  function brokerFor(company, trackerDomain, lists, ownedDomains) {
-    const list = lists && lists.brokers && lists.brokers.list;
-    if (!list || !company) return null;
-    const c = norm(company);
-    const domains = new Set([...(ownedDomains || []), ...suffixes(trackerDomain)]);
-    for (const b of list) {
-      if (b.site && domains.has(b.site)) return b;
+  // Speed: the registry (~560 entries) is indexed once per downloaded list instead of being scanned
+  // (with name clean-up) for every tracker on every site each time a page opens.
+  // index.site / index.name / index.lead map a website, a cleaned name, or a cleaned name's first word(s)
+  // to the FIRST registry entry (list order) that has it, so answers match the one-by-one scan exactly.
+  const INDEXES = new WeakMap();
+  function brokerIndex(list) {
+    let ix = INDEXES.get(list);
+    if (ix && ix.n === list.length) return ix;
+    ix = { n: list.length, site: new Map(), name: new Map(), lead: new Map() };
+    const first = (map, key, i) => { if (!map.has(key)) map.set(key, i); };
+    list.forEach((b, i) => {
+      if (b.site) first(ix.site, b.site, i);
       for (const n of [b.name, b.dba]) {
         const x = norm(n);
         if (!x) continue;
-        if (x === c || (c.length >= 5 && x.startsWith(c + " "))) return b;
+        first(ix.name, x, i);
+        for (let k = x.indexOf(" "); k > 0; k = x.indexOf(" ", k + 1)) first(ix.lead, x.slice(0, k), i);   // "liveramp holdings" -> "liveramp"
       }
-    }
-    return null;
+    });
+    INDEXES.set(list, ix);
+    return ix;
+  }
+
+  // Is this tracker's company a registered California data broker? Returns the registry entry or null.
+  // First match in registry order wins: same website (tracker domain, its parents, or the company's own domains),
+  // same cleaned name, or the registry name starts with the company's name (5+ letters, whole words).
+  function brokerFor(company, trackerDomain, lists, ownedDomains) {
+    const list = lists && lists.brokers && lists.brokers.list;
+    if (!list || !company) return null;
+    const ix = brokerIndex(list);
+    const c = norm(company);
+    let best = Infinity;
+    const take = (i) => { if (i !== undefined && i < best) best = i; };
+    for (const d of ownedDomains || []) take(ix.site.get(d));
+    for (const d of suffixes(trackerDomain)) take(ix.site.get(d));
+    if (c) take(ix.name.get(c));
+    if (c.length >= 5) take(ix.lead.get(c));
+    return best === Infinity ? null : list[best];
   }
 
   // The site's own most recent breach, matching the site or any parent domain.

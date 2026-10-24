@@ -123,6 +123,20 @@ Steps the person can take (no tag needed):
     return `- ${s.domain}, visited ${day}: grade ${s.grade}, exposure ${s.score}/100, cookies ${s.cookieChoice || "none"} [Seen on your visit]; trackers seen [Seen on your visit]: ${t}; privacy policy ${pol}${br}${ck}${fpText}${smText}`;
   }
 
+  // Tracker Radar totals per company (domains, main category, country, biggest reach). Built once per Atlas.
+  const COMPANIES = new WeakMap();
+  function companiesOf(atlas) {
+    let byCo = COMPANIES.get(atlas);
+    if (byCo) return byCo;
+    byCo = {};
+    for (const [d, [co, cat, ctry, prev]] of Object.entries(atlas.domains)) {
+      const x = byCo[co] || (byCo[co] = { n: 0, cats: {}, ctry, prev: 0, top: d });
+      x.n++; x.cats[cat] = (x.cats[cat] || 0) + 1; if (prev > x.prev) { x.prev = prev; x.top = d; }
+    }
+    COMPANIES.set(atlas, byCo);
+    return byCo;
+  }
+
   // Facts about companies or sites named in the question, looked up in the local lists.
   function lookupFacts(question, lists, atlas) {
     const L = (typeof window !== "undefined" ? window : self).PrivaCLists;
@@ -133,11 +147,7 @@ Steps the person can take (no tag needed):
     const seen = new Set();
 
     if (atlas && atlas.domains) {
-      const byCo = {};
-      for (const [d, [co, cat, ctry, prev]] of Object.entries(atlas.domains)) {
-        const x = byCo[co] || (byCo[co] = { n: 0, cats: {}, ctry, prev: 0, top: d });
-        x.n++; x.cats[cat] = (x.cats[cat] || 0) + 1; if (prev > x.prev) { x.prev = prev; x.top = d; }
-      }
+      const byCo = companiesOf(atlas);
       for (const [co, x] of Object.entries(byCo)) {
         if (facts.length >= 6 || !has(co)) continue;
         seen.add(L.norm(co));
