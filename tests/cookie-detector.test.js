@@ -55,7 +55,7 @@ function load(controls, { hosts = [], cookie = "" } = {}) {
   };
   const ctx = {
     console: { log() {}, warn() {}, table() {}, error() {} },
-    document, location: { hostname: "www.shop.example" },
+    document, location: { hostname: "www.shop.example" }, innerWidth: 1440, innerHeight: 900,
     MutationObserver: class { observe() {} },
     getComputedStyle: () => ({ display: "block", visibility: "visible" }),
     // onDecline's 200 ms waits run right away; the detector's own 1.5 s and 4 s re-checks are left out
@@ -202,4 +202,33 @@ test("c-placement.js's copy of the Reject labels matches cookie-detector.js, so 
   assert.ok(detector.size >= 25);
   assert.deepStrictEqual([...detector].filter((p) => !placement.has(p)), [], "missing from c-placement.js");
   assert.deepStrictEqual([...placement].filter((p) => !detector.has(p)), [], "only in c-placement.js");
+});
+
+// Tesco-style: the site's banner slides out of the window or fades out but stays in the page. C used to say
+// "I couldn't complete the cookie rejection" even though the site took the click.
+async function declineWhere(afterClick, cookie = "") {
+  const { controls } = bannerWith(["Accept all", "Reject all"]);
+  const page = load(controls);
+  const reject = controls[1];
+  reject.click = () => { afterClick(reject); page.ctx.document.cookie = cookie; };
+  return page.calls.find((c) => c[0] === "cookie")[1].onDecline();
+}
+
+test("banner slid up out of the window (still in the page): the click went through", async () => {
+  const result = await declineWhere((b) => { b.getBoundingClientRect = () => ({ top: -180, bottom: -140, left: 1288, right: 1428, width: 140, height: 40 }); });
+  assert.strictEqual(result, "unverified");
+});
+
+test("banner faded out or hidden by a box around it: the click went through", async () => {
+  const result = await declineWhere((b) => { b.checkVisibility = () => false; });
+  assert.strictEqual(result, "unverified");
+});
+
+test("banner still showing but the consent record says declined: confirmed", async () => {
+  assert.strictEqual(await declineWhere(() => {}, RECORDS.OneTrust.declined), "confirmed");
+});
+
+test("banner still showing and no record: C honestly says it didn't work", async () => {
+  assert.strictEqual(await declineWhere(() => {}), "failed");
+  assert.strictEqual(await declineWhere((b) => { b.checkVisibility = () => true; }), "failed");
 });

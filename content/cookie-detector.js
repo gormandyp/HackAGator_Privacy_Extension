@@ -373,19 +373,26 @@
             rect.width === 0 ||
             rect.height === 0 ||
             style.display === "none" ||
-            style.visibility === "hidden"
+            style.visibility === "hidden" ||
+            // Slid out of the window but still in the page (Tesco's banner slides away).
+            rect.bottom <= 0 ||
+            rect.right <= 0 ||
+            rect.top >= window.innerHeight ||
+            rect.left >= window.innerWidth ||
+            // Hidden or faded out by a box around it.
+            (button.checkVisibility &&
+              !button.checkVisibility({ opacityProperty: true, visibilityProperty: true }))
           ) {
             bannerDismissed = true;
             break;
           }
         }
 
-        if (!bannerDismissed) {
+        // The banner may stay on screen while the site still saved the choice.
+        if (!bannerDismissed && optionalCookiesOff(document.cookie) !== true) {
             console.warn("PrivaC: Cookie banner did not disappear.");
             return "failed";
         }
-
-        
 
         // Check whether the site's consent tool saved the optional categories as off.
         const verification =
