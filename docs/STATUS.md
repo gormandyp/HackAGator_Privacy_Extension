@@ -41,3 +41,6 @@ Update your row every time you push. Keep it to one line per column.
 - 2026-10-24: merged Matthew's latest c-prompt.js and cookie-detector.js unchanged (from his privac-ui folder); content/c-events.js counts C's pop-ups/clicks and reports cookie choices.
 - 2026-10-24 (repo owner): option 1: keep a site's 7-day combined record and label it "Seen on your visits in the last 7 days" (not "this visit").
 - 2026-10-24: fixed google.com B (Google result prefetch reported as "other") and the popup showing sample data after a reload.
+- 2026-10-24 (repo owner): the in-browser AI version becomes the main download; the Ollama-only version moves to its own branch. Push only after the repo owner approves the plan.
+- 2026-10-24 (repo owner): a settings button or "Choose cookies" isn't a one-click Reject, so C still says "Beware!" there (Trainline, Argos).
+- 2026-10-24: merged main into ui-glass (speed work); cookie-detector fixes 1-6 + Tesco slide-away decline; dashboard About tab for judges.

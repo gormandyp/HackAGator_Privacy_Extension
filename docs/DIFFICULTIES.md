@@ -11,4 +11,6 @@ Add one line per real obstacle: what broke, what we tried, what worked.
 - **Gemma mislabels sources.** It invented tags like "[Sites visited]" and wrote "the user". Code now cleans tags and wording after Gemma answers, and every evidence line carries its tag.
 - **Two parts writing the same storage at once.** The cookie detector and the tracker recorder could overwrite each other's results. All writes now go through the background script in order.
 - **Teamwork with beginners on Git.** Zip uploads, a scary "force push" prompt, and lock files. Rules now: pull first, push code not zips, never force push.
+- **"Did the decline really work?" Every consent tool saves your choice differently.** C could only confirm OneTrust, so most sites got "couldn't verify". Now it reads the yes/no from five tools' own records (never storing them). Some banners (Tesco) slide out of view but stay in the page, which C first took as a failed click.
+- **Pop-ups C can't see.** Some consent tools live in a shadow root (now searched) or an iframe (content scripts only run in the top page; not solved before the freeze).
 - **Chrome forgets tab state.** Chrome pauses the background script when idle, so trackers can be missed afterwards (fix planned: PLAN R9).
