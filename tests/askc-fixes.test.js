@@ -108,3 +108,8 @@ test("Fix 3: a policy that says it doesn't sell (sharing unknown) is reported, n
   assert.match(line("unclear.example"), /no clear answer about selling or sharing/, "a real unknown is still unknown");
   for (const dom of ["nosell.example", "noshare.example"]) assert.doesNotMatch(line(dom), /no clear answer/);
 });
+
+test("Fix 6: C's rules tell Gemma to quote button names, since square brackets are kept for source tags", () => {
+  assert.match(SYSTEM_PROMPT, /button and menu names in quotes \("Reject all"\), never in square brackets/);
+  assert.strictEqual(cleanAnswer('Click "Reject all" on the banner. [Seen on your visit]'), 'Click "Reject all" on the banner. [Seen on your visit]');
+});
