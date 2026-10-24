@@ -3,7 +3,7 @@
 Found 2026-10-24 ~6 PM ET by Max's Claude, testing `shared/askc.js` on main (`ceeb94f`) with the real code and a fake Gemma
 (48 checks: 26 probes + every question the app's own buttons send). All 454 existing tests pass; none cover these.
 **Confirmed with real Gemma on Max's Mac (in-browser brain, 2026-10-24 6:15 PM ET):** Fixes 1, 4 and 5 (see each fix's
-"Seen live" line). Max's screenshots are in the Project doc `claude/askc-fixes.md`'s chat; the answers are quoted below.
+"Seen live" line). The answers he got are quoted under each fix.
 **Do the fixes in this order: 1, 5, 4, then 2, 3, 6.** The first three are bugs people actually saw.
 
 **Rules for this work:** branch `askc-fixes` from main. One fix per commit, each with a failing test first (CLAUDE.md).
