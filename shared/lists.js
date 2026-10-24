@@ -77,8 +77,8 @@
     return out;
   }
 
-  // Speed: the registry (~560 entries) is indexed once per downloaded list instead of being scanned
-  // (with name clean-up) for every tracker on every site each time a page opens.
+  // Speed: the registry (~560 entries) is indexed once each time the lists are loaded (about 1 ms) instead of
+  // being scanned (with name clean-up) for every tracker on every site each time a page opens.
   // index.site / index.name / index.lead map a website, a cleaned name, or a cleaned name's first word(s)
   // to the FIRST registry entry (list order) that has it, so answers match the one-by-one scan exactly.
   const INDEXES = new WeakMap();
