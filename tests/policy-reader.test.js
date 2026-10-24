@@ -8,7 +8,7 @@ const vm = require("node:vm");
 const POLICY_HTML = `<h1>Privacy Policy</h1><p>We do not sell your personal information to anyone.</p>` +
   "<p>We describe here how we look after the information you give us when you use the site.</p>".repeat(12);
 
-function load({ sites, ask, fetchFn }) {
+function load({ sites, ask, fetchFn, log = console }) {
   let store = { privacData: { sample: false, sites } };
   const listeners = [];
   const fetched = [];
@@ -25,7 +25,7 @@ function load({ sites, ask, fetchFn }) {
     if (url === "ext://shared/knowledge-map.json") return { ok: true, json: async () => map };
     return fetchFn ? fetchFn(url, opts) : { ok: true, headers: { get: () => "text/html" }, text: async () => POLICY_HTML };
   };
-  const ctx = { chrome, console, URL, Promise, setTimeout, fetch, PrivaCGemma: { ask } };
+  const ctx = { chrome, console: log, URL, Promise, setTimeout, fetch, PrivaCGemma: { ask } };
   ctx.self = ctx; ctx.window = ctx;
   vm.createContext(ctx);
   vm.runInContext(fs.readFileSync(__dirname + "/../shared/policy.js", "utf8"), ctx);
@@ -135,4 +135,16 @@ test("if Gemma is off, the next visit asks Gemma again without fetching the poli
   await r.idle();
   assert.strictEqual(r.fetched.filter((f) => f.url === "https://news.example/privacy").length, 1);
   assert.strictEqual(r.store().privacData.sites[0].policy.sells, false);
+});
+
+// Gemma not downloaded yet, or a page that isn't a policy, is normal: chrome://extensions shouldn't list it.
+test("a policy that couldn't be read is logged quietly, not listed as an error on chrome://extensions", async () => {
+  const loud = [], quiet = [];
+  const log = { log: (...a) => quiet.push(a), warn: (...a) => loud.push(a), error: (...a) => loud.push(a) };
+  const ask = async () => { throw new Error("C's brain isn't downloaded yet."); };
+  const r = load({ sites: [{ domain: "news.example", trackers: [], policy: { sells: null, shares: null, source: null } }], ask, log });
+  r.send({ type: "privac-policy-links", domain: "news.example", links });
+  await r.idle();
+  assert.deepStrictEqual(loud, []);
+  assert.strictEqual(quiet.length, 1);
 });

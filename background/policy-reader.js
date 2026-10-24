@@ -91,7 +91,7 @@
         unread.set(domain, { html, url, at: Date.now() });
         while (unread.size > KEEP_PAGES) unread.delete(unread.keys().next().value);
       }
-      console.warn(`PrivaC: couldn't read the privacy policy for ${domain}`, e && e.message);
+      console.log(`PrivaC: couldn't read the privacy policy for ${domain}`, e && e.message);   // normal; tried again next visit
     } finally {
       inFlight.delete(domain);
     }
