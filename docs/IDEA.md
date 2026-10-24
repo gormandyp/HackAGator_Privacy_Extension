@@ -93,7 +93,7 @@ Supporting (older, so NOT the theme answer): DuckDuckGo Tracker Radar (domain to
 - Clear cache button within PrivaC, with explanation on what it means to clear ur cache and how its good
   - **Status:** not started (PLAN R15). Needs Chrome's "browsingData" permission; ask before adding it.
 - Change "decline extras" on C popup to "protect me" because its sounds better.
-  - **Status:** not started (PLAN R15): one word change in content/c-prompt.js, held for the repo owner's OK.
+  - **Status: done 2026-10-24** (repo owner asked): the button says "Protect me" everywhere. Also new: Settings > "Protect me automatically" declines with no click.
 -   Could not verify that the website saved your choice on a couple websites. Said "could not verify" if site made choice or not 
   - **Status: fixed 2026-10-24.** C now reads the choice from Ensighten (John Lewis), CookieYes, Cookiebot and Didomi as well as OneTrust; a site with none of these still gets the honest "couldn't verify".
 - 

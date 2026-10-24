@@ -6,7 +6,7 @@ const assert = require("node:assert");
 const fs = require("node:fs");
 const vm = require("node:vm");
 
-function load(pageButtons = [], settings = null) {
+function load(pageButtons = [], settings = null, settingsLater = false) {
   const sent = [], calls = [], listeners = {};
   const storageListeners = [];
   const P = {
@@ -22,12 +22,12 @@ function load(pageButtons = [], settings = null) {
   };
   const ctx = { console, Promise, location: { hostname: "www.news.example" }, document,
     chrome: { runtime: { sendMessage: (m) => sent.push(m) },
-      storage: { local: { get: () => ({ then: (fn) => { fn({ privacSettings: settings }); return { catch() {} }; } }) },
+      storage: { local: { get: () => ({ then: (fn) => { const give = () => fn({ privacSettings: settings }); if (settingsLater) setTimeout(give, 0); else give(); return { catch() {} }; } }) },
                  onChanged: { addListener: (fn) => storageListeners.push(fn) } } } };
   ctx.window = ctx;
   ctx.window.PrivaCPrompt = P;
   vm.runInNewContext(fs.readFileSync(__dirname + "/../content/c-events.js", "utf8"), ctx);
-  return { P: ctx.window.PrivaCPrompt, sent, calls, listeners, storageListeners };
+  return { P: ctx.window.PrivaCPrompt, sent, calls, listeners, storageListeners, document };
 }
 const events = (sent) => sent.filter(m => m.type === "privac-event").map(m => m.event);
 const choices = (sent) => sent.filter(m => m.type === "cookieChoice").map(m => m.choice);
@@ -105,3 +105,39 @@ test("changing a setting takes effect right away on open pages", () => {
   assert.deepStrictEqual(calls.map(c => c[0]), ["adversary"]);
 });
 
+
+test("Protect me automatically: C declines without waiting for a click, and it's counted like a click", async () => {
+  const { P, sent, calls } = load([], { autoDecline: true });
+  await Promise.resolve();
+  P.cookie({ onDecline: async () => "confirmed" });
+  assert.strictEqual(calls[0][1].auto, true);
+  await calls[0][1].onDecline();
+  assert.deepStrictEqual(events(sent), ["popup-cookie", "auto-decline", "decline-click", "decline-confirmed"]);
+  assert.deepStrictEqual(choices(sent), ["declined"]);
+});
+
+test("Protect me automatically still works when the cookie question itself is turned off", async () => {
+  const { P, calls } = load([], { autoDecline: true, popups: { cookie: false } });
+  await Promise.resolve();
+  P.cookie({ onDecline: async () => "confirmed" });
+  assert.strictEqual(calls.length, 1);
+  assert.strictEqual(calls[0][1].auto, true);
+});
+
+test("without the setting, C asks first as before", async () => {
+  const { P, calls } = load();
+  await Promise.resolve();
+  P.cookie({ onDecline: async () => "confirmed" });
+  assert.ok(!calls[0][1].auto);
+});
+
+test("Protect me automatically when the settings arrive after C already asked (first check on page load)", async () => {
+  const decline = { clicks: 0, click() { this.clicks++; } };
+  const host = { shadowRoot: { querySelector: (s) => (s === '[data-a="decline"]' ? decline : null) } };
+  const { P, calls, document } = load([], { autoDecline: true }, true);
+  document.querySelectorAll = (s) => (s === "privac-prompt" && calls.length ? [host] : []);
+  P.cookie({ onDecline: async () => "confirmed" });       // before the saved settings are read
+  assert.ok(!calls[0][1].auto);
+  await new Promise((r) => setTimeout(r, 0));
+  assert.strictEqual(decline.clicks, 1, "C presses Protect me for you once the setting is known");
+});

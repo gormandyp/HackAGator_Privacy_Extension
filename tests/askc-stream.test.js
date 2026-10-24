@@ -57,3 +57,24 @@ test("a finished answer with no text shows a message instead of 'the AI isn't co
   assert.match(res.error, /didn't find an answer/);
   delete globalThis.chrome;
 });
+
+test("the panel sends the last few questions and answers with a new question (C's short memory)", async () => {
+  let sent = null;
+  globalThis.chrome = { runtime: fakeRuntime((m, port) => {
+    sent = m;
+    port.listeners.forEach((f) => f({ type: "done", result: { answer: "ok", trace: [] } }));
+  }) };
+  const history = [{ question: "Who is Criteo?", answer: "An ad company. [Tracker Radar]" }];
+  await askStreaming("Where did it follow me?", () => {}, history);
+  assert.deepStrictEqual(sent, { type: "ask", question: "Where did it follow me?", history });
+  delete globalThis.chrome;
+});
+
+test("the panel keeps only the last 3 answered turns, never errors or sample answers", () => {
+  const { remember } = window.PrivaCAsk;
+  let h = [];
+  for (let i = 1; i <= 5; i++) h = remember(h, `Q${i}?`, { answer: `A${i}.` });
+  h = remember(h, "Q6?", { error: "Gemma is off" });
+  h = remember(h, "Q7?", { answer: "Sample.", sample: true });
+  assert.deepStrictEqual(h.map((t) => t.question), ["Q3?", "Q4?", "Q5?"]);
+});
