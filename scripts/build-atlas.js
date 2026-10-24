@@ -7,6 +7,7 @@
     git clone --depth 1 --filter=blob:none --sparse https://github.com/duckduckgo/tracker-radar.git ../tracker-radar
     (cd ../tracker-radar && git sparse-checkout set domains/US entities)
     node scripts/build-atlas.js ../tracker-radar
+    node scripts/build-atlas.js --countries-only   (re-apply COUNTRY below to the existing shared/atlas.json, no clone needed)
 
   Countries are NOT in Tracker Radar. They come from COUNTRY below (headquarters, hand-checked).
   Unknown = null, which never triggers a foreign-adversary flag.
@@ -14,8 +15,6 @@
 const fs = require("fs");
 const path = require("path");
 
-const src = process.argv[2];
-if (!src) { console.error("Usage: node scripts/build-atlas.js <path to tracker-radar>"); process.exit(1); }
 
 // Tracker Radar category -> PrivaC category, in priority order. Anything else (CDN, payments, embeds) is not a tracker.
 const CATEGORY_MAP = [
@@ -48,7 +47,18 @@ const COUNTRY = {
   "Yandex": "RU", "Mail.ru": "RU", "Mail.Ru Group": "RU", "VK": "RU", "Rambler": "RU",
   "Baidu": "CN", "Alibaba": "CN", "Tencent": "CN", "ByteDance": "CN", "TikTok": "CN", "Sina": "CN", "Sohu": "CN",
   "NetEase": "CN", "Huawei": "CN", "Xiaomi": "CN", "JD.com": "CN", "Kuaishou": "CN", "CNZZ": "CN", "Umeng": "CN",
-  "Naver": "KR", "Kakao": "KR"
+  "Naver": "KR", "Kakao": "KR",
+  // F4 (2026-10-24): Russian and Chinese companies in Tracker Radar that had no country. Headquarters only.
+  // Left out on purpose: owners we couldn't confirm (ADFACT, ECO PC, AmberData, HS Media...); their .ru/.cn
+  // addresses still get a 0-point label (F1). Pinduoduo/Temu: wording pending with Max.
+  "Internest-holding": "RU", "CDN-video": "RU", "Department of Information Technology of Moscow": "RU", "Ivi.ru": "RU",
+  "Kismet Capital Group": "RU", "LitRes": "RU", "MegaFon": "RU", "Mindbox": "RU", "Mobile TeleSystems": "RU",
+  "Retail Rocket": "RU", "RuTarget": "RU", "RUFORM": "RU", "SMI2": "RU", "Sape": "RU", "Sberbank": "RU",
+  "Vympelcom": "RU", "Public Joint Stock Company \"Rostelecom\"": "RU", "AO Kaspersky Lab": "RU",
+  "Beijing Jingdong": "CN", "Bejing Kuaishou": "CN", "BiliBili": "CN", "Century Fuxuan": "CN", "CENTURY FUXUAN": "CN",
+  "Miaozhen Systems": "CN", "Mobvista": "CN", "Qihoo 360": "CN", "Sensors Network Technology": "CN",
+  "Shumei Technology": "CN", "Zhihu": "CN", "Trip.com Group": "CN", "上海": "CN", "北京": "CN",
+  "中華電信": "TW"
 };
 
 function country(owner) {
@@ -58,6 +68,16 @@ function country(owner) {
   return key ? COUNTRY[key] : null;
 }
 
+// Re-apply COUNTRY to the existing atlas.json (keeps every domain; only fills in countries).
+function countriesOnly(file) {
+  const a = JSON.parse(fs.readFileSync(file, "utf8"));
+  let n = 0;
+  for (const v of Object.values(a.domains)) { const c = country(v[0]); if (c && v[2] !== c) { v[2] = c; n++; } }
+  fs.writeFileSync(file, JSON.stringify(a));
+  console.log(`Updated ${n} domains with a country in ${file}`);
+}
+
+function build(src) {
 const dir = path.join(src, "domains", "US");
 const domains = {};
 const owners = new Set();
@@ -91,3 +111,12 @@ const out = {
 const file = path.join(__dirname, "..", "shared", "atlas.json");
 fs.writeFileSync(file, JSON.stringify(out));
 console.log(`Wrote ${file}: ${Object.keys(domains).length} tracker domains, ${Object.keys(entities).length} companies, ${(fs.statSync(file).size / 1024).toFixed(0)} KB`);
+}
+
+const ATLAS_FILE = path.join(__dirname, "..", "shared", "atlas.json");
+if (require.main === module) {
+  const src = process.argv[2];
+  if (!src) { console.error("Usage: node scripts/build-atlas.js <path to tracker-radar> | --countries-only"); process.exit(1); }
+  if (src === "--countries-only") countriesOnly(ATLAS_FILE); else build(src);
+}
+module.exports = { country };
