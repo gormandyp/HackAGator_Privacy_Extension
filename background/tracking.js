@@ -83,7 +83,13 @@ function isFirstParty(siteDomain, hostname, tracker) {
   const roots = siteRoots(siteDomain);
   if (roots.some(r => hostname === r || hostname.endsWith("." + r))) return true;
   const owned = ATLAS && tracker && ATLAS.entities[tracker.company];
-  return !!(owned && roots.some(r => owned.includes(r)));
+  if (owned && roots.some(r => owned.includes(r))) return true;
+  // The same state-run outlet's other addresses (tass.com loading tass.ru) are the site itself (F2 list).
+  if (typeof PrivaCStateMedia !== "undefined" && STATE_MEDIA) {
+    const a = PrivaCStateMedia.lookup(siteDomain, STATE_MEDIA), b = a && PrivaCStateMedia.lookup(hostname, STATE_MEDIA);
+    if (b && a.stateMedia.name === b.stateMedia.name) return true;
+  }
+  return false;
 }
 
 // Which company owns this site, and where it's based (when known).

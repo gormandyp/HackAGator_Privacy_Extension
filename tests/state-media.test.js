@@ -95,3 +95,21 @@ test("tracking records a state-run outlet as the site's owner, ahead of Tracker 
   assert.strictEqual(o.country, "RU");
   assert.strictEqual(o.stateMedia.classification, "SC");
 });
+
+test("an outlet's own sister addresses (tass.ru on tass.com) are first-party, not 'unknown outside servers'", () => {
+  const on = () => ({ addListener: () => {} });
+  const chrome = { storage: { local: { get: async () => ({}), set: async () => {} } },
+    webNavigation: { onCommitted: on(), onCompleted: on() }, webRequest: { onBeforeRequest: on() }, tabs: { onRemoved: on() } };
+  const ctx = { chrome, console, URL, Promise, setTimeout };
+  ctx.window = ctx; ctx.self = ctx;
+  vm.createContext(ctx);
+  vm.runInContext(fs.readFileSync(__dirname + "/../shared/state-media.js", "utf8"), ctx);
+  vm.runInContext(fs.readFileSync(__dirname + "/../background/tracking.js", "utf8") +
+    "\n;this.setAtlas = setAtlas; this.setStateMedia = setStateMedia; this.isFirstParty = isFirstParty;", ctx);
+  ctx.setAtlas({ entities: {}, domains: {} });
+  ctx.setStateMedia({ outlets: [{ name: "TASS", short: "TASS", country: "RU", classification: "SC", domains: ["tass.ru", "tass.com"] },
+                                { name: "RT", short: "RT", country: "RU", classification: "SC", domains: ["rt.com"] }] });
+  assert.strictEqual(ctx.isFirstParty("tass.com", "cdn-media.tass.ru", null), true);
+  assert.strictEqual(ctx.isFirstParty("tass.com", "rt.com", null), false);
+  assert.strictEqual(ctx.isFirstParty("news.example", "tass.ru", null), false);
+});
