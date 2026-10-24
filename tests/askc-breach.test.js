@@ -83,3 +83,49 @@ test("Gemma's rules: scraped or leaked data counts as a breach; a \"yes\" to C's
   assert.match(A.SYSTEM_PROMPT, /says yes/i);
   assert.match(A.SYSTEM_PROMPT, /change that password/i);
 });
+
+// "Was google hacked?" (real Gemma, 2026-10-24 7 PM): Google has no breach in the list and the question has no web address,
+// so it went to Gemma, which answered "I do not have information... I stick to your privacy" and listed every step.
+const atlas = { domains: { "google-analytics.com": ["Google", "Analytics", "US", 40], "doubleclick.net": ["Google", "Advertising", "US", 30],
+  "licdn.com": ["LinkedIn", "Advertising", "US", 6] } };
+const browsing = { sites: ["cnn.com", "tass.com"].map((domain) => ({ domain, lastVisit: "2026-10-24", cookieChoice: "accepted", policy: {},
+  trackers: [{ company: "Google", category: "Advertising", country: "US" }] })).map((s) => ({ ...s, ...window.PrivaCData.computeScore(s) })) };
+async function askAll(q, history) {
+  let calls = 0;
+  const r = await A.answer(q, { load: async () => browsing, lists: async () => lists, atlas: () => atlas, history,
+    ask: async () => { calls++; return "I do not have information. I stick to your privacy. [HIBP]"; } });
+  return { ...r, calls };
+}
+
+test("a company or site PrivaC knows but the breach list doesn't: an honest \"no breach on record\", not Gemma", async () => {
+  for (const q of ["Was google hacked?", "has Google ever had a data breach", "did google get hacked"]) {
+    const r = await askAll(q);
+    assert.strictEqual(r.calls, 0, q);
+    assert.match(r.answer, /Have I Been Pwned's list \(updated Oct 24, 2026\) has no breach on record for Google \[HIBP\]/, q);
+    assert.match(r.answer, /doesn't prove it was never breached/);
+    assert.match(r.answer, /Google's trackers were on 2 of your 2 sites this week \[Seen on your visit\]/, "what PrivaC did see");
+    assert.match(r.answer, /What you can do: use a different password for each site and turn on two-step sign-in/);
+    assert.doesNotMatch(r.answer, /\bsafe\b|stick to your privacy/i);
+    assert.deepStrictEqual(r.trace.map((t) => t.label), ["Have I Been Pwned"]);
+  }
+  const site = await askAll("was tass hacked");   // a site you visited, named without .com
+  assert.strictEqual(site.calls, 0);
+  assert.match(site.answer, /no breach on record for tass\.com/);
+});
+
+test("\"what about google?\" right after a breach question is a breach question too", async () => {
+  const history = [{ question: "Was linkedin.com hacked?", answer: "LinkedIn (linkedin.com) has 2 data breaches on record in Have I Been Pwned [HIBP]" }];
+  const r = await askAll("what about google?", history);
+  assert.strictEqual(r.calls, 0);
+  assert.match(r.answer, /no breach on record for Google/);
+  const asked = await askAll("And linkedin?", [{ question: "Was google hacked?", answer: "no breach on record for Google" }]);
+  assert.match(asked.answer, /LinkedIn \(linkedin\.com\) has 2 data breaches/);
+});
+
+test("something PrivaC doesn't know at all still goes to Gemma, and Gemma's rules keep it on topic", async () => {
+  const r = await askAll("Was my bank hacked?");
+  assert.strictEqual(r.calls, 1);
+  assert.doesNotMatch(A.SYSTEM_PROMPT, /suggest a privacy question instead/, "the rule text Gemma parroted is gone");
+  assert.match(A.SYSTEM_PROMPT, /hacks, breaches[^\n]*always on topic/i);
+  assert.match(A.SYSTEM_PROMPT, /only the 2 or 3 steps that fit the question/i);
+});

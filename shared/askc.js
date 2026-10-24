@@ -10,8 +10,9 @@
 How to answer:
 - Talk to the person as "you". Never say "the user".
 - Plain English, no jargon. 2 to 4 short sentences.
-- Add a last line starting "What you can do:" with 2 or 3 concrete steps from the Steps list only when the person asks for advice or about a risk (should I worry, is it safe, how do I protect myself, was it hacked). Leave it out of explanations, definitions and follow-up questions.
-- You are only PrivaC's privacy guide, not a general assistant. Don't write poems, stories, jokes, code or homework, and don't talk about topics outside privacy and the person's browsing; say in one sentence that you stick to their privacy and suggest a privacy question instead.
+- Add a last line starting "What you can do:" with only the 2 or 3 steps that fit the question, from the Steps list, only when the person asks for advice or about a risk (should I worry, is it safe, how do I protect myself, was it hacked). Leave it out of explanations, definitions and follow-up questions.
+- You are only PrivaC's privacy guide, not a general assistant. Don't write poems, stories, jokes, code or homework. Questions about hacks, breaches, security, companies, websites, trackers, cookies and data are always on topic: answer them. Only for a request that has nothing to do with privacy, say in one sentence that you only help with privacy.
+- If the evidence has nothing about what the person asked, say plainly that PrivaC has no record of it, then answer what you can from the evidence.
 - "Earlier in this conversation" shows the last questions and your answers. Use it to understand follow-ups like "what about its cookies?", but answer only the new question.
 - Answer the question that was asked first. Then connect it to their own browsing if something there is relevant.
 - Use ONLY the evidence you are given. If it doesn't answer the question, say you don't know yet.
@@ -197,7 +198,9 @@ Steps the person can take (no tag needed):
   const BREACH_STOP = new Set(["data", "cookie", "cookies", "privacy", "tracker", "trackers", "account", "accounts", "email", "password",
     "passwords", "game", "games", "chat", "mail", "news", "online", "best", "free", "shop", "phone", "info", "home", "music", "video",
     "social", "dating", "forum", "health", "money", "bank", "cloud", "site", "sites", "website", "breach", "hacked", "leak", "past",
-    "tell", "about", "what", "which", "have", "been", "them", "their", "with", "from", "this", "that", "yes", "okay"]);
+    "tell", "about", "what", "which", "have", "been", "them", "their", "with", "from", "this", "that", "yes", "okay",
+    "crypto", "exchange", "wallet", "school", "phone", "photos", "photo", "camera", "computer", "laptop", "router", "wifi", "work",
+    "company", "store", "shopping", "streaming", "browser", "device", "server", "network", "credit", "card", "identity"]);
 
   // Sites in the breach list that the question means: by web address ("linkedin.com"), by name ("LinkedIn",
   // "linked in", "Ashley Madison"). At most 3, in the order found.
@@ -242,13 +245,36 @@ Steps the person can take (no tag needed):
   // "Was X hacked?" answered from the list itself (like grade questions): every breach, exact numbers, no guessing.
   const BREACH_Q = /\b(hack\w*|breach\w*|leak\w*|pwn\w*|compromis\w*|stolen)\b/i;
   const FOLLOW_UP = /\b(it|its|it's|they|them|their|that|this|those|yes|yeah|yep|ok|okay|sure|please)\b/i;
-  function breachAnswer(q, lists, history) {
-    if (!BREACH_Q.test(q) || !(lists && lists.hibp && lists.hibp.byDomain)) return null;
-    let hits = breachSites(q, lists);
-    if (!hits.length && FOLLOW_UP.test(q)) {   // "yes, tell me about its breaches": the site from the last question
-      const last = recent(history).slice(-1)[0];
-      if (last) hits = breachSites(last.question, lists);
+  // Companies the tracker data knows ("Google"), named in the question as whole words.
+  function namedCompanies(question, atlas) {
+    const L = (typeof window !== "undefined" ? window : self).PrivaCLists;
+    if (!L || !atlas || !atlas.domains) return [];
+    const nq = " " + L.norm(question) + " ";
+    const full = [], first = [];
+    for (const co of Object.keys(companiesOf(atlas))) {
+      const n = L.norm(co);
+      if (n.length >= 4 && !BREACH_STOP.has(n) && nq.includes(" " + n + " ")) full.push(co);
+      else {   // "Amazon Technologies" also answers to "amazon"; generic first words ("Digital", "Global") never do
+        const w = n.split(" ")[0];
+        if (w !== n && w.length >= 5 && !BREACH_STOP.has(w) && !GENERIC_FIRST.has(w) && nq.includes(" " + w + " ")) first.push(co);
+      }
     }
+    return [...full, ...first.sort((x, y) => x.length - y.length)].slice(0, 2);
+  }
+  const GENERIC_FIRST = new Set(["digital", "media", "global", "network", "networks", "group", "systems", "technologies", "technology",
+    "solutions", "services", "software", "interactive", "mobile", "marketing", "analytics", "labs", "internet", "united", "american",
+    "national", "international", "first", "smart", "cloud", "online", "social", "advanced", "audience", "trade", "direct", "content",
+    "video", "local", "north", "south", "east", "west", "china", "beijing", "shanghai", "russia", "new", "general", "public", "power"]);
+
+  const AND_ABOUT = /^\s*(?:and|what about|how about|same for|also)\b/i;
+  // sites = your browsing (data.sites), atlas = tracker data: so a name PrivaC knows gets an answer even without a breach.
+  function breachAnswer(q, lists, history, sites, atlas) {
+    if (!(lists && lists.hibp && lists.hibp.byDomain)) return null;
+    const last = recent(history).slice(-1)[0];
+    const lastWasBreach = !!(last && BREACH_Q.test(last.question));
+    if (!BREACH_Q.test(q) && !(lastWasBreach && AND_ABOUT.test(q))) return null;   // "what about google?" after a breach question
+    let hits = breachSites(q, lists);
+    if (!hits.length && FOLLOW_UP.test(q) && last && !AND_ABOUT.test(q)) hits = breachSites(last.question, lists);   // "yes, its breaches"
     if (hits.length) {
       const parts = hits.map(([d, b]) => `${breachHead(d, b)} [HIBP]:\n` +
         breachList(b).map((x) => `- ${x.when}, ${x.title}: ${x.count}${x.kinds ? `; exposed ${x.kinds}` : ""}.`).join("\n"));
@@ -256,12 +282,22 @@ Steps the person can take (no tag needed):
       return parts.join("\n\n") + `\n\nWhat you can do: if you have a ${who} account, change its password and the same password anywhere ` +
         `else you used it, turn on two-step sign-in, and watch for emails pretending to be ${hits.length === 1 ? who : "these sites"}.`;
     }
+    // No breach on record. Say so for anything PrivaC knows: a web address, a site you visited, or a tracker company.
     const domain = (q.toLowerCase().match(/[a-z0-9-]+(?:\.[a-z0-9-]+)+/) || [])[0];
-    if (!domain) return null;   // a name we don't know: Gemma answers from the rest of the evidence
+    const visited = namedSites(sites || [], q)[0];
+    const company = namedCompanies(q, atlas)[0];
+    const subject = domain ? domain.replace(/^www\./, "") : visited ? visited.domain : company;
+    if (!subject) return null;   // nothing PrivaC knows: Gemma answers from the rest of the evidence
     const at = String(lists.hibp.fetchedAt || "").slice(0, 10).split("-");
     const updated = at.length === 3 ? ` (updated ${MONTHS[+at[1] - 1]} ${+at[2]}, ${at[0]})` : "";
-    return `Have I Been Pwned's list${updated} has no breach on record for ${domain.replace(/^www\./, "")} [HIBP]. ` +
-      "That doesn't prove it was never breached: the list only has breaches that became public.";
+    let seen = "";
+    if (company && !domain && !visited) {
+      const on = (sites || []).filter((s) => (s.trackers || []).some((t) => t && t.company === company)).length;
+      if (on) seen = ` ${company}'s trackers were on ${on} of your ${sites.length} sites this week [Seen on your visit], which is about tracking, not a breach.`;
+    }
+    return `Have I Been Pwned's list${updated} has no breach on record for ${subject} [HIBP]. ` +
+      "That doesn't prove it was never breached: the list only has breaches that became public." + seen +
+      "\n\nWhat you can do: use a different password for each site and turn on two-step sign-in, so one breach can't unlock your other accounts.";
   }
 
   // Facts about companies or sites named in the question, looked up in the local lists.
@@ -595,7 +631,7 @@ Steps the person can take (no tag needed):
     const graded = gradeAnswer(q, ((data && data.sites) || []).filter(Boolean));
     if (graded) return { answer: graded, trace: [{ tool: "get_site_report", label: "Your browsing" }] };
     const lists = deps.lists ? await deps.lists() : null;
-    const breach = breachAnswer(q, lists, deps.history);
+    const breach = breachAnswer(q, lists, deps.history, ((data && data.sites) || []).filter(Boolean), deps.atlas ? deps.atlas() : null);
     if (breach) return { answer: breach, trace: [{ tool: "breaches", label: "Have I Been Pwned" }] };
     const atlas = deps.atlas ? deps.atlas() : null;
     const facts = lookupFacts(q, lists, atlas);
