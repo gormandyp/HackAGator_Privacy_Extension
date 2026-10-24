@@ -14,7 +14,7 @@ Chrome extension that shows who a website connects you to, grades its privacy A-
 ## Layout (non-obvious only)
 - `shared/data.js` is the single source of truth for the score and data shape (`privacData` in chrome.storage.local). The UI only reads; background.js writes.
 - `content/c-prompt.js`: the C on-page prompt API (`PrivaCPrompt.cookie/adversary/hide`). `content/cookie-detector.js` finds banners and reports choices to the background.
-- `background.js` loads `shared/lists.js, cookies.js, data.js, gemma.js, askc.js, policy.js` and `background/tracking.js, alerts.js, policy-reader.js`. Policy questions live in `shared/knowledge-map.json`. Only the background writes `privacData` (content scripts send messages).
+- `background.js` loads `background/senders.js` (who may ask what) first, then `shared/lists.js, cookies.js, data.js, gemma.js, askc.js, policy.js` and `background/tracking.js, alerts.js, policy-reader.js`. Policy questions live in `shared/knowledge-map.json`. Only the background writes `privacData` (content scripts send messages).
 - Data: `shared/atlas.json` (trackers), `shared/cookie-db.json` (cookies), `privacLists` in storage (HIBP + CA brokers, refreshed daily). Sources and licenses: docs/DATA.md.
 - Spec: `docs/SPEC.md` | Plan: `docs/PLAN.md` | Team doc (re-read for updates): https://docs.google.com/document/d/16WMA557yYF0qcxb9CSYCB0wrmqSXE2lS4e98C3C6bAQ/edit
 

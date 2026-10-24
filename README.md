@@ -23,6 +23,14 @@ Judges: the dashboard's **About** tab lists each one with its date, a link to pr
 ## Privacy
 PrivaC downloads whole public lists and matches them on your computer. It never sends what you visit to anyone. It stores site names and cookie names only (never full addresses or cookie contents) and deletes history after 7 days. Daily totals (numbers only, no site names) are kept 90 days for the week and month views. "Clear my PrivaC data" erases your history and daily totals. Full details: [PRIVACY.md](PRIVACY.md) and [TERMS.md](TERMS.md).
 
+## For judges: a 3-minute tour
+1. Load PrivaC (see **Download** below) and pin it from the puzzle-piece menu.
+2. Visit two or three news or shopping sites. On most sites with a cookie pop-up, **C** appears next to it: click **Protect me** and C clicks Reject for you, then says **Nice!** only when the site's own consent record confirms it. On a pop-up with no Reject button, C says **Beware!**
+3. Click the C toolbar button: the site's grade (A-F), whether it was Fully or Partly checked (and how high it could go), and every reason with its source.
+4. Open the dashboard: **Sites** (who each site connected you to), **C's impact**, **Safety** (data breaches, data brokers, companies in U.S.-listed countries), **Grades** (how the grade works, point by point) and **About** (the 2026 technology, with dates and proof links).
+5. In **Ask C**, try "Why did cnn.com get a C?" with a site you visited and its letter (answered from the score itself) and "Who is LiveRamp and should I worry?" (answered by Gemma 4 on this computer, with a source label on every fact).
+6. No Chrome handy? Open `dashboard/dashboard.html` in any browser to see the interface with sample data. Tests: `node --test`.
+
 ## Download
 | Version | C's AI runs on | Download |
 |---|---|---|
@@ -108,7 +116,7 @@ Return `false` from `onDecline` if you couldn't find the reject button; C will t
 
 - Make sure Ollama is running and `OLLAMA_ORIGINS` is set (it resets when the Mac restarts).
 - The foreign-adversary list in `shared/data.js` follows 15 CFR § 7.4 (China including Hong Kong, Cuba, Iran, North Korea, Russia, Venezuela). Double-check the current version of the regulation.
-- Fonts (Bricolage Grotesque and Figtree) load from Google Fonts. Without internet, the pages fall back to the system font and still work.
+- Fonts (Bricolage Grotesque and Figtree) are bundled in `shared/fonts/`, so the pages look the same without internet and make no Google Fonts request.
 - Tracker data from DuckDuckGo Tracker Radar has a non-commercial license; fine for a hackathon, worth mentioning if judges ask about turning PrivaC into a product.
 
 ## Ask C (dashboard chat panel)
