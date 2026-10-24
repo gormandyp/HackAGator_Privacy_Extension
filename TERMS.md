@@ -23,7 +23,7 @@ When you allow it (or turn on **Protect me automatically**), PrivaC clicks a sit
 
 - Use PrivaC only on your own browser, and follow the law and each website's terms.
 - Don't use PrivaC, its data files or its AI to harass anyone, to get around a website's security, or to mislead people about a company.
-- The AI model download is about 2 GB. Make sure your computer and internet plan can handle it before you click **Download C's brain**.
+- The AI model download (main version) is about 2 GB. Make sure your computer and internet plan can handle it before you click **Download C's brain**.
 
 ## 5. Other people's data and software
 
