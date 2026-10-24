@@ -133,12 +133,23 @@
             <tr><td>Each one used for advertising, data brokering or screen recording</td><td>5 each, up to 20</td></tr>
             <tr><td>Cookies: accepted all, banner had no Reject button, or no banner while the site tracks you / declined, or no banner and no tracking</td><td>10 / 0</td></tr>
             <tr><td>Any company based in a listed foreign-adversary country or on the Pentagon's 1260H list, a site whose own web address ends in that country's code (.cn, .ru, .ir ...), a state-run news site of one of those countries (State Media Monitor), or a site whose own server address is registered there (internet registries); counted once. Unknown outside servers with those endings or addresses are shown, 0 points</td><td>15</td></tr>
-            <tr><td>Privacy policy: sells / shares / neither / not checked yet</td><td>15 / 8 / 0 / 0</td></tr>
+            <tr><td>Privacy policy: sells / shares / neither / not checked yet, or read but it doesn't say</td><td>15 / 8 / 0 / 0</td></tr>
             <tr><td>The site's own data breaches (Have I Been Pwned), all listed, worst one counts: reported in the last 12 months / in the last 5 years or 100 million+ accounts / older</td><td>15 / 5 / 0</td></tr>
           </tbody>
           </table>
         </div>
         <div class="card glass grades-key" id="grades-key"></div>
+      </div>
+      <div class="card glass how-calc">
+        <h2>How a grade is calculated</h2>
+        <ol>
+          <li><b>Look.</b> PrivaC records what your browser did on a site in the last 7 days (trackers, cookies, your cookie choice) and checks public lists (data breaches, data brokers, U.S. government lists) and, when it's been read, the site's privacy policy.</li>
+          <li><b>Add points.</b> Each rule in the table adds points for what was found. Anything unknown adds 0.</li>
+          <li><b>Cap and letter.</b> The total is capped at 100 and turned into a letter with the key above.</li>
+          <li><b>Range.</b> Unknown lines set a range: the worst the score could be if they turned out badly. Today only the privacy policy can be unknown (up to 15 points).</li>
+          <li><b>Label.</b> <b>Fully checked</b> when every line has an answer, <b>Partly checked</b> when something is unknown, with the share of the grade's 115 possible points that has an answer.</li>
+        </ol>
+        <p class="hint">Each site's own numbers are under "How this grade was calculated" on the Sites tab. Fully checked doesn't mean safe: what companies do with data on their own servers stays unknown.</p>
       </div>
       <div class="evidence">
         <div class="glass"><h3>Observed</h3><p>Connections your browser actually made while you were on a site. PrivaC sees these directly.</p></div>

@@ -164,11 +164,18 @@
     }
 
     const p = site.policy || {};
-    let policyPts = 0, policyLabel = "Privacy policy not checked yet";
+    let policyPts = 0, policyLabel = p.source ? "Privacy policy read, but it doesn't say whether it sells or shares" : "Privacy policy not checked yet";
     if (p.sells === true) { policyPts = 15; policyLabel = "Policy says it sells personal information"; }
     else if (p.shares === true) { policyPts = 8; policyLabel = "Policy says it shares information with partners"; }
     else if (p.sells === false && p.shares === false) { policyPts = 0; policyLabel = "Policy says it doesn't sell or share"; }
-    parts.push({ label: policyLabel, points: policyPts, kind: "disclosed" });
+    // What the policy hasn't answered yet (Justin's grade-scale doc: unknown is shown as a range, never as safe).
+    const policyWorst = p.sells === true ? 15 : p.sells === false ? (p.shares === false ? 0 : 8) : 15;
+    const policyOpen = p.sells === true || (p.sells === false && typeof p.shares === "boolean") ? null
+      : p.sells === false ? "the privacy policy doesn't say whether it shares"
+      : p.shares === true ? "the privacy policy doesn't say whether it sells"
+      : p.source ? "the privacy policy doesn't say whether it sells or shares"
+      : "the privacy policy isn't read yet";
+    parts.push({ label: policyLabel, points: policyPts, kind: "disclosed", ...(policyOpen ? { unknown: policyOpen, worst: policyWorst, max: 15 } : {}) });
 
     // The site's own data breaches, from Have I Been Pwned (rule v4, repo owner 2026-10-24):
     // reported in the last 12 months 15; happened in the last 5 years 5; older 0, unless major (100 million+ accounts) 5.
@@ -186,8 +193,16 @@
     }
 
     const score = Math.min(100, parts.reduce((s, x) => s + x.points, 0));
-    return { score, grade: gradeFor(score), parts, flagged, ownerFlag: owner, addressFlag, serverFlag };
+    // Range: the score if every unknown line turned out as badly as it could. Coverage: share of the rubric's
+    // points (RUBRIC_MAX) that are settled. "evidence-supported" only when nothing is left unknown.
+    const open = parts.filter(x => x.unknown);
+    const range = { min: score, max: Math.min(100, score + open.reduce((s, x) => s + x.worst - x.points, 0)) };
+    const coverage = (RUBRIC_MAX - open.reduce((s, x) => s + x.max, 0)) / RUBRIC_MAX;
+    const scoreKind = open.length ? "partly-checked" : "evidence-supported";
+    return { score, grade: gradeFor(score), range, coverage, scoreKind, unknowns: open.map(x => x.unknown), parts, flagged, ownerFlag: owner, addressFlag, serverFlag };
   }
+  // Most points each rubric line can add: trackers 40, advertising 20, cookies 10, foreign-adversary 15, policy 15, breach 15.
+  const RUBRIC_MAX = 40 + 20 + 10 + 15 + 15 + 15;
 
   const YEAR_MS = 365.25 * 86400000;
   function yearOf(b) { return String(b.breachDate || b.addedDate).slice(0, 4); }
@@ -282,5 +297,5 @@
     if (hasChrome()) await chrome.storage.local.remove(["privacData", "privacStats", "privacChipSeen"]);   // history, daily counts, grade box days
   }
 
-  window.PrivaCData = { countryOfAddress, annotateListed, load, currentDomain, clearAll, computeScore, gradeFor, GRADE_WORDS, FOREIGN_ADVERSARIES };
+  window.PrivaCData = { countryOfAddress, annotateListed, load, currentDomain, clearAll, computeScore, gradeFor, GRADE_WORDS, RUBRIC_MAX, FOREIGN_ADVERSARIES };
 })();

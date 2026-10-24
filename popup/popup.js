@@ -72,6 +72,7 @@
         <div class="meter" aria-hidden="true"><span style="width:${s.score}%"></span></div>
         <span class="score"><b>${s.score}</b> of 100</span>
       </div>
+      <p class="checked ${s.checked.full ? "full" : "part"}">${I.icon(s.checked.full ? "check" : "alert", 13)}<span><b>${s.checked.label}</b> · ${s.checked.coverage}% of the grade checked. ${esc(s.checked.note)}</span></p>
       <p class="verdict">${esc(s.headline)}</p>
       ${s.trackerCount ? `
         <div class="who-line"><span>${s.companyCount} ${s.companyCount === 1 ? "company" : "companies"} · ${s.trackerCount} ${s.trackerCount === 1 ? "tracker" : "trackers"}</span></div>

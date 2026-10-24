@@ -282,6 +282,13 @@ button.fact-title:hover { text-decoration-color: var(--hair-strong); }
 .detail-cols ul { list-style: none; margin: 0; padding: 0; font-size: 13px; }
 .detail-cols li { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 5px 0; min-height: 36px; border-bottom: 1px solid var(--hair); }
 .detail-actions { margin: 12px 0 4px; }
+.checked { margin: 10px 0 0; font-size: 12.5px; line-height: 1.45; color: var(--text-2); }
+.checked b { color: var(--text); }
+.checked.full b::before, .checked.part b::before { content: ""; display: inline-block; width: 8px; height: 8px; border-radius: 99px; margin-right: 6px; vertical-align: 1px; background: var(--good); }
+.checked.part b::before { background: var(--warn); }
+.calc { margin: 8px 0 0; font-size: 12.5px; color: var(--text-2); }
+.calc summary { cursor: pointer; color: var(--text); font-weight: 600; }
+.calc ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 4px; line-height: 1.45; }
 .detail-cols li .pts { font-weight: 600; font-variant-numeric: tabular-nums; }
 .detail-cols li .pts.zero { color: var(--text-3); font-weight: 400; }
 .detail-cols li .co small { margin-left: 6px; color: var(--text-3); }
@@ -430,6 +437,10 @@ button.fact-title:hover { text-decoration-color: var(--hair-strong); }
 .grades-key .k + .k { border-top: 1px solid var(--hair); border-radius: 0; }
 .grades-key .k b { font-family: var(--font-display); font-weight: 700; font-size: 16px; color: var(--g); }
 .grades-key .k span:last-child { color: var(--text-3); font-variant-numeric: tabular-nums; }
+.how-calc { margin-top: 14px; padding: 16px 18px; }
+.how-calc h2 { font-size: 15px; font-weight: 650; margin: 0; }
+.how-calc ol { margin: 10px 0 0; padding-left: 22px; display: grid; gap: 6px; font-size: 13px; line-height: 1.45; color: var(--text-2); }
+.how-calc ol b { color: var(--text); }
 .evidence { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 14px; }
 .evidence > div { padding: 14px 16px; }
 .evidence h3 { font-size: 14px; font-weight: 600; }
