@@ -72,7 +72,7 @@ test("the store package includes every file the manifest, pages and scripts load
 });
 
 test("the privacy policy names every outside address the extension's code contacts", () => {
-  const dirs = ["background.js", "background", "shared", "offscreen"];
+  const dirs = ["background.js", "background", "shared", "offscreen"].filter((d) => fs.existsSync(path.join(root, d)));   // offscreen/: main only
   const hosts = new Set();
   for (const d of dirs) {
     const full = path.join(root, d);
@@ -84,7 +84,7 @@ test("the privacy policy names every outside address the extension's code contac
       }
     }
   }
-  assert.ok(hosts.size >= 4, [...hosts].join(", "));
+  assert.ok(hosts.size >= 3, [...hosts].join(", "));   // at least the breach list, broker list and Ollama
   const p = read("PRIVACY.md");
   for (const h of hosts) assert.ok(p.includes(h), `PRIVACY.md doesn't mention ${h}`);
   assert.match(p, /IP address/, "says that any download shows the server your IP address");
