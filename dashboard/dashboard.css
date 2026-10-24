@@ -482,6 +482,14 @@ button.fact-title:hover { text-decoration-color: var(--hair-strong); }
 [data-theme="dark"] .ask-empty svg [stroke="#16233f"], [data-theme="dark"] .explain-c svg [stroke="#16233f"] { stroke: #dfe5ef; }
 
 /* ============ Narrower windows ============ */
+.about-list { list-style: none; margin: 0 0 14px; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 14px; }
+.about-list li, .about-older { padding: 18px 20px; }
+.about-list h3, .about-older h3 { font-size: 16px; font-weight: 700; letter-spacing: -0.01em; }
+.about-list h3 span { display: block; margin-top: 2px; font-size: 12.5px; font-weight: 600; color: var(--orange); }
+.about-list p, .about-older p { margin: 8px 0 0; font-size: 13.5px; color: var(--text-2); }
+.about-list .where { font-size: 12px; }
+.about-list code { font-size: 11.5px; }
+
 @media (max-width: 1100px) {
   /* Two columns: the short exposure ring and the purposes list stack beside This week, so nothing stretches. */
   .ov-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-areas: "hero hero" "gauge week" "purposes week" "facts facts" "cookies countries" "follow follow"; }

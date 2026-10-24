@@ -12,7 +12,8 @@
         /^agree(?: and continue)?$/i,
         /^i agree$/i,
         /^got it$/i,
-        /^ok(?:ay)?$/i
+        /^ok(?:ay)?$/i,
+        /^continue and accept$/i               // Argos, Sainsbury's
     ];
 
   const REJECT_LABELS = [
@@ -37,14 +38,36 @@
         /^continue without consent$/i,
         /^save necessary cookies only$/i,
         /^reject all optional cookies$/i,
-        /^reject all non-essential cookies$/i
+        /^reject all non-essential cookies$/i,
+        /^deny cookies$/i,                     // Superdrug
+        /^reject additional cookies$/i,        // gov.uk
+        /^allow recommended cookies only$/i
     ];
 
   let promptedFor = null;
   let timer = null;
 
+  // Buttons already handled on this page: the "Do not sell or share" link is clicked once, and the
+  // Reject button gets one click listener (Zara alternated between them and re-clicked the link).
+  const handled = new WeakSet();
+
+  // Elements matching `selector` on the page and inside open shadow roots (Usercentrics puts its banner
+  // inside #usercentrics-root, where document.querySelectorAll can't see). C's own pop-up is skipped.
+  function queryAll(selector) {
+    const found = [];
+    const roots = [document];
+    while (roots.length) {
+      const root = roots.shift();
+      found.push(...root.querySelectorAll(selector));
+      for (const element of root.querySelectorAll("*")) {
+        if (element.shadowRoot && element.tagName !== "PRIVAC-PROMPT") roots.push(element.shadowRoot);
+      }
+    }
+    return found;
+  }
+
   function findRejectButton() {
-    const elements = document.querySelectorAll(
+    const elements = queryAll(
       'button, [role="button"], input[type="button"]'
     );
 
@@ -69,9 +92,9 @@
   }
 
     function findAcceptButtons() {
-        return [...document.querySelectorAll(
+        return queryAll(
             'button, [role="button"], input[type="button"]'
-        )].filter(element => {
+        ).filter(element => {
             const rect = element.getBoundingClientRect();
             if (!rect.width || !rect.height) return false;
 
@@ -114,7 +137,9 @@
                 ""
             ).trim();
 
-            return /reject|decline|deny|refuse|necessary|essential|preferences|settings|customize|manage|options/i.test(label);
+            // Only a one-click way to say no counts. A settings or "Choose cookies" button still makes you
+            // do the work yourself (Argos, Trainline), so C keeps the "Beware!" warning.
+            return /reject|decline|deny|refuse|necessary|essential/i.test(label);
             });
 
             if (!hasAlternative) return { banner, button };
@@ -125,7 +150,7 @@
 
 
     function findPrivacyOptOutButton() {
-        const buttons = document.querySelectorAll(
+        const buttons = queryAll(
             'button, [role="button"], input[type="button"]'
         );
 
@@ -148,6 +173,78 @@
         return null;
     }
 
+
+
+    // Reads the consent tool's own record of your choice, only to answer "are the optional cookies off?".
+    // Returns true (all off), false (something optional is on) or null (no record PrivaC knows).
+    // Nothing from the cookies is kept or sent anywhere.
+    function optionalCookiesOff(cookieString) {
+        const jar = new Map();
+        for (const part of String(cookieString || "").split(/;\s*/)) {
+            const i = part.indexOf("=");
+            if (i > 0) jar.set(part.slice(0, i), part.slice(i + 1));
+        }
+        const decode = (value) => {
+            try { return decodeURIComponent(value); } catch (e) { return value; }
+        };
+        const answers = [];
+
+        // OneTrust: groups=C0001:1,C0002:0,... (C0001 is the strictly necessary group).
+        if (jar.has("OptanonConsent")) {
+            const match = decode(jar.get("OptanonConsent")).match(/(?:^|&)groups=([^&]+)/);
+            if (match) {
+                const optional = decode(match[1]).split(",")
+                    .map(group => group.split(":"))
+                    .filter(([id]) => id !== "C0001");
+                if (optional.length) answers.push(optional.every(([, on]) => on === "0"));
+            }
+        }
+
+        // Ensighten (John Lewis): one cookie per category, e.g. JOHNLEWIS_ENSIGHTEN_PRIVACY_Advertising=0.
+        // Skip its "banner viewed/loaded" flags and the always-on essential category.
+        const ensighten = [...jar].filter(([name, value]) =>
+            /_ENSIGHTEN_PRIVACY_/.test(name) &&
+            !/_(VIEWED|LOADED)$/i.test(name) &&
+            !/_ENSIGHTEN_PRIVACY_(essential|necessary|required|strictly)/i.test(name) &&
+            /^[01]$/.test(value)
+        );
+        if (ensighten.length) answers.push(ensighten.every(([, value]) => value === "0"));
+
+        // CookieYes: cookieyes-consent=consentid:...,necessary:yes,functional:no,analytics:no,...
+        if (jar.has("cookieyes-consent")) {
+            const fields = new Map(decode(jar.get("cookieyes-consent")).split(",")
+                .map(pair => pair.split(":")));
+            const optional = ["functional", "analytics", "performance", "advertisement", "other"]
+                .filter(name => fields.has(name));
+            if (optional.length) answers.push(optional.every(name => fields.get(name) === "no"));
+        }
+
+        // Cookiebot: CookieConsent={...,preferences:false,statistics:false,marketing:false,...}
+        // ("-1" means the visitor's region needs no consent: nothing to check).
+        if (jar.has("CookieConsent")) {
+            const value = decode(jar.get("CookieConsent"));
+            const optional = ["preferences", "statistics", "marketing"]
+                .map(name => (value.match(new RegExp("[{,]" + name + ":(true|false)")) || [])[1])
+                .filter(Boolean);
+            if (optional.length) answers.push(optional.every(on => on === "false"));
+        }
+
+        // Didomi: didomi_token is base64 JSON with purposes.enabled / purposes.disabled.
+        if (jar.has("didomi_token")) {
+            try {
+                const token = JSON.parse(atob(decode(jar.get("didomi_token")).replace(/-/g, "+").replace(/_/g, "/")));
+                const purposes = token && token.purposes;
+                const enabled = (purposes && purposes.enabled) || [];
+                const disabled = (purposes && purposes.disabled) || [];
+                if (enabled.length || disabled.length) answers.push(enabled.length === 0);
+            } catch (e) {
+                // Not a token we can read: leave it unverified.
+            }
+        }
+
+        if (!answers.length) return null;
+        return answers.every(Boolean);
+    }
 
   function checkForCookieBanner() {
 
@@ -174,7 +271,8 @@
 
     const optOutButton = findPrivacyOptOutButton();
 
-    if (optOutButton && optOutButton !== promptedFor) {
+    if (optOutButton && !handled.has(optOutButton)) {
+        handled.add(optOutButton);
         promptedFor = optOutButton;
 
         const banner = optOutButton.closest(
@@ -237,13 +335,16 @@
     }
 
     // React when the user clicks the website's own reject button.
-    button.addEventListener("click", (event) => {
-      if (!event.isTrusted) return;
+    if (!handled.has(button)) {
+      handled.add(button);
+      button.addEventListener("click", (event) => {
+        if (!event.isTrusted) return;
 
-      if (window.PrivaCPrompt) {
-        PrivaCPrompt.ignored();
-      }
-    }, { once: true });
+        if (window.PrivaCPrompt) {
+          PrivaCPrompt.ignored();
+        }
+      }, { once: true });
+    }
 
 
     PrivaCPrompt.cookie({
@@ -272,55 +373,33 @@
             rect.width === 0 ||
             rect.height === 0 ||
             style.display === "none" ||
-            style.visibility === "hidden"
+            style.visibility === "hidden" ||
+            // Slid out of the window but still in the page (Tesco's banner slides away).
+            rect.bottom <= 0 ||
+            rect.right <= 0 ||
+            rect.top >= window.innerHeight ||
+            rect.left >= window.innerWidth ||
+            // Hidden or faded out by a box around it.
+            (button.checkVisibility &&
+              !button.checkVisibility({ opacityProperty: true, visibilityProperty: true }))
           ) {
             bannerDismissed = true;
             break;
           }
         }
 
-        if (!bannerDismissed) {
+        // The banner may stay on screen while the site still saved the choice.
+        if (!bannerDismissed && optionalCookiesOff(document.cookie) !== true) {
             console.warn("PrivaC: Cookie banner did not disappear.");
             return "failed";
         }
 
-        
+        // Check whether the site's consent tool saved the optional categories as off.
+        const verification =
+          optionalCookiesOff(document.cookie) === true ? "confirmed" : "unverified";
 
-        let verification = "unverified";
-
-        // Check whether OneTrust saved the cookie preferences.
-        const consentCookie = document.cookie
-          .split("; ")
-          .find(cookie => cookie.startsWith("OptanonConsent="));
-
-        if (consentCookie) {
-          try {
-            const cookieValue = decodeURIComponent(
-              consentCookie.substring("OptanonConsent=".length)
-            );
-
-            const groupsMatch = cookieValue.match(/(?:^|&)groups=([^&]+)/);
-
-            if (groupsMatch) {
-              const groups = decodeURIComponent(groupsMatch[1])
-                .split(",")
-                .map(group => group.split(":"));
-
-              const optionalGroups = groups.filter(
-                ([id]) => id !== "C0001"
-              );
-
-              if (
-                optionalGroups.length > 0 &&
-                optionalGroups.every(([, enabled]) => enabled === "0")
-              ) {
-                verification = "confirmed";
-                console.log("PrivaC: OneTrust rejection verified!");
-              }
-            }
-          } catch (e) {
-            console.warn("PrivaC: Could not verify OneTrust consent", e);
-          }
+        if (verification === "confirmed") {
+          console.log("PrivaC: cookie rejection verified!");
         }
 
         // Only record a confirmed rejection in the privacy score.
@@ -369,6 +448,9 @@
     childList: true,
     subtree: true
   });
+
+  // Lets the tests run a re-check (tests/cookie-detector.test.js).
+  window.PrivaCCookieCheck = checkForCookieBanner;
 
   checkForCookieBanner();
   setTimeout(checkForCookieBanner, 1500);

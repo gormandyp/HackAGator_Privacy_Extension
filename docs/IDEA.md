@@ -1,5 +1,5 @@
 # Idea inbox: Gator Hack V (UF AI Days 2026)
-_Last reviewed 2026-10-24 (Sat). Ideas stay as the team wrote them; **Status** notes and corrections are marked. Source of truth for build details: docs/SPEC.md and docs/PLAN.md._
+_Last reviewed 2026-10-24 (Sat, ~4 PM ET). Ideas stay as the team wrote them; **Status** notes and corrections are marked. Source of truth for build details: docs/SPEC.md and docs/PLAN.md._
 
 ## Hard facts (from Devpost, checked 2026-10-23)
 - Hacking: Fri Oct 23 5:00 PM -> **Sun Oct 25 5:00 PM ET (48h). Late submissions not accepted.**
@@ -22,7 +22,7 @@ _Last reviewed 2026-10-24 (Sat). Ideas stay as the team wrote them; **Status** n
 - Judges will ask: what is new, why central, what was hard. Keep a running log of difficulties in docs/DIFFICULTIES.md.
 
 ## What we are building: PrivaC (Chrome extension)
-**Status (Sat):** tracking, grading, C on cookie banners and Ask C work; on-page foreign-adversary alert and unsafe-site warning are not built yet (PLAN steps R4, R5).
+**Status (Sat 4 PM):** tracking, grading, C on cookie banners (with decline checks on five consent tools), Ask C, the policy reader, the on-page foreign-adversary alert and the glass dashboard work. Not built: the unsafe-site warning (PLAN R5). Ask C answers still need work (R13).
 Source: team Google Doc + linked idea chats (read 2026-10-23). The Google Doc will keep changing: re-read it if unsure.
 Team doc: https://docs.google.com/document/d/16WMA557yYF0qcxb9CSYCB0wrmqSXE2lS4e98C3C6bAQ/edit
 
@@ -35,7 +35,8 @@ Team doc: https://docs.google.com/document/d/16WMA557yYF0qcxb9CSYCB0wrmqSXE2lS4e
 1. **Gemma 4 (E4B on the demo Mac, E2B on 8 GB laptops)**, released **March 31, 2026** (ai.google.dev/gemma/docs/releases). **Changed 2026-10-23:** runs locally through **Ollama** (not Transformers.js in the browser), and cookie banners are handled by plain JavaScript, not Gemma (a teammate's point: the page's own code is faster and more reliable). Gemma is C's brain for **Ask C** (answers with source labels) and, next, the **privacy-policy reader**. Nothing leaves the device.
 2. **RegTrack** (arXiv 2603.02679, March 2026; NDSS MADWeb 2026). Crawls of 743 sites from 8 locations, 4 browsers, 2 consent states. It backs C's advice: "accepting brought in X more trackers." Do not claim "rejecting removes X." **Status: not in the code yet (PLAN R1).** Figures to use (from the team doc): accepting raised ad/tracking companies per site 16% for Ohio (48.5 to 56.2) and 265% for France (§IV-B, Fig. 4); EU visitors saw about 80% fewer trackers before accepting (Abstract, §V-A); Brave loaded about 31% fewer trackers than Chrome from Ohio (§IV-A); entertainment sites were 10% of sites but 28% of tracking, news 5% and 19% (Appendix F).
 3. **Pentagon Section 1260H list, updated June 8, 2026** (65 entities added, including Alibaba and Baidu as parent companies; 10 removed; about 188 listed in total). It drives the foreign-adversary flag. **Status: not in the code yet (PLAN R2).**
-4. **New since Friday, also recent:** the **2026 California Data Broker Registry** (CPPA; brokers registered Jan 2026, page updated July 2026) is downloaded daily; **Have I Been Pwned** adds breaches daily (131 added in the past year, e.g. wired.com, zara.com).
+4. **LiteRT-LM for the web** (Google; first npm release May 18, 2026; we use 0.18.0 from Oct 6, 2026): runs Gemma 4 E2B inside Chrome on the graphics chip, so the in-browser version needs no Ollama (branch `in-browser-ai`, becoming the main download).
+5. **New since Friday, also recent:** the **2026 California Data Broker Registry** (CPPA; brokers registered Jan 2026, page updated July 2026) is downloaded daily; **Have I Been Pwned** adds breaches daily (131 added in the past year, e.g. wired.com, zara.com).
 
 Supporting (older, so NOT the theme answer): DuckDuckGo Tracker Radar (domain to company; noncommercial license; **in use as shared/atlas.json**), Open Cookie Database (cookie purposes; Apache 2.0; **in use**), Have I Been Pwned (**in use**), California data-broker registry (**in use**). Not used: Commerce Consolidated Screening List, IP-to-country database (dropped for time).
 
@@ -82,7 +83,25 @@ Supporting (older, so NOT the theme answer): DuckDuckGo Tracker Radar (domain to
   - **Status:** planned in two parts (PLAN R3 then R7). First the privacy-policy reader (Gemma reads the policy, quotes "sells"/"shares", feeds the existing policy points). Then terms of service through the same reader, or ToS;DR ratings only if a whole-list download exists (looking up each site would break the privacy promise).
 - Make sure that the suggested Ask C topics adjust to your browsing trends.
   - **Status:** not started; small (PLAN R6).
-- Make it so we are able to customize the liquid glass (i.e., green hue background, blue hue background, etc). 
+- Make it so we are able to customize the liquid glass (i.e., green hue background, blue hue background, etc).
+  - **Status:** not started (PLAN R15). Liquid glass and Clean, light and dark exist (Settings > Appearance).
 
 **Justin
 - Have a "Clear Cache" button within PrivaC to clear users chache with a possible explanation for users about what it does and how its useful.
+
+## Smiley
+- Clear cache button within PrivaC, with explanation on what it means to clear ur cache and how its good
+  - **Status:** not started (PLAN R15). Needs Chrome's "browsingData" permission; ask before adding it.
+- Change "decline extras" on C popup to "protect me" because its sounds better.
+  - **Status:** not started (PLAN R15): one word change in content/c-prompt.js, held for the repo owner's OK.
+-   Could not verify that the website saved your choice on a couple websites. Said "could not verify" if site made choice or not 
+  - **Status: fixed 2026-10-24.** C now reads the choice from Ensighten (John Lewis), CookieYes, Cookiebot and Didomi as well as OneTrust; a site with none of these still gets the honest "couldn't verify".
+- 
+
+## From the team Google Doc (read 2026-10-24 4 PM)
+- Show the PrivaC grade box in the top right as soon as you open a site, with an x to close it (you shouldn't have to click the extension).
+  - **Status:** not started (PLAN R15). The rounded panel (content/panel.js) can already float there; needs a setting so it's not annoying.
+- After you decline or accept cookies, a short box that explains what your choice means for your visit.
+  - **Status:** not started (PLAN R15); fits after C's "Nice!".
+- The grade's color coding needs to be more visible and accessible.
+  - **Status:** not started (PLAN R15).

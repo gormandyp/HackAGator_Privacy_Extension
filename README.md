@@ -9,14 +9,16 @@ Built at Gator Hack V (UF AI Days 2026) for the "Fresh off the frontier" challen
 
 ## What's recent (and central)
 - **Gemma 4** (Google, released March 31, 2026): C's brain, running inside Chrome with Google's **LiteRT-LM web runtime** (first published May 18, 2026; we use 0.18.0 from Oct 6, 2026), or through Ollama. Your browsing and questions never leave the computer.
-- **RegTrack** (arXiv 2603.02679, March 2026): measured how accepting cookies changes tracking on 743 websites. C quotes it. *(in progress)*
-- **Pentagon 1260H list** (updated June 8, 2026, adds Alibaba and Baidu): powers the foreign-adversary flag. *(in progress)*
+- **RegTrack** (NDSS MADWeb, February 2026; arXiv 2603.02679): measured how accepting cookies changes tracking on 743 websites. C quotes it.
+- **Pentagon 1260H list** (updated June 8, 2026, adds Alibaba and Baidu): powers the foreign-adversary flag.
 - **California Data Broker Registry 2026** and **Have I Been Pwned**: downloaded fresh every day.
+
+Judges: the dashboard's **About** tab lists each one with its date, a link to proof, and the files that use it.
 
 ## What it does
 - Records which trackers each page loads (3,721 known tracker domains from DuckDuckGo Tracker Radar) and which cookies it sets (labeled with the Open Cookie Database).
 - Grades each site with a rules-based exposure score (0-100). Every point is explained. See "How the grade works" on the dashboard and docs/SPEC.md.
-- C detects cookie banners, clicks "Reject" for you, and notes banners that have no Reject button.
+- C detects cookie banners, clicks "Reject" for you, checks the site saved it (OneTrust, Ensighten, CookieYes, Cookiebot, Didomi), and warns about banners that have no Reject button.
 - Flags data breaches (Have I Been Pwned), registered data brokers (California) and companies based in U.S.-listed foreign-adversary countries (15 CFR 7.4).
 - **Ask C**: questions answered by Gemma from the evidence, with a source label on every fact.
 
