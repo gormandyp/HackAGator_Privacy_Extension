@@ -39,3 +39,5 @@ Update your row every time you push. Keep it to one line per column.
 - 2026-10-24: google.com got B from Google's result-page prefetch (an AliExpress ad page counted as an Alibaba tracker). Fixed: page loads (main_frame) never count as trackers.
 - 2026-10-24 (repo owner): keep daily totals (numbers only, no site names) for 90 days for the impact and safety views; count every C pop-up. Site history stays 7 days.
 - 2026-10-24: merged Matthew's latest c-prompt.js and cookie-detector.js unchanged (from his privac-ui folder); content/c-events.js counts C's pop-ups/clicks and reports cookie choices.
+- 2026-10-24 (repo owner): option 1: keep a site's 7-day combined record and label it "Seen on your visits in the last 7 days" (not "this visit").
+- 2026-10-24: fixed google.com B (Google result prefetch reported as "other") and the popup showing sample data after a reload.

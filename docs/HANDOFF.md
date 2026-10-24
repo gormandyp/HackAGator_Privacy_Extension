@@ -18,6 +18,9 @@ Deadline: feature freeze **Sun Oct 25 11 AM ET**, submit by **4 PM** (hard deadl
 - `content/c-events.js` (ours) wraps PrivaCPrompt: counts every C pop-up and click, and reports cookie choices (declined / no-reject / accepted) to the background.
 - **R12 counters**: `shared/stats.js` + `background/stats.js`, key `privacStats`, numbers only, 90 days. Use `PrivaCStats.summary(stats, "day" | "week" | "month")`: `totals.popups` (all of C's pop-ups), `totals.events["decline-click" | "decline-confirmed" | "choose-click" | "rejected-on-site" | "accepted-on-site" | "popup-cookie" | "popup-accept-only" | "popup-adversary"]`, plus `sites, grades{A..F}, unsafeSites, flaggedSites, breachedSites, trackers, adTrackers, cookies, trackingCookies, declined, accepted, noReject, neverAsked`, and `days[]` for charts.
 - Speed: a page's burst of trackers = one storage write.
+- Google pre-loads (prefetch, reported as "main_frame" or "other") never count as trackers: google.com should grade A (about 8, from its policy).
+- Pages already open when PrivaC starts (after a reload) are recorded; the popup never shows sample data inside the real extension ("I haven't checked X yet").
+- Labels (repo owner, option 1): a site's record combines its visits for 7 days, so "Why this grade" says "Seen on your visits in the last 7 days".
 - Smoke-tested in a real Chromium (cloud): C's cookie prompt, accept-only warning with pose images, counters and today's snapshot all work.
 
 ## Known issues to fix
@@ -28,6 +31,7 @@ Deadline: feature freeze **Sun Oct 25 11 AM ET**, submit by **4 PM** (hard deadl
 - Temu still unflagged: Pinduoduo/PDD wording + source from **Max**.
 
 ## Game plan (in this order, so nothing undoes anything)
+0. **Next up (done 2026-10-24, verify in the live check):** google.com = A after Clear my PrivaC data; popup shows your real site (never dailynews.example); grade lines say "Seen on your visits in the last 7 days". Dashboard wording should match when R10 is built.
 1. **Live check** (repo owner, 15 min): reload, Clear my PrivaC data, visit google.com (expect A), search "aliexpress" (still A), baidu.com and ya.ru (C alert), tass.com/rt.com (state-run media line, no tass.ru label), granma.cu, en.irna.ir, cnn.com, wired.com (policy answers after ~1 min). Screenshot the popup for each; note results in STATUS.md.
 2. **F3 APNIC** (above).
 3. **R10 dashboard mockups**: after Matthew's code is in (done), the repo owner sends the design prompt; Claude builds 2-3 clickable variations (published as artifacts) of:
