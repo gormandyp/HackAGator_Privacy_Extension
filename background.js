@@ -8,7 +8,11 @@ importScripts("shared/settings.js", "shared/lists.js", "shared/cookies.js", "sha
 // Download the public breach and data-broker lists: at startup and once a day.
 // Whole files only; nothing about your browsing is sent (see shared/lists.js).
 function refreshLists() { PrivaCLists.refresh().catch(e => console.warn("PrivaC: list refresh failed", e)); }
-chrome.runtime.onInstalled.addListener(() => { PrivaCLists.refresh({ force: true }); });
+chrome.runtime.onInstalled.addListener((details) => {
+  PrivaCLists.refresh({ force: true });
+  // First install only: open the welcome page, which says what PrivaC records and sends (Chrome Web Store disclosure rule).
+  if (details && details.reason === "install") chrome.tabs.create({ url: chrome.runtime.getURL("welcome/welcome.html") });
+});
 chrome.runtime.onStartup.addListener(refreshLists);
 chrome.alarms.create("privac-lists", { periodInMinutes: 24 * 60 });
 chrome.alarms.onAlarm.addListener(a => { if (a.name === "privac-lists") refreshLists(); });

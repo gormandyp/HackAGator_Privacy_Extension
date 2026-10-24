@@ -21,7 +21,7 @@ Judges: the dashboard's **About** tab lists each one with its date, a link to pr
 - **Ask C**: questions answered by Gemma from the evidence, with a source label on every fact.
 
 ## Privacy
-PrivaC downloads whole public lists and matches them on your computer. It never sends what you visit to anyone. It stores site names and cookie names only (never full addresses or cookie contents) and deletes history after 7 days. Daily totals (numbers only, no site names) are kept 90 days for the week and month views. "Clear my PrivaC data" erases everything.
+PrivaC downloads whole public lists and matches them on your computer. It never sends what you visit to anyone. It stores site names and cookie names only (never full addresses or cookie contents) and deletes history after 7 days. Daily totals (numbers only, no site names) are kept 90 days for the week and month views. "Clear my PrivaC data" erases your history and daily totals. Full details: [PRIVACY.md](PRIVACY.md) and [TERMS.md](TERMS.md).
 
 ## Download
 | Version | C's AI runs on | Download |
@@ -54,6 +54,9 @@ Without installing anything, you can open `dashboard/dashboard.html` or `popup/p
 
 ## Data sources and credits
 Tracker data: [DuckDuckGo Tracker Radar](https://github.com/duckduckgo/tracker-radar) (CC BY-NC-SA 4.0). Breach data: [Have I Been Pwned](https://haveibeenpwned.com) (CC BY 4.0). Cookie purposes: [Open Cookie Database](https://github.com/jkwakman/Open-Cookie-Database) (Apache 2.0). Data brokers: [California Privacy Protection Agency](https://cppa.ca.gov/data_broker_registry/). Details: [docs/DATA.md](docs/DATA.md).
+
+## License
+PrivaC's own code is open source under the [MIT](LICENSE) license. The data files keep their own licenses (listed at the end of [LICENSE](LICENSE)); Tracker Radar's is non-commercial.
 
 ## Team
 Josh Davis, Max Glassman, Matthew Finkelstein, Justin Smilowitz, and the repo owner (gormandyp). Teamwork rules: [docs/TEAM.md](docs/TEAM.md).
