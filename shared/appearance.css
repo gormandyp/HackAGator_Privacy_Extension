@@ -1,0 +1,166 @@
+/* PrivaC appearance: dark mode, accent colors, larger text.
+   Set by shared/appearance.js through attributes on <html>:
+     data-theme="light|dark"  data-accent="navy|forest|ocean|plum"  data-text="default|large"
+   Load this AFTER theme.css and the page's own CSS. Light + Navy looks exactly like the original.
+   Rules that never change with the theme: C is always orange, and grade colors keep their meaning. */
+
+/* ---------- Accent: the color of buttons and your Ask C bubbles (never grades or matrix dots) ---------- */
+:root {
+  --primary: var(--ink);
+  --primary-hover: #24345a;
+  --on-primary: #fff;
+  --on-grade: #fff;
+}
+:root[data-accent="forest"] { --primary: #155e4b; --primary-hover: #1c7660; --paper: #eff4f2; }
+:root[data-accent="ocean"]  { --primary: #1d4f86; --primary-hover: #2563a6; --paper: #eff3f8; }
+:root[data-accent="plum"]   { --primary: #5b3596; --primary-hover: #6f45b0; --paper: #f3f1f8; }
+
+/* ---------- Dark mode tokens ---------- */
+:root[data-theme="dark"] {
+  --ink: #e9edf5;
+  --ink-2: #b4bdcf;
+  --ink-3: #8a95ab;
+  --paper: #0e121b;
+  --surface: #161c28;
+  --line: #2a3243;
+  --orange-soft: rgba(250, 70, 22, 0.18);
+
+  /* Grades: same hues, brighter so they read on a dark background */
+  --grade-a: #3fbf86;
+  --grade-b: #8cc657;
+  --grade-c: #e8b730;
+  --grade-d: #f2924a;
+  --grade-f: #f2635c;
+  --flag: #f26b63;
+  --flag-soft: rgba(242, 107, 99, 0.14);
+
+  --primary: #dbe3f3;
+  --primary-hover: #ffffff;
+  --on-primary: #0e121b;
+  --on-grade: #0e121b;
+
+  /* Ask C source labels */
+  --src-seen: rgba(150, 170, 210, 0.18);   --src-seen-ink: #cdd8ee;
+  --src-radar: rgba(90, 160, 235, 0.18);   --src-radar-ink: #9cc8f5;
+  --src-broker: rgba(160, 120, 230, 0.20); --src-broker-ink: #c7b0f3;
+  --src-hibp: rgba(220, 160, 70, 0.18);    --src-hibp-ink: #ecc68c;
+  --src-regtrack: rgba(70, 190, 150, 0.18); --src-regtrack-ink: #8fdcc0;
+  --src-policy: rgba(160, 170, 190, 0.16); --src-policy-ink: #c3cad8;
+  --src-gov: rgba(240, 100, 90, 0.18);     --src-gov-ink: #f5aaa2;
+  --src-cookie: rgba(220, 170, 90, 0.16);  --src-cookie-ink: #e8c993;
+}
+:root[data-theme="dark"][data-accent="forest"] { --primary: #5ccaa6; --primary-hover: #7fd9bb; --paper: #0c1513; }
+:root[data-theme="dark"][data-accent="ocean"]  { --primary: #7db2f2; --primary-hover: #a0c7f6; --paper: #0c121c; }
+:root[data-theme="dark"][data-accent="plum"]   { --primary: #bfa2f5; --primary-hover: #d2bdf8; --paper: #120f1b; }
+
+/* ---------- Things that use the accent ---------- */
+html[data-accent] .btn { background: var(--primary); color: var(--on-primary); }
+html[data-accent] .btn:hover { background: var(--primary-hover); }
+html[data-accent] .btn.secondary { background: transparent; color: var(--ink); }
+html[data-accent] .btn.secondary:hover { background: transparent; }
+html[data-accent] .msg.you { background: var(--primary); color: var(--on-primary); }
+html[data-accent] .toast { background: var(--primary); color: var(--on-primary); }
+html[data-accent] .ask-card { border-color: var(--primary); box-shadow: 6px 6px 0 var(--primary); }
+html[data-accent] .ask-form input:focus { border-color: var(--primary); }
+html[data-accent] .matrix thead .mini-grade,
+html[data-accent] .site .badge { color: var(--on-grade); }
+
+/* ---------- Dark mode: replace the few fixed light colors ---------- */
+html[data-theme="dark"] .meter,
+html[data-theme="dark"] .site .bar { background: #262e3e; }
+html[data-theme="dark"] .matrix .no-dot { background: #333b4c; }
+html[data-theme="dark"] .rubric thead th { background: #1e2535; }
+html[data-theme="dark"] .chip { background: #242b3a; color: var(--ink-2); }
+html[data-theme="dark"] .sample-note { background: #1b2130; color: var(--ink-2); }
+html[data-theme="dark"] .msg.c { background: #1c2332; }
+html[data-theme="dark"] .msg.c.err { background: var(--flag-soft); border-color: rgba(242, 107, 99, 0.35); }
+html[data-theme="dark"] .suggest:hover { background: rgba(250, 70, 22, 0.30); }
+html[data-theme="dark"] .ask-form input:focus { background: var(--surface); }
+html[data-theme="dark"] .flag { color: #ffd9d6; }
+html[data-theme="dark"] .matrix tr.top-row,
+html[data-theme="dark"] .matrix tr.top-row th { background: #2b2027; }
+html[data-theme="dark"] .ask-card { box-shadow: 6px 6px 0 rgba(0, 0, 0, 0.45); }
+
+/* C's navy lines (limbs, mouth, pupils, wordmark) turn light so C stays visible. C's orange body never changes. */
+html[data-theme="dark"] svg [stroke="#16233f"] { stroke: var(--ink); }
+html[data-theme="dark"] svg [fill="#16233f"] { fill: var(--ink); }
+html[data-theme="dark"] .privac-wordmark { color: var(--ink) !important; }
+
+/* ---------- Larger text ---------- */
+html[data-text="large"] body { zoom: 1.12; }
+
+/* ---------- Smooth switch between themes ---------- */
+body, .top, .site, .matrix-scroll, .rubric table, .ask-card, .msg, .bubble, .reasons, .btn {
+  transition: background-color 180ms ease, color 180ms ease, border-color 180ms ease;
+}
+
+/* ---------- The "Aa" button and panel ---------- */
+.pc-ap { position: relative; margin-left: auto; margin-right: 8px; }
+.pc-ap-btn {
+  width: 32px; height: 32px;
+  border: 0; border-radius: 999px;
+  background: transparent;
+  color: var(--ink-2);
+  font-family: var(--font-display); font-weight: 700; font-size: 13px;
+  box-shadow: inset 0 0 0 1.5px var(--line);
+}
+.pc-ap-btn:hover, .pc-ap-btn[aria-expanded="true"] { color: var(--ink); box-shadow: inset 0 0 0 1.5px var(--ink-3); }
+.pc-ap-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+.pc-ap-panel {
+  position: absolute; top: calc(100% + 8px); right: 0; z-index: 50;
+  width: 252px;
+  padding: 14px;
+  background: var(--surface);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  box-shadow: 0 12px 32px rgba(10, 16, 30, 0.18), 0 2px 6px rgba(10, 16, 30, 0.08);
+  text-align: left;
+  animation: pc-ap-in 140ms ease-out both;
+}
+html[data-theme="dark"] .pc-ap-panel { box-shadow: 0 12px 32px rgba(0, 0, 0, 0.55); }
+.pc-ap-panel[hidden] { display: none; }
+@keyframes pc-ap-in { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+
+.pc-ap-title { margin: 0 0 10px; font-family: var(--font-display); font-weight: 700; font-size: 15px; }
+.pc-ap-row { margin-bottom: 12px; }
+.pc-ap-label { display: block; font-size: 11.5px; font-weight: 600; color: var(--ink-3); margin-bottom: 5px; }
+
+.pc-ap-seg {
+  display: flex; gap: 2px; padding: 2px;
+  background: var(--paper);
+  border-radius: 10px;
+}
+.pc-ap-seg button {
+  flex: 1;
+  border: 0; border-radius: 8px;
+  padding: 6px 4px;
+  background: transparent;
+  color: var(--ink-2);
+  font-size: 12.5px; font-weight: 600;
+}
+.pc-ap-seg button[aria-checked="true"] {
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: 0 1px 3px rgba(10, 16, 30, 0.15);
+}
+html[data-theme="dark"] .pc-ap-seg button[aria-checked="true"] { background: #2a3245; box-shadow: none; }
+
+.pc-ap-swatches { display: flex; gap: 10px; }
+.pc-ap-swatch {
+  width: 26px; height: 26px;
+  border: 0; border-radius: 50%;
+  box-shadow: 0 0 0 2px var(--surface), 0 0 0 3.5px transparent;
+}
+.pc-ap-swatch[aria-checked="true"] { box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--ink-2); }
+.pc-ap-swatch[data-swatch="navy"]   { background: #16233f; }
+.pc-ap-swatch[data-swatch="forest"] { background: #155e4b; }
+.pc-ap-swatch[data-swatch="ocean"]  { background: #1d4f86; }
+.pc-ap-swatch[data-swatch="plum"]   { background: #5b3596; }
+html[data-theme="dark"] .pc-ap-swatch[data-swatch="navy"]   { background: #dbe3f3; }
+html[data-theme="dark"] .pc-ap-swatch[data-swatch="forest"] { background: #5ccaa6; }
+html[data-theme="dark"] .pc-ap-swatch[data-swatch="ocean"]  { background: #7db2f2; }
+html[data-theme="dark"] .pc-ap-swatch[data-swatch="plum"]   { background: #bfa2f5; }
+
+.pc-ap-note { margin: 2px 0 0; font-size: 11.5px; line-height: 1.4; color: var(--ink-3); }
