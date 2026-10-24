@@ -15,14 +15,15 @@ function load() {
       set: async (o) => { Object.assign(store, JSON.parse(JSON.stringify(o))); }
     } },
     webNavigation: { onCommitted: on("nav") },
-    webRequest: { onBeforeRequest: on("req") },
+    webRequest: { onBeforeRequest: on("req"), onResponseStarted: on("resp") },
     tabs: { onRemoved: on("closed") }
   };
   const ctx = { chrome, console, URL, Promise, setTimeout };
   ctx.window = ctx;   // shared/data.js (country web addresses, F1) loads first in the real extension too
   vm.runInNewContext(fs.readFileSync(__dirname + "/../shared/data.js", "utf8"), ctx);
+  vm.runInNewContext(fs.readFileSync(__dirname + "/../shared/ipgeo.js", "utf8"), ctx);   // server location (F3)
   vm.runInNewContext(fs.readFileSync(__dirname + "/../background/tracking.js", "utf8") + "\n;this.flush = async () => { await atlasReady; await tabsReady; for (let i = 0; i < 5; i++) await new Promise(r => setTimeout(r, 0)); await saveChain; }; this.setAtlas = setAtlas; this.update = updateCookieChoice; this.ownerOf = ownerOf;", ctx);
-  return { listeners, store: () => store, setStore: (s) => { store = s; }, flush: () => ctx.flush(), setAtlas: ctx.setAtlas, update: (d, c) => ctx.update(d, c), ownerOf: (d) => ctx.ownerOf(d) };
+  return { listeners, store: () => store, setStore: (s) => { store = s; }, flush: () => ctx.flush(), setAtlas: ctx.setAtlas, update: (d, c) => ctx.update(d, c), ownerOf: (d) => ctx.ownerOf(d), ip: ctx.PrivaCIP, parseRir: (t) => require("../scripts/build-ip-countries.js").parse([t]) };
 }
 
 test("records known trackers per site and keeps earlier sites", async () => {
@@ -153,4 +154,23 @@ test("pages Google pre-loads from its results (navigation prefetch) are not trac
   await t.flush();
   const g = t.store().privacData.sites.find(s => s.domain === "google.com");
   assert.deepStrictEqual(g.trackers.map(x => x.domain), ["mc.yandex.ru"]);
+});
+
+test("F3: the page's own server and outside servers in a listed country are recorded (country only)", async () => {
+  const t = load();
+  t.ip.setData(t.parseRir("2|ripencc|1|1|1|20261023|+0\nripencc|RU|ipv4|95.173.128.0|4096|2008|allocated|a\nripencc|IR|ipv4|185.1.0.0|256|2012|allocated|b"));
+  t.listeners.resp({ tabId: 5, frameId: 0, type: "main_frame", url: "https://tass.com/", ip: "95.173.130.1" });
+  t.listeners.nav({ frameId: 0, tabId: 5, url: "https://tass.com/" });
+  await t.flush();
+  t.listeners.resp({ tabId: 5, frameId: 0, type: "image", url: "https://img.tass.com/a.jpg", ip: "95.173.130.2" });  // the site itself
+  t.listeners.resp({ tabId: 5, frameId: 0, type: "script", url: "https://cdn.other.example/x.js?q=1", ip: "185.1.0.9" });
+  t.listeners.resp({ tabId: 5, frameId: 0, type: "script", url: "https://safe.example/x.js", ip: "8.8.8.8" });
+  t.listeners.resp({ tabId: 6, frameId: 0, type: "main_frame", url: "https://cnn.com/", ip: "151.101.1.67" });
+  t.listeners.nav({ frameId: 0, tabId: 6, url: "https://cnn.com/" });
+  await t.flush();
+  const sites = t.store().privacData.sites;
+  const tass = sites.find(s => s.domain === "tass.com");
+  assert.deepStrictEqual(tass.server, { country: "RU" });
+  assert.deepStrictEqual(tass.foreignServers, [{ host: "other.example", country: "IR" }]);
+  assert.strictEqual(sites.find(s => s.domain === "cnn.com").server, null);
 });

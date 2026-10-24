@@ -41,6 +41,7 @@ Checked 2026-10-23 by Max (with Claude). Every date below was read from the sour
 | California Data Broker Registry (CPPA) | Is a tracker's owner a registered data broker | Downloaded whole daily (`https://cppa.ca.gov/data_broker_registry/registry.csv`, 603 brokers in 2026) | Public record | Yes (2026 registrations) |
 | Company headquarters countries | Foreign-adversary flag (15 CFR 7.4 countries) | Hand list `COUNTRY` in scripts/build-atlas.js (~70 companies) | Our own | — |
 | DoD Section 1260H list | Chinese military companies (Baidu and Alibaba added June 8, 2026) | `shared/flagged-companies.json` (Max, checked against the Federal Register); used in the score label, Ask C and the on-page alert | Public record | Yes (June 2026) |
+| Regional internet registries (RIPE NCC, LACNIC; APNIC pending) | Which listed country a server's IP address block is registered to (F3) | `shared/ip-countries.json`, `node scripts/build-ip-countries.js <delegated-extended files>`; downloaded whole, only CN HK RU IR CU KP VE kept | Public statistics | Yes (Oct 2026) |
 | RegTrack (arXiv 2603.02679) | Published figures on how accepting cookies changes tracking | `shared/regtrack-facts.json` (Max, with page numbers); used by Ask C, and available to C's cookie pop-up | Cite the paper | Yes (Feb/March 2026) |
 
 
@@ -48,7 +49,7 @@ Checked 2026-10-23 by Max (with Claude). Every date below was read from the sour
 - Countries are known for only ~10% of tracker domains; unknown never triggers a flag.
 - Broker matching uses exact names (minus "Inc", "LLC"...) or the broker's website; the registered name is shown so a person can check it.
 - HIBP matches the site's own domain only (not the trackers').
-- Dropped: Globus RegTrack raw data (1.5 TB), Commerce Consolidated Screening List, IP-to-country database.
+- Dropped: Globus RegTrack raw data (1.5 TB), Commerce Consolidated Screening List, commercial IP-to-country databases (we use the registries' own public lists instead).
 
 ## State Media Monitor (F2: state-run news sites)
 - What: classification of state and public media worldwide by the Media and Journalism Research Center (MJRC). We use outlets in the six 15 CFR 7.4 countries classified **State-Controlled** or **Captured Public** (not privately owned or independent ones).

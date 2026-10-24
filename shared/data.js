@@ -137,7 +137,12 @@
     if (addressFlag && !flagged.length && !owner) {
       flagLabel = `This site's web address ends in ${addressFlag.ending}, the country code of ${FOREIGN_ADVERSARIES[addrCountry]} (a listed foreign-adversary country)`;
     }
-    const flagPts = flagged.length || owner || addressFlag ? 15 : 0;
+    // F3: the site's own server address is registered (regional internet registry) in a listed country. Same single line.
+    const serverFlag = site.server && FOREIGN_ADVERSARIES[site.server.country] ? site.server : null;
+    if (serverFlag && !flagged.length && !owner && !addressFlag) {
+      flagLabel = `This site's server address is registered in ${FOREIGN_ADVERSARIES[serverFlag.country]} (regional internet registry), a listed foreign-adversary country`;
+    }
+    const flagPts = flagged.length || owner || addressFlag || serverFlag ? 15 : 0;
     parts.push({ label: flagLabel, points: flagPts, kind: "observed" });
 
     // Outside servers whose owner we don't know but whose address ends in a listed country's code: shown, 0 points.
@@ -149,6 +154,13 @@
       const names = unknownHosts.slice(0, 5).map(h => `${h} (${FOREIGN_ADVERSARIES[countryOfAddress(h)]})`).join(", ");
       const more = unknownHosts.length > 5 ? ` and ${unknownHosts.length - 5} more` : "";
       parts.push({ label: `Also contacted outside ${unknownHosts.length === 1 ? "server" : "servers"} with a listed country's web address, owner unknown: ${names}${more}`, points: 0, kind: "observed" });
+    }
+    // F3: outside servers whose address is registered in a listed country (owner unknown): shown, 0 points.
+    const servers = (site.foreignServers || []).filter(x => FOREIGN_ADVERSARIES[x.country] && !unknownHosts.includes(x.host));
+    if (servers.length) {
+      const names = servers.slice(0, 5).map(x => `${x.host} (${FOREIGN_ADVERSARIES[x.country]})`).join(", ");
+      const more = servers.length > 5 ? ` and ${servers.length - 5} more` : "";
+      parts.push({ label: `Also contacted outside ${servers.length === 1 ? "server" : "servers"} whose address is registered in a listed country, owner unknown: ${names}${more}`, points: 0, kind: "observed" });
     }
 
     const p = site.policy || {};
@@ -174,7 +186,7 @@
     }
 
     const score = Math.min(100, parts.reduce((s, x) => s + x.points, 0));
-    return { score, grade: gradeFor(score), parts, flagged, ownerFlag: owner, addressFlag };
+    return { score, grade: gradeFor(score), parts, flagged, ownerFlag: owner, addressFlag, serverFlag };
   }
 
   const YEAR_MS = 365.25 * 86400000;

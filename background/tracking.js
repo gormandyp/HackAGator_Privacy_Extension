@@ -137,6 +137,8 @@ function saveSite(site) {
         cookies: old.cookies || site.cookies,
         owner: site.owner || old.owner || null,
         foreignHosts: [...new Set([...(old.foreignHosts || []), ...(site.foreignHosts || [])])],
+        server: site.server || old.server || null,
+        foreignServers: [...(old.foreignServers || []), ...(site.foreignServers || []).filter(x => !(old.foreignServers || []).some(o => o.host === x.host))],
         policy: old.policy && old.policy.source ? old.policy : site.policy
       };
     }
@@ -234,6 +236,7 @@ chrome.webNavigation.onCommitted.addListener(details => {
     policy: { sells: null, shares: null, source: null },
     trackers: []
   };
+  site.server = serverFor(details.tabId, domain);
   tabSites.set(details.tabId, site);
   rememberTabs();
   atlasReady.then(() => {
@@ -294,6 +297,42 @@ chrome.webRequest.onBeforeRequest.addListener(
   { urls: ["<all_urls>"] }
 );
 
+// F3: server location. Chrome reports each response's IP address; shared/ipgeo.js says whether it's registered
+// in one of the 7 listed countries. Only the country (and an outside server's main name) is kept, never the address.
+const mainServer = new Map();   // tabId -> { domain, country } of the page's own server (arrives before onCommitted)
+function serverFor(tabId, domain) {
+  const main = mainServer.get(tabId);
+  return main && main.domain === domain && main.country ? { country: main.country } : null;
+}
+function handleResponse(details) {
+  if (details.tabId < 0 || !details.ip || typeof PrivaCIP === "undefined") return;
+  const hostname = cleanDomain(details.url);
+  if (!hostname) return;
+  const country = PrivaCIP.countryOfIp(details.ip);
+  const site = tabSites.get(details.tabId);
+  if (details.type === "main_frame") {
+    mainServer.set(details.tabId, { domain: hostname, country });
+    // The page was already committed (this response was waiting for the lists to load): fill it in now.
+    if (site && site.domain === hostname && country && !site.server) { site.server = { country }; rememberTabs(); saveSite(site); }
+    return;
+  }
+  if (!country || !site || isFirstParty(site.domain, hostname, matchingTracker(hostname))) return;
+  const roots = siteRoots(hostname);
+  const host = roots[roots.length - 1] || hostname;
+  site.foreignServers = site.foreignServers || [];
+  if (site.foreignServers.some(x => x.host === host) || site.foreignServers.length >= 20) return;
+  site.foreignServers.push({ host, country });
+  rememberTabs();
+  saveSite(site);
+}
+if (chrome.webRequest.onResponseStarted) {
+  chrome.webRequest.onResponseStarted.addListener(details => {
+    if (isBackgroundPage(details)) return;
+    const ipReady = typeof PrivaCIP !== "undefined" ? PrivaCIP.ready : Promise.resolve();
+    Promise.all([atlasReady, tabsReady, ipReady]).then(() => handleResponse(details));
+  }, { urls: ["<all_urls>"] });
+}
+
 // "Clear my PrivaC data" removes privacData: forget the open tabs too, so nothing comes back.
 if (chrome.storage.onChanged) {
   chrome.storage.onChanged.addListener((changes, area) => {
@@ -304,5 +343,6 @@ if (chrome.storage.onChanged) {
 // Clean up closed tabs.
 chrome.tabs.onRemoved.addListener(tabId => {
   tabSites.delete(tabId);
+  mainServer.delete(tabId);
   rememberTabs();
 });
