@@ -13,7 +13,14 @@
         /^i agree$/i,
         /^got it$/i,
         /^ok(?:ay)?$/i,
-        /^continue and accept$/i               // Argos, Sainsbury's
+        /^continue and accept$/i,              // Argos, Sainsbury's
+        // Also counted as "you accepted" by content/c-events.js:
+        /^accept$/i,
+        /^allow(?: cookies)?$/i,
+        /^i accept$/i,
+        /^accept and (?:close|continue)$/i,
+        /^agree and close$/i,
+        /^yes,? i(?:'|’)?m happy$/i
     ];
 
   const REJECT_LABELS = [
@@ -72,15 +79,42 @@
     return found;
   }
 
+  const BANNER =
+    '[role="dialog"], [aria-modal="true"], ' +
+    '[id*="cookie" i], [class*="cookie" i], ' +
+    '[id*="consent" i], [class*="consent" i], ' +
+    '#onetrust-banner-sdk';
+
+  // The cookie pop-up around an element, or null when it isn't in one.
+  function cookieBannerAround(element) {
+    const banner = element.closest(BANNER);
+    return banner && /cookie|consent|privacy|tracking/i.test(banner.innerText || "") ? banner : null;
+  }
+
+  // A one-click way to say no whose wording isn't in REJECT_LABELS yet ("Deny", "Disagree and close"):
+  // a short label that starts with a no-word, or asks for necessary/essential cookies only. Settings-style
+  // buttons still make you do the work yourself, so they don't count.
+  function soundsLikeReject(label) {
+    if (REJECT_LABELS.some(pattern => pattern.test(label))) return true;
+    if (label.split(" ").length > 5) return false;
+    if (/settings|manage|choose|choices|customi[sz]e|preferences|options|more|learn|details/i.test(label)) return false;
+    return /^(reject|decline|deny|refuse|disagree)\b/i.test(label) ||
+      (/\b(necessary|essential)\b/i.test(label) && /\bonly\b/i.test(label));
+  }
+
   function findRejectButton() {
     const elements = queryAll(
-      'button, [role="button"], input[type="button"]'
+      'button, [role="button"], input[type="button"], input[type="submit"], a'
     );
+    let other = null;
 
     for (const element of elements) {
       // Ignore invisible buttons.
       const rect = element.getBoundingClientRect();
       if (!rect.width || !rect.height) continue;
+
+      // Some sites show Reject as a plain link or a form's submit button. Those count only inside a cookie pop-up.
+      if (!element.matches('button, [role="button"], input[type="button"]') && !cookieBannerAround(element)) continue;
 
       const label = (
         element.innerText ||
@@ -92,9 +126,12 @@
       if (REJECT_LABELS.some(pattern => pattern.test(label))) {
         return element;
       }
+
+      // Other wording counts only inside a cookie pop-up (a "Decline" on a calendar invite isn't one).
+      if (!other && soundsLikeReject(label) && cookieBannerAround(element)) other = element;
     }
 
-    return null;
+    return other;
   }
 
     function findAcceptButtons() {
@@ -118,18 +155,9 @@
 
     function findAcceptOnlyBanner() {
         for (const button of findAcceptButtons()) {
-            const banner = button.closest(
-            '[role="dialog"], [aria-modal="true"], ' +
-            '[id*="cookie" i], [class*="cookie" i], ' +
-            '[id*="consent" i], [class*="consent" i], ' +
-            '#onetrust-banner-sdk'
-            );
+            const banner = cookieBannerAround(button);
 
             if (!banner) continue;
-
-            const text = banner.innerText || "";
-
-            if (!/cookie|consent|privacy|tracking/i.test(text)) continue;
 
             const controls = banner.querySelectorAll(
             'button, [role="button"], input[type="button"], a'
@@ -141,11 +169,12 @@
                 control.value ||
                 control.getAttribute("aria-label") ||
                 ""
-            ).trim();
+            ).trim().replace(/\s+/g, " ");
 
             // Only a one-click way to say no counts. A settings or "Choose cookies" button still makes you
-            // do the work yourself (Argos, Trainline), so C keeps the "Beware!" warning.
-            return /reject|decline|deny|refuse|necessary|essential/i.test(label);
+            // do the work yourself (Argos, Trainline), so C keeps the "Beware!" warning. Same rule as the
+            // Reject search, so a pop-up always gets either the offer to decline or the warning.
+            return soundsLikeReject(label);
             });
 
             if (!hasAlternative) return { banner, button };
@@ -233,6 +262,17 @@
                 .map(name => (value.match(new RegExp("[{,]" + name + ":(true|false)")) || [])[1])
                 .filter(Boolean);
             if (optional.length) answers.push(optional.every(on => on === "false"));
+        }
+
+        // GOV.UK: cookies_policy={"essential":true,"settings":false,"usage":false,"campaigns":false}
+        if (jar.has("cookies_policy")) {
+            try {
+                const policy = JSON.parse(decode(jar.get("cookies_policy")));
+                const optional = Object.keys(policy || {}).filter(name => name !== "essential");
+                if (optional.length) answers.push(optional.every(name => policy[name] === false));
+            } catch (e) {
+                // Not a record we can read: leave it unverified.
+            }
         }
 
         // Didomi: didomi_token is base64 JSON with purposes.enabled / purposes.disabled.
@@ -393,12 +433,7 @@
     promptedFor = button;
 
     // Find the cookie banner surrounding the rejection button.
-    const banner = button.closest(
-      '[role="dialog"], [aria-modal="true"], ' +
-      '[id*="cookie" i], [class*="cookie" i], ' +
-      '[id*="consent" i], [class*="consent" i], ' +
-      '#onetrust-banner-sdk'
-    );
+    const banner = button.closest(BANNER);
 
     if (banner) {
 
@@ -529,15 +564,23 @@
 
   const check = inFrame ? checkFrame : checkForCookieBanner;
 
-  // Cookie banners often load after the webpage itself.
-  const observer = new MutationObserver(() => {
-    clearTimeout(timer);
-    timer = setTimeout(check, 350);
+  // Cookie banners often load after the webpage itself, or are already in the page and shown later by a
+  // style or class change. Check at most every 350 ms while the page changes: a timer that restarted on
+  // every change never ran on busy pages (a price ticker, a carousel). C moving himself doesn't count.
+  const observer = new MutationObserver((records) => {
+    if (timer) return;
+    if (records.every(r => r.target.closest && r.target.closest("privac-prompt"))) return;
+    timer = setTimeout(() => {
+      timer = null;
+      check();
+    }, 350);
   });
 
   observer.observe(document.documentElement, {
     childList: true,
-    subtree: true
+    subtree: true,
+    attributes: true,
+    attributeFilter: ["style", "class", "hidden", "open", "aria-hidden"]
   });
 
   // Lets the tests run a re-check (tests/cookie-detector.test.js).
