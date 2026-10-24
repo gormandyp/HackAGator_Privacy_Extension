@@ -160,6 +160,11 @@ const RECORDS = {
     declined: "CookieConsent={stamp:%27k3b9%27%2Cnecessary:true%2Cpreferences:false%2Cstatistics:false%2Cmarketing:false%2Cmethod:%27explicit%27%2Cver:1%2Cutc:1792800000000%2Cregion:%27gb%27}",
     accepted: "CookieConsent={stamp:%27k3b9%27%2Cnecessary:true%2Cpreferences:true%2Cstatistics:true%2Cmarketing:true%2Cmethod:%27explicit%27%2Cver:1%2Cutc:1792800000000%2Cregion:%27gb%27}"
   },
+  // GOV.UK keeps the choice as URL-encoded JSON in cookies_policy (essential is always on).
+  "GOV.UK": {
+    declined: "cookies_policy=" + encodeURIComponent(JSON.stringify({ essential: true, settings: false, usage: false, campaigns: false })),
+    accepted: "cookies_policy=" + encodeURIComponent(JSON.stringify({ essential: true, settings: true, usage: true, campaigns: true }))
+  },
   Didomi: {
     declined: "didomi_token=" + b64({ user_id: "u1", purposes: { enabled: [], disabled: ["analytics", "advertising"] }, vendors: { enabled: [], disabled: ["google"] }, version: 2 }),
     accepted: "didomi_token=" + b64({ user_id: "u1", purposes: { enabled: ["analytics", "advertising"], disabled: [] }, vendors: { enabled: ["google"], disabled: [] }, version: 2 })
@@ -189,6 +194,7 @@ test("no consent record PrivaC knows: C keeps the honest \"couldn't verify\"", a
   assert.strictEqual((await declineWith("session=abc123; theme=dark")).result, "unverified");
   assert.strictEqual((await declineWith("CookieConsent=-1")).result, "unverified", "Cookiebot's 'no consent needed here'");
   assert.strictEqual((await declineWith("didomi_token=not-base64!")).result, "unverified");
+  assert.strictEqual((await declineWith("cookies_policy=not-json")).result, "unverified");
 });
 
 test("a confirmed decline saves only the choice, never the cookie's contents", async () => {

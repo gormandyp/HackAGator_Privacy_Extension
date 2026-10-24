@@ -264,6 +264,17 @@
             if (optional.length) answers.push(optional.every(on => on === "false"));
         }
 
+        // GOV.UK: cookies_policy={"essential":true,"settings":false,"usage":false,"campaigns":false}
+        if (jar.has("cookies_policy")) {
+            try {
+                const policy = JSON.parse(decode(jar.get("cookies_policy")));
+                const optional = Object.keys(policy || {}).filter(name => name !== "essential");
+                if (optional.length) answers.push(optional.every(name => policy[name] === false));
+            } catch (e) {
+                // Not a record we can read: leave it unverified.
+            }
+        }
+
         // Didomi: didomi_token is base64 JSON with purposes.enabled / purposes.disabled.
         if (jar.has("didomi_token")) {
             try {
