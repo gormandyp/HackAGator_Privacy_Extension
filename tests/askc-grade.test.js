@@ -83,3 +83,14 @@ test("Ask C keeps the answer's line breaks, so each scoring line shows on its ow
   const css = require("node:fs").readFileSync(__dirname + "/../dashboard/dashboard.css", "utf8");
   assert.match(css, /\.msg \.answer \{[^}]*white-space: pre-line;/);
 });
+
+// Range (Justin's grade-scale doc): the instant answer says what's unknown and how high the score could go.
+test("the instant grade answer names what's still unknown and how high the score could go", async () => {
+  const r = await ask("Why did planetfitness.com get a B?");
+  assert.match(r.answer, /Partly checked: the privacy policy isn't read yet, so this could be as high as 55 out of 100 \(a C\)\. \[Privacy policy\]/);
+  const q = await ask("Why did wikipedia.org get an A?");
+  assert.match(q.answer, /could be as high as 15 out of 100 \(still an A\)/);
+  const full = site("checked.example", [], { cookieChoice: "declined", policy: { sells: false, shares: false } });
+  const f = await ask("Why did checked.example get an A?", [full]);
+  assert.match(f.answer, /Fully checked: every line of the grade has an answer\./);
+});

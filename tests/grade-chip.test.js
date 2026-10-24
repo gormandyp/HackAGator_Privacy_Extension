@@ -95,3 +95,16 @@ test("c-events.js asks for the explanation when it records your choice", () => {
   const ev = fs.readFileSync(__dirname + "/../content/c-events.js", "utf8");
   assert.match(ev, /window\.PrivaCGradeChip\.explain\(c\)/);
 });
+
+// Range (Justin's grade-scale doc): when something is unknown, the box says how high the score could go.
+test("the box line adds how high the score could go when part of the grade is unknown", () => {
+  const P = load();
+  const part = P.pick({}, "planetfitness.com", "2026-10-24", { grade: "B", score: 40, range: { min: 40, max: 55 } });
+  assert.strictEqual(part.max, 55);
+  assert.strictEqual(P.lineFor(part), "PrivaC · planetfitness.com · 40 of 100, could be up to 55");
+  const full = P.pick({}, "planetfitness.com", "2026-10-24", { grade: "B", score: 40, range: { min: 40, max: 40 } });
+  assert.strictEqual(full.max, undefined);
+  assert.strictEqual(P.lineFor(full), "PrivaC · planetfitness.com · 40 of 100");
+  const tb = fs.readFileSync(__dirname + "/../background/toolbar.js", "utf8");
+  assert.match(tb, /reply\(s \? \{ grade: s\.grade, score: s\.score, range: s\.range \} : null\)/);
+});
