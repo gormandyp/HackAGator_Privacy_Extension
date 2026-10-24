@@ -1,0 +1,3 @@
+# Keep "\n" line endings on every computer. Without this, Git on Windows checks files out
+# with "\r\n", and tests that compare files exactly (the wallpapers) fail there.
+* text=auto eol=lf
