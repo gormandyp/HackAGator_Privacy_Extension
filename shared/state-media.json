@@ -1,0 +1,273 @@
+{
+  "about": "State-run news outlets in the six countries on the U.S. Commerce Department's foreign-adversary list (15 CFR 7.4). Used to flag a site you visit as state-run media (PLAN F2).",
+  "checkedOn": "2026-10-24",
+  "checkedBy": "Max Glassman (with Claude)",
+  "source": {
+    "name": "State Media Monitor",
+    "publisher": "Media and Journalism Research Center (MJRC)",
+    "website": "https://statemediamonitor.com/",
+    "dataset": "Dragomir, M. (2025). State Media Monitor Global Dataset 2025. MJRC. Zenodo. https://doi.org/10.5281/zenodo.17219015",
+    "method": "Each outlet is classified by who funds it, who owns it and who controls its editorial line. Profiles were updated June-September 2026."
+  },
+  "included": {
+    "SC": "State-Controlled: the government controls the outlet's funding, ownership and editorial line.",
+    "CaPu": "Captured Public (state-managed): publicly owned, and the government has captured its editorial line."
+  },
+  "leftOut": "Outlets the database classifies as privately owned (Captured Private, e.g. Misión Verdad, Choson Sinbo) or independent are not on this list, because 'state-run' would be wrong for them.",
+  "domainRule": "A site matches when its domain equals a listed domain or ends with '.' plus it (english.news.cn matches news.cn).",
+  "evidenceKey": {
+    "profile": "the domain is named in the outlet's State Media Monitor profile",
+    "tracker-radar": "DuckDuckGo Tracker Radar lists the outlet's company as the domain's owner",
+    "wikipedia": "the outlet's Wikipedia infobox lists the domain as its website",
+    "team-test": "seen by the team on 2026-10-24 (docs/HANDOFF.md)"
+  },
+  "howToSayIt": "This site is state-run media: {name} ({country}), classified {classification} by State Media Monitor (2026). That describes who controls the outlet; it says nothing about what happens to your data.",
+  "outlets": [
+    {
+      "name": "China Media Group (CCTV, CGTN, CNR, CRI)",
+      "short": "China Media Group",
+      "country": "CN",
+      "classification": "SC",
+      "smmUpdated": "2026-08-25",
+      "profile": "https://statemediamonitor.com/?p=254",
+      "domains": ["cctv.com", "cgtn.com", "cnr.cn", "cri.cn"],
+      "evidence": {
+        "cctv.com": "profile",
+        "cgtn.com": "profile; tracker-radar: CCTV News Content Co., Ltd.",
+        "cnr.cn": "profile (china.cnr.cn)",
+        "cri.cn": "profile (chinaplus.cri.cn)"
+      }
+    },
+    {
+      "name": "Xinhua News Agency",
+      "short": "Xinhua",
+      "country": "CN",
+      "classification": "CaPu",
+      "smmUpdated": "2026-08-27",
+      "profile": "https://statemediamonitor.com/2026/08/xinhua/",
+      "domains": ["xinhuanet.com", "news.cn", "cankaoxiaoxi.com"],
+      "evidence": {
+        "xinhuanet.com": "tracker-radar: XINHUANET CO., LTD (the profile names Xinhuanet)",
+        "news.cn": "tracker-radar: Xinhuanet Co., Ltd. (新华网股份有限公司); team-test (english.news.cn)",
+        "cankaoxiaoxi.com": "profile (Reference News)"
+      }
+    },
+    {
+      "name": "People's Daily (incl. Global Times)",
+      "short": "People's Daily",
+      "country": "CN",
+      "classification": "CaPu",
+      "smmUpdated": "2026-08-25",
+      "profile": "https://statemediamonitor.com/?p=256",
+      "domains": ["people.com.cn", "people.cn", "globaltimes.cn", "huanqiu.com"],
+      "evidence": {
+        "people.com.cn": "wikipedia (People's Daily Online)",
+        "people.cn": "wikipedia (People's Daily Online, en.people.cn); the profile names People.cn",
+        "globaltimes.cn": "wikipedia (Global Times, owned by People's Daily Press); the profile names Global Times",
+        "huanqiu.com": "profile"
+      }
+    },
+    {
+      "name": "China Daily",
+      "short": "China Daily",
+      "country": "CN",
+      "classification": "SC",
+      "smmUpdated": "2026-08-25",
+      "profile": "https://statemediamonitor.com/2026/08/china-daily/",
+      "domains": ["chinadaily.com.cn"],
+      "evidence": { "chinadaily.com.cn": "profile; tracker-radar: ChinaDaily Multimedia Co.,Ltd" }
+    },
+    {
+      "name": "RT",
+      "short": "RT",
+      "country": "RU",
+      "classification": "SC",
+      "smmUpdated": "2026-09-14",
+      "profile": "https://statemediamonitor.com/2022/03/rt",
+      "domains": ["rt.com"],
+      "evidence": { "rt.com": "tracker-radar: ANO TV-Novosti (RT's operator, per the profile); team-test" }
+    },
+    {
+      "name": "Rossiya Segodnya (RIA Novosti, Sputnik, InoSMI)",
+      "short": "Rossiya Segodnya",
+      "country": "RU",
+      "classification": "SC",
+      "smmUpdated": "2026-09-14",
+      "profile": "https://statemediamonitor.com/?p=1589",
+      "domains": ["ria.ru", "sputnikglobe.com", "sputniknews.com", "inosmi.ru", "ukraina.ru", "arctic.ru"],
+      "evidence": {
+        "ria.ru": "tracker-radar: ROSSIYA SEGODNYA, FGUP",
+        "sputnikglobe.com": "wikipedia (Sputnik, owned by Rossiya Segodnya)",
+        "sputniknews.com": "tracker-radar: ROSSIYA SEGODNYA, FGUP",
+        "inosmi.ru": "tracker-radar: Rossiya Segodnya; the profile names InoSMI",
+        "ukraina.ru": "profile",
+        "arctic.ru": "profile"
+      }
+    },
+    {
+      "name": "TASS",
+      "short": "TASS",
+      "country": "RU",
+      "classification": "SC",
+      "smmUpdated": "2026-09-14",
+      "profile": "https://statemediamonitor.com/?p=1591",
+      "domains": ["tass.ru", "tass.com"],
+      "evidence": {
+        "tass.ru": "profile; tracker-radar: ITAR-TASS FGUP",
+        "tass.com": "tracker-radar: ITAR-TASS; team-test"
+      }
+    },
+    {
+      "name": "All-Russia State Television and Radio Broadcasting Company (VGTRK)",
+      "short": "VGTRK",
+      "country": "RU",
+      "classification": "SC",
+      "smmUpdated": "2026-09-14",
+      "profile": "https://statemediamonitor.com/?p=1282",
+      "domains": ["vesti.ru", "smotrim.ru"],
+      "evidence": {
+        "vesti.ru": "profile; tracker-radar: VGTRK",
+        "smotrim.ru": "wikipedia (Smotrim, owned by VGTRK); the profile names Smotrim"
+      }
+    },
+    {
+      "name": "Channel One",
+      "short": "Channel One",
+      "country": "RU",
+      "classification": "CaPu",
+      "smmUpdated": "2026-09",
+      "profile": "https://statemediamonitor.com/2026/09/channel-one/",
+      "domains": ["1tv.ru"],
+      "evidence": { "1tv.ru": "tracker-radar: Channel One Russia" }
+    },
+    {
+      "name": "Rossiyskaya Gazeta",
+      "short": "Rossiyskaya Gazeta",
+      "country": "RU",
+      "classification": "SC",
+      "smmUpdated": "2026-09",
+      "profile": "https://statemediamonitor.com/2026/09/rossiyskaya-gazeta/",
+      "domains": ["rg.ru"],
+      "evidence": { "rg.ru": "tracker-radar: Federal state-financed institution \"Editorial Rossiyskaya gazeta\"" }
+    },
+    {
+      "name": "Islamic Republic of Iran Broadcasting (IRIB, incl. Press TV, HispanTV, Al-Alam)",
+      "short": "IRIB",
+      "country": "IR",
+      "classification": "SC",
+      "smmUpdated": "2026-06-10",
+      "profile": "https://statemediamonitor.com/?p=344",
+      "domains": ["presstv.com", "presstv.ir", "presstv.co.uk", "hispantv.com", "alalamtv.net", "parstoday.com", "irinn.ir", "iribtv.ir", "ifilmtv.com", "alkawthartv.com", "jamejamonline.ir"],
+      "evidence": {
+        "presstv.com": "profile",
+        "presstv.ir": "team-test (redirects to presstv.co.uk)",
+        "presstv.co.uk": "team-test (presstv.ir redirects here)",
+        "hispantv.com": "profile; tracker-radar: Hispantv",
+        "alalamtv.net": "profile",
+        "parstoday.com": "profile",
+        "irinn.ir": "profile",
+        "iribtv.ir": "profile",
+        "ifilmtv.com": "profile",
+        "alkawthartv.com": "profile",
+        "jamejamonline.ir": "profile"
+      }
+    },
+    {
+      "name": "Islamic Republic News Agency (IRNA)",
+      "short": "IRNA",
+      "country": "IR",
+      "classification": "SC",
+      "smmUpdated": "2026-06-10",
+      "profile": "https://statemediamonitor.com/?p=348",
+      "domains": ["irna.ir", "irandaily.ir", "al-vefagh.ir"],
+      "evidence": { "irna.ir": "profile (irna.ir, en.irna.ir); team-test", "irandaily.ir": "profile", "al-vefagh.ir": "profile" }
+    },
+    {
+      "name": "Islamic Ideology Dissemination Organization (Mehr News, Tehran Times)",
+      "short": "Islamic Ideology Dissemination Organization",
+      "country": "IR",
+      "classification": "SC",
+      "smmUpdated": "2026-06-10",
+      "profile": "https://statemediamonitor.com/?p=346",
+      "domains": ["mehrnews.com", "tehrantimes.com"],
+      "evidence": { "mehrnews.com": "profile", "tehrantimes.com": "profile" }
+    },
+    {
+      "name": "Fars News Agency",
+      "short": "Fars News Agency",
+      "country": "IR",
+      "classification": "SC",
+      "smmUpdated": "2026-06-10",
+      "profile": "https://statemediamonitor.com/?p=352",
+      "domains": ["farsnews.ir"],
+      "evidence": { "farsnews.ir": "profile" }
+    },
+    {
+      "name": "Iranian Students News Agency (ISNA)",
+      "short": "ISNA",
+      "country": "IR",
+      "classification": "SC",
+      "smmUpdated": "2026-06-11",
+      "profile": "https://statemediamonitor.com/?p=350",
+      "domains": ["isna.ir"],
+      "evidence": { "isna.ir": "profile (isna.ir, en.isna.ir)" }
+    },
+    {
+      "name": "Diario Granma",
+      "short": "Granma",
+      "country": "CU",
+      "classification": "SC",
+      "smmUpdated": "2026-07-20",
+      "profile": "https://statemediamonitor.com/2026/07/diario-granma/",
+      "domains": ["granma.cu"],
+      "evidence": { "granma.cu": "profile; team-test" }
+    },
+    {
+      "name": "Agencia Prensa Latina",
+      "short": "Prensa Latina",
+      "country": "CU",
+      "classification": "SC",
+      "smmUpdated": "2026-07-20",
+      "profile": "https://statemediamonitor.com/2026/07/agencia-prensa-latina/",
+      "domains": ["prensa-latina.cu", "plenglish.com"],
+      "evidence": { "prensa-latina.cu": "profile", "plenglish.com": "profile" }
+    },
+    {
+      "name": "Sistema Nacional de Medios Públicos (VTV, teleSUR, RNV, AVN)",
+      "short": "Venezuela's state media system",
+      "country": "VE",
+      "classification": "SC",
+      "smmUpdated": "2026-07-13",
+      "profile": "https://statemediamonitor.com/2026/07/sistema-bolivariano-de-comunicacion-e-informacion-sibci/",
+      "domains": ["vtv.gob.ve", "tves.gob.ve", "vive.gob.ve", "avilatv.gob.ve", "telesurtv.net", "telesurenglish.net", "rnv.gob.ve", "radiomundial.com.ve", "albaciudad.org", "laradiodelsur.com.ve", "correodelorinoco.gob.ve", "ciudadccs.info", "avn.info.ve"],
+      "evidence": {
+        "vtv.gob.ve": "profile", "tves.gob.ve": "profile", "vive.gob.ve": "profile", "avilatv.gob.ve": "profile",
+        "telesurtv.net": "profile; tracker-radar: teleSUR",
+        "telesurenglish.net": "wikipedia (Telesur)",
+        "rnv.gob.ve": "profile", "radiomundial.com.ve": "profile", "albaciudad.org": "profile",
+        "laradiodelsur.com.ve": "profile", "correodelorinoco.gob.ve": "profile", "ciudadccs.info": "profile", "avn.info.ve": "profile"
+      }
+    },
+    {
+      "name": "Rodong Sinmun",
+      "short": "Rodong Sinmun",
+      "country": "KP",
+      "classification": "SC",
+      "smmUpdated": "2026-08-30",
+      "profile": "https://statemediamonitor.com/2026/08/rodong-sinmun/",
+      "domains": ["rodong.rep.kp"],
+      "evidence": { "rodong.rep.kp": "profile" }
+    },
+    {
+      "name": "Korean Central News Agency (KCNA)",
+      "short": "KCNA",
+      "country": "KP",
+      "classification": "SC",
+      "smmUpdated": "2024-09",
+      "profile": "https://statemediamonitor.com/?p=2087",
+      "domains": ["kcna.kp"],
+      "evidence": { "kcna.kp": "wikipedia (Korean Central News Agency)" }
+    }
+  ],
+  "notYetListed": "Classified State-Controlled or Captured Public, but no domain was confirmed yet (their .cn/.ru/.ir/.cu/.kp addresses are still flagged by F1): China News Service, Guangming Daily, Economic Daily, PLA Daily, Qiushi, Legal Daily, China Youth Daily, CICG; Zvezda, OTR, Gazprom Media; Kayhan; ACN, ICS (Cuba); ANTV; KCBC and other North Korean papers."
+}

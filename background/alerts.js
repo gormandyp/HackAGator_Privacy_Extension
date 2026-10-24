@@ -35,7 +35,8 @@
       if (d) out.set(t.company, d);
     }
     if (site.owner) {
-      const d = describe(site.owner.company, site.owner.country);
+      let d = describe(site.owner.company, site.owner.country);
+      if (d && site.owner.stateMedia) d = d.replace(/\)$/, "; state-run media)");   // F2
       if (d) out.set(site.owner.company, d);
     }
     return [...out.values()];

@@ -31,6 +31,8 @@ function setAtlas(a) {
   for (const v of Object.values(a.domains || {})) if (v[2] && !COUNTRY_OF[v[0]]) COUNTRY_OF[v[0]] = v[2];
 }
 function setCookieDb(d) { COOKIE_DB = d; }
+let STATE_MEDIA = null;     // shared/state-media.json (F2: state-run news sites)
+function setStateMedia(list) { STATE_MEDIA = list; }
 
 // The Atlas loads a moment after Chrome wakes the background script. Requests that arrive
 // before that wait for it, so they're never judged with the short fallback list.
@@ -40,6 +42,8 @@ if (typeof chrome !== "undefined" && chrome.runtime && chrome.runtime.getURL) {
     .catch(e => console.warn("PrivaC: atlas.json didn't load, using the short fallback list", e));
   fetch(chrome.runtime.getURL("shared/cookie-db.json")).then(r => r.json()).then(setCookieDb)
     .catch(e => console.warn("PrivaC: cookie-db.json didn't load", e));
+  fetch(chrome.runtime.getURL("shared/state-media.json")).then(r => r.json()).then(setStateMedia)
+    .catch(e => console.warn("PrivaC: state-media.json didn't load", e));
 }
 
 // "a.b.example.com" -> ["a.b.example.com", "b.example.com", "example.com"]
@@ -84,6 +88,9 @@ function isFirstParty(siteDomain, hostname, tracker) {
 
 // Which company owns this site, and where it's based (when known).
 function ownerOf(siteDomain) {
+  // A state-run outlet (F2) is the most specific answer, so it comes first.
+  const sm = typeof PrivaCStateMedia !== "undefined" && PrivaCStateMedia.lookup(siteDomain, STATE_MEDIA);
+  if (sm) return sm;
   for (const r of siteRoots(siteDomain)) {
     const co = OWNER_OF[r];
     if (co) return { company: co, country: COUNTRY_OF[co] || null };

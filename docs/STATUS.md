@@ -6,7 +6,7 @@ Update your row every time you push. Keep it to one line per column.
 |---|---|---|---|---|---|
 | Repo owner (gormandyp) | core + integrator | main | R4 adversary alert, demo prep | - | UI mockups |
 | Josh Davis | data | data | Away | - | Check DATA.md |
-| Max Glassman | ask-c | max-policy-questions | R3 built: knowledge-map.json + policy reader (shared/policy.js, background/policy-reader.js, content/policy-link.js); Ask C quotes policies | Live check needs Ollama on the Mac | Human check of 2 policies |
+| Max Glassman | ask-c + data | max-state-media | F2 done: shared/state-media.json (20 outlets, 61 domains, State Media Monitor) in score, alert and Ask C | Live check on the Mac | Human check of 2 policies (R3) |
 | Matthew Finkelstein | ui | ui | C pop-ups and poses (max/mascot-poses held until he's done) | - | R5 unsafe-site warning |
 | Justin Smilowitz | demo | demo | Video + Devpost with Matthew and Max | - | Steps 14-16 |
 

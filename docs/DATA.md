@@ -49,3 +49,10 @@ Checked 2026-10-23 by Max (with Claude). Every date below was read from the sour
 - Broker matching uses exact names (minus "Inc", "LLC"...) or the broker's website; the registered name is shown so a person can check it.
 - HIBP matches the site's own domain only (not the trackers').
 - Dropped: Globus RegTrack raw data (1.5 TB), Commerce Consolidated Screening List, IP-to-country database.
+
+## State Media Monitor (F2: state-run news sites)
+- What: classification of state and public media worldwide by the Media and Journalism Research Center (MJRC). We use outlets in the six 15 CFR 7.4 countries classified **State-Controlled** or **Captured Public** (not privately owned or independent ones).
+- Where: https://statemediamonitor.com/ ; dataset: Dragomir, M. (2025), *State Media Monitor Global Dataset 2025*, Zenodo, https://doi.org/10.5281/zenodo.17219015. Outlet profiles used were updated June-September 2026.
+- File: `shared/state-media.json` (hand-built 2026-10-24; 20 outlets, 61 domains). Each domain records its evidence: the outlet's profile, DuckDuckGo Tracker Radar's owner record, the outlet's Wikipedia infobox, or the team's Saturday test.
+- Updates: by hand. The site states no license, so we store only outlet names, classifications, dates and links, and credit the source.
+- Gaps: outlets without a confirmed domain are listed under `notYetListed`; their .cn/.ru/.ir/.cu/.kp addresses are still caught by F1.
