@@ -12,7 +12,7 @@ How to answer:
 - Plain English, no jargon. 2 to 4 short sentences, then a line starting "What you can do:" with 2 or 3 concrete steps from the Steps list.
 - Answer the question that was asked first. Then connect it to their own browsing if something there is relevant.
 - Use ONLY the evidence you are given. If it doesn't answer the question, say you don't know yet.
-- Put a source tag right after each fact, copied exactly from the evidence line it came from: [Seen on your visit], [Tracker Radar], [Privacy policy], [HIBP], [CA Broker Registry], [Cookie Database], [RegTrack] or [Government list]. Never invent other tags.
+- Put a source tag right after each fact, copied exactly from the evidence line it came from: [Seen on your visit], [Tracker Radar], [Privacy policy], [HIBP], [CA Broker Registry], [Cookie Database], [RegTrack], [State Media Monitor] or [Government list]. Never invent other tags.
 - When asked what a site collects, list the cookies by purpose, name 2 or 3 advertising cookies with their company and how long they last, say which ones the site doesn't need to work, and mention device fingerprinting if present.
 - If a site had a data breach [HIBP], say when, how many accounts and what kind of data, and tell the person to change that password. No backticks, no markdown, no lists with symbols.
 - When cookies or cookie banners come up, you may quote one RegTrack fact. RegTrack only compared doing nothing with clicking accept-all, so never say rejecting removes a number of trackers.
@@ -87,6 +87,15 @@ Steps the person can take (no tag needed):
     return [main, ...more].join("; it ");
   }
 
+  // F2: the site itself is a state-run outlet (shared/state-media.json, via background/tracking.js).
+  const COUNTRY_NAMES = { CN: "China", RU: "Russia", IR: "Iran", CU: "Cuba", KP: "North Korea", VE: "Venezuela" };
+  function stateMediaText(owner) {
+    const sm = owner && owner.stateMedia;
+    if (!sm) return "";
+    const kind = { SC: "State-Controlled", CaPu: "Captured Public (state-managed)" }[sm.classification] || "state media";
+    return `; the site itself is state-run media: ${owner.company} (${COUNTRY_NAMES[owner.country] || owner.country}), classified ${kind} by State Media Monitor (${String(sm.updated || "").slice(0, 4) || "2026"}) [State Media Monitor]`;
+  }
+
   function siteLine(s, extra) {
     const t = (s.trackers || []).map(x => {
       const listed = listedCompany(x.company, extra);
@@ -109,8 +118,9 @@ Steps the person can take (no tag needed):
         `; ${sum.unneededCount} of them aren't needed for the site to work [Cookie Database]`;
     }
     const fp = (s.trackers || []).filter(x => (x.fingerprinting || 0) >= 2).map(x => x.company);
+    const smText = stateMediaText(s.owner);
     const fpText = fp.length ? `; trackers that read device details to recognize you without cookies (fingerprinting): ${[...new Set(fp)].join(", ")} [Tracker Radar]` : "";
-    return `- ${s.domain}, visited ${day}: grade ${s.grade}, exposure ${s.score}/100, cookies ${s.cookieChoice || "none"} [Seen on your visit]; trackers seen [Seen on your visit]: ${t}; privacy policy ${pol}${br}${ck}${fpText}`;
+    return `- ${s.domain}, visited ${day}: grade ${s.grade}, exposure ${s.score}/100, cookies ${s.cookieChoice || "none"} [Seen on your visit]; trackers seen [Seen on your visit]: ${t}; privacy policy ${pol}${br}${ck}${fpText}${smText}`;
   }
 
   // Facts about companies or sites named in the question, looked up in the local lists.
@@ -169,7 +179,7 @@ Steps the person can take (no tag needed):
       .catch(e => console.warn("PrivaC: fact files didn't load; C answers without them", e));
   }
 
-  const TAGS = ["Seen on your visit", "Tracker Radar", "CA Broker Registry", "HIBP", "RegTrack", "Privacy policy", "Government list", "Cookie Database"];
+  const TAGS = ["Seen on your visit", "Tracker Radar", "CA Broker Registry", "HIBP", "RegTrack", "Privacy policy", "Government list", "Cookie Database", "State Media Monitor"];
   const TAG_ALIASES = {
     "sites visited": "Seen on your visit", "your browsing": "Seen on your visit", "browsing": "Seen on your visit",
     "seen during your visit": "Seen on your visit", "observed": "Seen on your visit", "sample data": "Seen on your visit",
@@ -213,6 +223,7 @@ Steps the person can take (no tag needed):
       if (/\[Cookie Database\]/.test(text)) trace.push({ tool: "cookies", label: "Cookie Database" });
       if (/\[HIBP\]/.test(text)) trace.push({ tool: "breaches", label: "Have I Been Pwned" });
       if (/\[CA Broker Registry\]/.test(text)) trace.push({ tool: "brokers", label: "CA Broker Registry" });
+      if (/\[State Media Monitor\]/.test(text)) trace.push({ tool: "state_media", label: "State Media Monitor" });
       if (/\[RegTrack\]/.test(text)) trace.push({ tool: "regtrack_compare", label: "RegTrack" });
       return { answer: text, trace };
     } catch (e) {

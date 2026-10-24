@@ -111,12 +111,18 @@
     parts.push({ label: cookieLabel, points: cookiePts, kind: "observed" });
 
     // Foreign-adversary line (15 points, counted once): a tracker company based in a 15 CFR 7.4 country,
-    // a tracker company on the Pentagon's Section 1260H list, or the site's own company based in a listed country.
+    // a tracker company on the Pentagon's Section 1260H list, the site's own company based in a listed country,
+    // or (F2) the site is a state-run outlet of a listed country.
     const flagged = t.filter(x => FOREIGN_ADVERSARIES[x.country] || x.listed);
     const owner = site.owner && FOREIGN_ADVERSARIES[site.owner.country] ? site.owner : null;
     const listed = flagged.filter(x => x.listed);
     let flagLabel = "No foreign-adversary links";
-    if (listed.length) {
+    const sm = owner && owner.stateMedia;
+    if (sm) {
+      // F2: the site itself is a state-run outlet (shared/state-media.json, State Media Monitor).
+      const kind = { SC: "State-Controlled", CaPu: "Captured Public (state-managed)" }[sm.classification] || "state media";
+      flagLabel = `This site is state-run media: ${owner.company} (${FOREIGN_ADVERSARIES[owner.country]}), classified ${kind} by State Media Monitor (${String(sm.updated || "").slice(0, 4) || "2026"})`;
+    } else if (listed.length) {
       const names = [...new Set(listed.map(x => x.company))].join(", ");
       flagLabel = `Link to ${names}, on the Pentagon's Section 1260H list of Chinese military companies (June 2026)`;
     } else if (flagged.length) {

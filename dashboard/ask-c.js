@@ -32,7 +32,8 @@
     "RegTrack": "regtrack",
     "Privacy policy": "policy",
     "Government list": "gov",
-    "Cookie Database": "cookie"
+    "Cookie Database": "cookie",
+    "State Media Monitor": "gov"
   };
 
   // What each tool is called in the "C checked" line.
