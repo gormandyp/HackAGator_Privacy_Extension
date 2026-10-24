@@ -26,7 +26,8 @@
     "CA Broker Registry": "broker",
     "HIBP": "hibp",
     "RegTrack": "regtrack",
-    "Privacy policy": "policy"
+    "Privacy policy": "policy",
+    "Government list": "gov"
   };
 
   // What each tool is called in the "C checked" line.

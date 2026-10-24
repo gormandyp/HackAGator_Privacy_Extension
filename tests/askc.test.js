@@ -35,3 +35,19 @@ test("Gemma failure becomes a readable error, not a crash", async () => {
 test("blank question asks the user to type one", async () => {
   assert.match((await answer("  ", { load: async () => data, ask: async () => "x" })).error, /Type a question/);
 });
+
+const { cleanAnswer } = window.PrivaCAskC;
+
+test("cleanAnswer maps made-up tags, drops unknown ones, strips backticks", () => {
+  const raw = "The site `flightdeals.example` uses Baidu [Sites visited]. It sells data [Privacy policy] [Made up].";
+  assert.strictEqual(cleanAnswer(raw), "The site flightdeals.example uses Baidu [Seen on your visit]. It sells data [Privacy policy].");
+});
+
+test("context includes sourced background facts for general questions", () => {
+  assert.match(buildContext(data), /15 CFR 7\.4[\s\S]*\[Government list\]/);
+});
+
+test("using a government fact adds it to the 'C checked' line", async () => {
+  const r = await answer("Why China?", { load: async () => data, ask: async () => "Listed country. [Government list]" });
+  assert.deepStrictEqual(r.trace.map(t => t.label), ["Your browsing", "Government lists"]);
+});
