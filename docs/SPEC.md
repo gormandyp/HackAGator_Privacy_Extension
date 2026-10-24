@@ -47,7 +47,7 @@ An **exposure score 0-100** (higher = more exposed), computed by code from fixed
 
 ## Privacy promise (shown in the dashboard footer)
 - Browsing and questions stay on the computer. PrivaC downloads whole public lists; it never sends what you visit.
-- Stores site names and cookie names only; deletes history older than 7 days; "Clear my PrivaC data" erases everything.
+- Stores site names and cookie names only; deletes history older than 7 days. Daily totals for the impact and safety views (numbers only, no site names: C's pop-ups and clicks, grades, trackers, cookies) are kept 90 days (repo owner, 2026-10-24). "Clear my PrivaC data" erases everything.
 - Gemma runs locally; do not switch to Ollama cloud models (`:cloud`) without changing this promise.
 
 ## Design

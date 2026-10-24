@@ -37,3 +37,5 @@ Update your row every time you push. Keep it to one line per column.
 - 2026-10-24 (Claude, asked by repo owner): F3 site's own server registered in a listed country = the 15-point line; outside servers = label only.
 - 2026-10-24 (repo owner): breach rule v4: last 12 months 15, last 5 years 5, older 0 unless 100 million+ accounts (5); all breaches listed.
 - 2026-10-24: google.com got B from Google's result-page prefetch (an AliExpress ad page counted as an Alibaba tracker). Fixed: page loads (main_frame) never count as trackers.
+- 2026-10-24 (repo owner): keep daily totals (numbers only, no site names) for 90 days for the impact and safety views; count every C pop-up. Site history stays 7 days.
+- 2026-10-24: merged Matthew's latest c-prompt.js and cookie-detector.js unchanged (from his privac-ui folder); content/c-events.js counts C's pop-ups/clicks and reports cookie choices.

@@ -18,7 +18,7 @@ Built at Gator Hack V (UF AI Days 2026) for the "Fresh off the frontier" challen
 - **Ask C**: questions answered by Gemma from the evidence, with a source label on every fact.
 
 ## Privacy
-PrivaC downloads whole public lists and matches them on your computer. It never sends what you visit to anyone. It stores site names and cookie names only (never full addresses or cookie contents) and deletes history after 7 days. "Clear my PrivaC data" erases everything.
+PrivaC downloads whole public lists and matches them on your computer. It never sends what you visit to anyone. It stores site names and cookie names only (never full addresses or cookie contents) and deletes history after 7 days. Daily totals (numbers only, no site names) are kept 90 days for the week and month views. "Clear my PrivaC data" erases everything.
 
 ## Try it
 1. Install Ollama and Gemma 4, and allow Chrome extensions: see [docs/OLLAMA.md](docs/OLLAMA.md).
