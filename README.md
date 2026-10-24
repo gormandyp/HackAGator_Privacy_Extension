@@ -107,3 +107,42 @@ If you already have a `manifest.json`, keep yours and copy in from this one: the
 - The foreign-adversary list in `shared/data.js` follows 15 CFR § 7.4 (China including Hong Kong, Cuba, Iran, North Korea, Russia, Venezuela). Double-check the current version of the regulation.
 - Fonts (Bricolage Grotesque and Figtree) load from Google Fonts. Without internet, the pages fall back to the system font and still work.
 - Tracker data from DuckDuckGo Tracker Radar has a non-commercial license; fine for a hackathon, worth mentioning if judges ask about turning PrivaC into a product.
+
+## Ask C (dashboard chat panel)
+
+Files: `dashboard/ask-c.js`, the "Ask C" section in `dashboard/dashboard.html`, and the Ask C styles at the bottom of `dashboard/dashboard.css`. It works on its own with sample answers until the AI is connected.
+
+### For whoever connects the AI (Preston)
+
+The dashboard sends one message to the background script and waits up to 90 seconds:
+
+```js
+chrome.runtime.sendMessage({ type: "askC", question: "Who is LiveRamp and should I worry?" })
+```
+
+Reply with:
+
+```js
+{
+  answer: "LiveRamp is a registered data broker. [CA Broker Registry] ...",
+  trace: [ { tool: "lookup_company" }, { tool: "where_seen", label: "Your browsing" } ],  // label is optional
+  error: "only if something went wrong"
+}
+```
+
+In the background script, answer asynchronously and `return true` so Chrome keeps the channel open:
+
+```js
+chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+  if (msg.type === "askC") {
+    askC(msg.question).then(sendResponse).catch(e => sendResponse({ error: "I couldn't reach Gemma. Is Ollama running?" }));
+    return true;
+  }
+});
+```
+
+Source tags written exactly like these inside `answer` become colored labels: `[Seen on your visit]` `[Tracker Radar]` `[CA Broker Registry]` `[HIBP]` `[RegTrack]` `[Privacy policy]`. Put that list in Gemma's system prompt.
+
+Known tool names get friendly labels in the "C checked" line (`get_site_report`, `where_seen`, `lookup_company`, `find_companies`, `regtrack_compare`). Any other tool shows its `label`, or its name.
+
+Other parts of the dashboard can open a question with `PrivaCAsk.ask("...")`. The "Ask C" link next to each company in the cross-site table already does this.
