@@ -87,7 +87,10 @@ Supporting (older, so NOT the theme answer): DuckDuckGo Tracker Radar (domain to
 - Make it so we are able to customize the liquid glass (i.e., green hue background, blue hue background, etc).
   - **Status: done 2026-10-24 (branch `max/glass-tint`).** Settings > Appearance > Glass color: Aurora (original), Ocean (blue), Forest (green), Sunset, Rose, Graphite, each in light and dark.
  - Mcdonalds.com has a warning about cookies usage but C does not pop up with a warning and yield sign.
- - When Ask C is generating responses, often generates a big paragraph then before it can be read cuts down half of it. May be part of the solution to the "What to do next" problem we wanted fix, but this is a bad solution as it looks confusing to the user. 
+ - When Ask C is generating responses, often generates a big paragraph then before it can be read cuts down half of it. May be part of the solution to the "What to do next" problem we wanted fix, but this is a bad solution as it looks confusing to the user.
+ - C logo in "this week tab" isnt actual C mascot - most if instances of capital C in reference to Ask C or C in general should be the C logo.
+ - Look for ways for the home page to be decluttered and be less overwhelming and plan and render - report to either Preston or max with rendering before pushing to main
+ - Headers like "Worth knowing" and "This week" should be larger or bolded in some way/more prominent so that a users eyes would first see the header before seeing whats in the box because some test users have had confusion with what each box does. 
 
 **Justin
 - Have a "Clear Cache" button within PrivaC to clear users chache with a possible explanation for users about what it does and how its useful.
