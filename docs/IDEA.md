@@ -82,4 +82,5 @@ Supporting (older, so NOT the theme answer): DuckDuckGo Tracker Radar (domain to
   - **Status:** planned in two parts (PLAN R3 then R7). First the privacy-policy reader (Gemma reads the policy, quotes "sells"/"shares", feeds the existing policy points). Then terms of service through the same reader, or ToS;DR ratings only if a whole-list download exists (looking up each site would break the privacy promise).
 - Make sure that the suggested Ask C topics adjust to your browsing trends.
   - **Status:** not started; small (PLAN R6).
-
+**Justin
+- Have a "Clear Cache" button within PrivaC to clear users chache with a possible explanation for users about what it does and how its useful.
