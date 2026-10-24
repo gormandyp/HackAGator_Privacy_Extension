@@ -23,7 +23,8 @@
     "webNavigation",
     "alarms",
     "cookies",
-    "scripting"
+    "scripting",
+    "browsingData"
   ],
   "content_scripts": [
     {
