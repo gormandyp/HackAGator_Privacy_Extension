@@ -1,2 +1,14 @@
 # Difficulties log (for the "what difficulties you faced" part of the pitch)
 Add one line per real obstacle: what broke, what we tried, what worked.
+
+- **Running Gemma in the browser vs. on the computer.** Plan v2 ran Gemma 4 inside Chrome (Transformers.js + WebGPU). We switched to Ollama on the demo Mac: simpler for beginners and faster on 24 GB. Cost: the user installs Ollama.
+- **Ollama blocked the extension (HTTP 403).** Ollama only accepts requests from approved origins. Fix: `launchctl setenv OLLAMA_ORIGINS "chrome-extension://*"` and restart Ollama.
+- **Gemma for cookie banners was the wrong tool.** A teammate pointed out the page's own JavaScript finds the Reject button faster and more reliably, so Gemma moved to answering questions and (next) reading policies.
+- **RegTrack data is 1.5 TB on Globus.** Dropped the download; we use the paper's published figures with section numbers.
+- **13 hard-coded trackers missed most real tracking.** Built shared/atlas.json from DuckDuckGo Tracker Radar (21,000 domains filtered to the 3,721 that track), including uncategorized domains that fingerprint or set cookies (that's how TikTok/ByteDance and Baidu got in).
+- **Google looked "risky" on its own homepage.** Google's own trackers counted as third parties, and "no cookie banner" cost points even with nothing to refuse. Fixes: same-company requests don't count; unknowns add 0; points only when you weren't given a choice.
+- **Keeping data current without breaking privacy.** Looking up each site in a breach database would reveal your browsing. We download the whole breach and broker lists daily and match locally.
+- **Gemma mislabels sources.** It invented tags like "[Sites visited]" and wrote "the user". Code now cleans tags and wording after Gemma answers, and every evidence line carries its tag.
+- **Two parts writing the same storage at once.** The cookie detector and the tracker recorder could overwrite each other's results. All writes now go through the background script in order.
+- **Teamwork with beginners on Git.** Zip uploads, a scary "force push" prompt, and lock files. Rules now: pull first, push code not zips, never force push.
+- **Chrome forgets tab state.** Chrome pauses the background script when idle, so trackers can be missed afterwards (fix planned: PLAN R9).

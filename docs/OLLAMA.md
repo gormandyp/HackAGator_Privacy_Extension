@@ -30,3 +30,6 @@ For policy questions, pass `{ json: true }` and ask for `{"answer":"yes|no|unkno
 Errors come back as plain sentences (Ollama not running, blocked origin), so you can show them in C's bubble.
 
 Tests: `node --test` (tests/gemma.test.js uses a fake Ollama, so it runs anywhere).
+
+## Keep it local
+Use local models only (`gemma4:e4b` / `gemma4:e2b`). Cloud models (names ending in `:cloud`) send questions to Ollama's servers and would break the privacy promise on the dashboard.
