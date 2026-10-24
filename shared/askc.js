@@ -65,6 +65,28 @@ Steps the person can take (no tag needed):
     return `\n\nResearch on cookie consent (RegTrack, a 2026 study of 743 websites; it did not measure rejecting, only doing nothing versus clicking accept-all):\n${lines.join("\n")}`;
   }
 
+  // What the site's privacy policy says (filled by background/policy-reader.js). Unknown answers are left out, never stated.
+  const POLICY_FACTS = [
+    ["optOut", "explains how to opt out of sale or sharing", "gives no way to opt out of sale or sharing"],
+    ["gpc", "says it honors Global Privacy Control", "says it ignores browser opt-out signals like Global Privacy Control"],
+    ["retention", "gives a time limit for keeping your data", "has no time limit for keeping your data"],
+    ["preciseLocation", "collects your precise location", "uses only your rough location"],
+    ["sensitive", "collects sensitive information such as health, biometric or financial details", "says it doesn't collect sensitive information"],
+    ["otherSources", "gets data about you from other companies such as data brokers or ad partners", "says it only collects data directly from you"]
+  ];
+  function policyText(p) {
+    const quote = (f) => (p.quotes && p.quotes[f] ? ` ("${String(p.quotes[f]).slice(0, 200)}")` : "");
+    let main;
+    if (p.sells === true) main = `says it sells personal info${quote("sells")} [Privacy policy]`;
+    else if (p.shares === true) main = `says it shares with partners${p.checkedAt ? " for advertising" : ""}${quote("shares")} [Privacy policy]`;
+    else if (p.sells === false && p.shares === false) main = `says it doesn't sell or share${quote("sells")} [Privacy policy]`;
+    else if (p.checkedAt) main = `read on ${String(p.checkedAt).slice(0, 10)}, no clear answer about selling or sharing [Privacy policy]`;
+    else return "not reviewed yet";
+    const more = POLICY_FACTS.filter(([f]) => p[f] === true || p[f] === false)
+      .map(([f, yes, no]) => `${p[f] ? yes : no}${quote(f)} [Privacy policy]`);
+    return [main, ...more].join("; it ");
+  }
+
   function siteLine(s, extra) {
     const t = (s.trackers || []).map(x => {
       const listed = listedCompany(x.company, extra);
@@ -73,8 +95,7 @@ Steps the person can take (no tag needed):
         (x.broker ? `, registered California data broker [CA Broker Registry]` : "");
     }).join("; ") || "none";
     const p = s.policy || {};
-    const pol = p.sells === true ? "says it sells personal info [Privacy policy]" : p.shares === true ? "says it shares with partners [Privacy policy]"
-      : (p.sells === false && p.shares === false) ? "says it doesn't sell or share [Privacy policy]" : "not reviewed yet";
+    const pol = policyText(p);
     const day = s.lastVisit ? String(s.lastVisit).slice(0, 10) : "unknown date";
     const br = s.breach ? `; ${breachText(s.breach)}` : "";
     const C = (typeof window !== "undefined" ? window : self).PrivaCCookies;

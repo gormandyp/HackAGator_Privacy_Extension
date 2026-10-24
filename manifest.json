@@ -35,7 +35,8 @@
         "content/regtrack-line.js",
         "content/c-prompt.js",
         "content/cookie-detector.js",
-        "content/alerts.js"
+        "content/alerts.js",
+        "content/policy-link.js"
       ],
       "run_at": "document_idle"
     }
