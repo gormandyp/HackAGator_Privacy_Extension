@@ -72,5 +72,5 @@ Supporting (older, so NOT the theme answer): DuckDuckGo Tracker Radar (domain to
 ## Max
 - Editable UI thats customizable to what you want (i.e, green, dark mode, light mode, etc)
 - Grading scale that has a breakdown of the score and why it is that way. MAKE SURE THAT IF COOKIES ARE UNABLE TO BE DECLINED, THAT IMPACTS THE SCORE IN SOME WAY.
-- 
+- URGENT: CHECK TERMS OF SERVICES OF EACH WEBSITE AND INCORPORATE INTO SCORE
 
