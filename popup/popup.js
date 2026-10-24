@@ -2,15 +2,15 @@
   const $ = (id) => document.getElementById(id);
   $("wordmark").innerHTML = PrivaCMascot.wordmark(22);
 
-  function openDashboard() {
-    const url = "dashboard/dashboard.html";
+  function openDashboard(query) {
+    const url = "dashboard/dashboard.html" + (typeof query === "string" ? query : "");
     if (typeof chrome !== "undefined" && chrome.runtime && chrome.runtime.getURL) {
       chrome.tabs.create({ url: chrome.runtime.getURL(url) });
     } else {
       window.open("../" + url, "_blank");
     }
   }
-  $("open-dashboard-top").addEventListener("click", openDashboard);
+  $("open-dashboard-top").addEventListener("click", () => openDashboard());
 
   const data = await PrivaCData.load();
   if (data.sample) $("sample-note").hidden = false;
@@ -79,11 +79,16 @@
     <p class="honesty">These are connections your browser made. They show who could see your visit, not proof that your data was sold.</p>
 
     <div class="actions">
-      <button class="btn" id="open-dashboard">Open dashboard</button>
+      <button class="btn" id="ask-site">Ask C why</button>
+      <button class="btn secondary" id="open-dashboard">Open dashboard</button>
     </div>
   `;
 
-  $("open-dashboard").addEventListener("click", openDashboard);
+  $("open-dashboard").addEventListener("click", () => openDashboard());
+  $("ask-site").addEventListener("click", () => {
+    const article = site.grade === "A" || site.grade === "F" ? "an" : "a";
+    openDashboard("?ask=" + encodeURIComponent(`Why did ${site.domain} get ${article} ${site.grade}?`));
+  });
 
   function bubbleText(s, companyCount) {
     const who = `${companyCount} outside ${companyCount === 1 ? "company" : "companies"}`;

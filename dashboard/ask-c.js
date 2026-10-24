@@ -13,8 +13,12 @@
   Source tags in the answer, written exactly like this, turn into colored labels:
     [Seen on your visit]  [Tracker Radar]  [CA Broker Registry]  [HIBP]  [RegTrack]  [Privacy policy]
 
-  If there is no background script yet (or it doesn't answer), the panel uses
-  SAMPLE answers below and says so, so the demo UI works on its own.
+  If there is no background script, or Gemma can't be reached, the suggested
+  questions fall back to the SAMPLE answers below (labeled as samples), so the
+  demo never dead-ends.
+
+  The popup can open the dashboard with a question already asked:
+    dashboard/dashboard.html?ask=Why%20did%20news.example%20get%20a%20D%3F
 */
 (function () {
   const $ = (id) => document.getElementById(id);
@@ -67,6 +71,19 @@
     answer: "I can only answer that once my AI is connected. Right now I'm showing sample answers. Try one of the suggested questions below."
   };
 
+  // Same question, ignoring case, extra spaces and the ".example" on demo domains.
+  function normalize(q) {
+    return String(q || "").toLowerCase().replace(/\.example\b/g, "").replace(/\s+/g, " ").trim();
+  }
+  function sampleFor(question) {
+    const key = normalize(question);
+    return (key && SAMPLE[key]) || null;
+  }
+
+  function questionFromUrl(search) {
+    return (new URLSearchParams(search || "").get("ask") || "").trim();
+  }
+
   // ---------- Talking to the background script ----------
   function hasRuntime() {
     return typeof chrome !== "undefined" && chrome.runtime && chrome.runtime.id && chrome.runtime.sendMessage;
@@ -87,8 +104,7 @@
       }
     }
     await new Promise((r) => setTimeout(r, 1400)); // feel like real checking
-    const hit = SAMPLE[question.trim().toLowerCase()] || SAMPLE_FALLBACK;
-    return { ...hit, sample: true };
+    return { ...(sampleFor(question) || SAMPLE_FALLBACK), sample: true };
   }
 
   // ---------- Rendering ----------
@@ -135,7 +151,11 @@
     const pending = addMessage(`<p class="checking">C is checking<span class="dots"><i></i><i></i><i></i></span></p>`, "c");
     setMood("uneasy");
 
-    const res = await askBackground(question);
+    let res = await askBackground(question);
+    // Gemma unreachable (e.g. Ollama not running): a suggested question still gets its sample answer.
+    if (res.error && !res.answer && sampleFor(question)) {
+      res = { ...sampleFor(question), sample: true, offline: res.error };
+    }
 
     if (res.error && !res.answer) {
       pending.innerHTML = `<p>${esc(res.error)}</p>`;
@@ -146,7 +166,7 @@
       pending.innerHTML = `
         ${labels.length ? `<p class="trace">C checked: ${labels.map((l) => `<span>${esc(l)} <b aria-hidden="true">✓</b></span>`).join("")}</p>` : ""}
         <p class="answer">${renderAnswer(res.answer)}</p>
-        ${res.sample ? `<p class="sample-tag">Sample answer. The AI isn't connected yet.</p>` : ""}`;
+        ${res.sample ? `<p class="sample-tag">${res.offline ? `Sample answer. ${esc(res.offline)}` : "Sample answer. The AI isn't connected yet."}</p>` : ""}`;
       // reveal the checks one by one
       pending.querySelectorAll(".trace > span").forEach((s, i) => { s.style.animationDelay = `${i * 180}ms`; });
       setMood("happy");
@@ -165,6 +185,13 @@
       if (b) ask(b.textContent);
     });
     $("ask-form").addEventListener("submit", (e) => { e.preventDefault(); ask($("ask-input").value); });
+
+    // Opened from the popup's "Ask C about this site" button.
+    const fromPopup = questionFromUrl(location.search);
+    if (fromPopup) {
+      $("ask-c").scrollIntoView({ block: "start" });
+      ask(fromPopup);
+    }
   }
 
   // Other parts of the dashboard (e.g. "Ask C" next to a company) can call this.
@@ -172,8 +199,10 @@
     ask(question) {
       $("ask-c").scrollIntoView({ behavior: "smooth", block: "start" });
       ask(question);
-    }
+    },
+    // Pure helpers, exported for tests (tests/askc-panel.test.js).
+    sampleFor, renderAnswer, questionFromUrl
   };
 
-  init();
+  if (typeof document !== "undefined") init();
 })();
