@@ -68,3 +68,9 @@ Supporting (older, so NOT the theme answer): DuckDuckGo Tracker Radar (domain to
 - Collaboration: **one shared GitHub repo**, one branch per person, merging to main often.
 - Demo laptop: the user's Mac (Apple Silicon assumed; confirm) or a second laptop they own.
 - Extra prize target: **Best Beginner Hack** (plus the main awards; Fresh off the frontier is the prompt).
+
+## Max
+- Editable UI thats customizable to what you want (i.e, green, dark mode, light mode, etc)
+- Grading scale that has a breakdown of the score and why it is that way. MAKE SURE THAT IF COOKIES ARE UNABLE TO BE DECLINED, THAT IMPACTS THE SCORE IN SOME WAY.
+- 
+
