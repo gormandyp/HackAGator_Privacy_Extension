@@ -53,7 +53,8 @@
       const type = (page.headers && page.headers.get("content-type")) || "";
       if (!/html|text\/plain/i.test(type)) return;           // PDFs and the like are skipped
       const html = (await page.text()).slice(0, MAX_HTML);
-      const policy = await PrivaCPolicy.readPolicy({ html, url }, MAP, (q, o) => PrivaCGemma.ask(q, o));
+      // "low": Ask C questions go first; a policy read pauses while C is answering someone.
+      const policy = await PrivaCPolicy.readPolicy({ html, url }, MAP, (q, o) => PrivaCGemma.ask(q, { ...o, priority: "low" }));
       await save(domain, policy);
     } catch (e) {
       // Gemma off, network error, or not a policy page: save nothing, so the next visit tries again.

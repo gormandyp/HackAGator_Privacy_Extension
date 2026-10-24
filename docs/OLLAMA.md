@@ -31,5 +31,16 @@ Errors come back as plain sentences (Ollama not running, blocked origin), so you
 
 Tests: `node --test` (tests/gemma.test.js uses a fake Ollama, so it runs anywhere).
 
+## Speed settings (shared/gemma.js; measured on the demo Mac, Ollama 0.40, gemma4:e4b, 2026-10-24)
+- `think: false`: Gemma 4 "thinks" before answering unless told not to. A one-sentence answer cost ~220 hidden
+  tokens; a real Ask C question spent all its tokens thinking (10 s, empty answer). Without thinking: ~4.5 s, full answer.
+- `keep_alive: "30m"`: Ollama otherwise unloads Gemma after 5 idle minutes, and loading it again takes ~4 s.
+  The dashboard and popup also "warm" Gemma (load it without asking anything) when they open.
+- `num_ctx: 8192` for every call: one size, so Ollama never reloads the model to switch, and Ask C's evidence
+  (a short summary, ~4,000 tokens: shared/askc.js) is never cut off.
+- Streaming: the Ask C panel shows C's words as Gemma writes them (first words after ~2-3 s).
+- Ask C goes first: the background policy reader (`priority: "low"`) pauses while C is answering someone.
+- Measured speed: reading ~1,900 tokens/s, writing ~35 tokens/s (5,000-token prompt), ~65 tokens/s (short prompt).
+
 ## Keep it local
 Use local models only (`gemma4:e4b` / `gemma4:e2b`). Cloud models (names ending in `:cloud`) send questions to Ollama's servers and would break the privacy promise on the dashboard.

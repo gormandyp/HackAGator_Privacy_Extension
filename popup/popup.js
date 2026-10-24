@@ -33,10 +33,18 @@
   const sites = data.sample && !useSample ? [] : data.sites;
 
   const domain = preview || (await PrivaCData.currentDomain());
-  const site = domain ? sites.find((s) => s.domain === domain) : sites[0];
+  // In Chrome, no domain means the tab isn't showing a website (the new-tab page, Chrome's settings): never show
+  // another site as if it were this one. Outside Chrome (a design preview), the first site stands in.
+  const noWebsite = inExtension && !domain;
+  const site = domain ? sites.find((s) => s.domain === domain) : noWebsite ? null : sites[0];
 
   if (!site) {
-    $("app").innerHTML = `
+    $("app").innerHTML = noWebsite ? `
+      <section class="card glass empty">
+        <div class="c-art">${PrivaCMascot.svg("wave", { size: 104 })}</div>
+        <h1>There's no website in this tab for me to grade.</h1>
+        <p>Open a website and I'll check it.</p>
+      </section>` : `
       <section class="card glass empty">
         <div class="c-art">${PrivaCMascot.svg("wave", { size: 104 })}</div>
         <h1>I haven't checked ${esc(domain || "this page")} yet.</h1>
