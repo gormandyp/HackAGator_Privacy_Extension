@@ -145,9 +145,22 @@ function saveSite(site) {
   return saveChain;
 }
 
+// One page load is one visit. Count it once on the site's record, and each company once per visit
+// (shared/data.js only gives points to companies seen on at least half of a site's visits).
+function countVisit(rec, site) {
+  if (!site.visitId) return;
+  if (rec.lastVisitId !== site.visitId) { rec.visits = (rec.visits || 0) + 1; rec.lastVisitId = site.visitId; }
+  rec.companyVisits = rec.companyVisits || {};
+  for (const t of site.trackers || []) {
+    const co = t.company || t.domain;
+    const c = rec.companyVisits[co] || (rec.companyVisits[co] = { n: 0, last: null });
+    if (c.last !== site.visitId) { c.n++; c.last = site.visitId; }
+  }
+}
+
 function mergeSite(data, site) {
     const i = data.sites.findIndex(s => s.domain === site.domain);
-    if (i === -1) { data.sites.push(site); }
+    if (i === -1) { const rec = { ...site, trackers: [...site.trackers] }; countVisit(rec, site); data.sites.push(rec); }
     else {
       const old = data.sites[i];
       const trackers = [...old.trackers || []];
@@ -164,6 +177,7 @@ function mergeSite(data, site) {
         foreignServers: [...(old.foreignServers || []), ...(site.foreignServers || []).filter(x => !(old.foreignServers || []).some(o => o.host === x.host))],
         policy: old.policy && old.policy.source ? old.policy : site.policy
       };
+      countVisit(data.sites[i], site);
     }
 }
 
@@ -249,9 +263,11 @@ chrome.webNavigation.onCommitted.addListener(details => {
   if (domain) startSite(details.tabId, domain);
 });
 
+let visitCount = 0;
 function startSite(tabId, domain) {
   const site = {
     domain,
+    visitId: `${Date.now().toString(36)}-${tabId}-${++visitCount}`,
     lastVisit: new Date().toISOString(),
     cookieChoice: "none",
     policy: { sells: null, shares: null, source: null },

@@ -43,6 +43,8 @@ Owner areas: **core** (repo owner + Claude: background, data plumbing, merges), 
 
 - [x] **R17. Grade honed with Justin's scale** (repo owner 2026-10-24, from `docs/New-Privacy-Grade_Scale` on branch New-Grading_Scale): kept the points and A-F cutoffs (his full 21-check model would grade nearly every site F with what a browser can see). Added from it: score range, coverage of the rubric's 115 points, Fully/Partly checked label, a read-but-silent policy label, and a five-step "How this grade was calculated" (popup, dashboard site detail, Grades tab). Tests: tests/score-range.test.js, tests/site-summary.test.js. Not done: Ask C's instant grade answer and the grade box don't mention the range yet.
 
+- [ ] **R18. Steadier grades between reloads and people** (repo owner 2026-10-24, branch `grade-steady`, waiting for his pick): each company counts once however many web addresses it uses, and over several visits only companies seen on at least half of them add points (the rest are listed, 0 points). Visit counts per site and per company in background/tracking.js. Tests: tests/score-steady.test.js, tests/tracking.test.js. Cookie part (trackers that only load after Accept) not built yet.
+
 ## Sun (freeze 11 AM)
 - [ ] 13. [ui] Polish: loading/empty/error states, animations. Run `/check-diff`.
 - [~] 14. [demo] **Done:** dashboard "About" tab lists the past-12-month technology with dates, proof links and the files that use it (tests/about.test.js). **Left:** README for judges, "why it's recent" slide with dates (Gemma 4 Mar 31 2026, RegTrack Mar 2026, 1260H Jun 8 2026, CA registry 2026), docs/DIFFICULTIES.md.

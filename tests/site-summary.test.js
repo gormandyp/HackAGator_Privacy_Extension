@@ -28,7 +28,7 @@ test("reasons that add points come first, biggest first, and add up to the score
   assert.strictEqual(s.grade, cnn.grade);
   assert.strictEqual(s.reasons.reduce((n, r) => n + r.points, 0), cnn.score);
   for (let i = 1; i < s.reasons.length; i++) assert.ok(s.reasons[i - 1].points >= s.reasons[i].points);
-  assert.match(s.reasons[0].label, /6 tracker connections/);
+  assert.match(s.reasons[0].label, /5 outside companies with trackers here/, "Google's two addresses count once");
   assert.strictEqual(s.reasons[0].source, "Seen on your visits in the last 7 days");
   assert.ok(s.reasons.some((r) => r.label === "Policy says it sells personal information" && r.source === "Disclosed in privacy policy"));
   assert.ok(s.reasons.every((r) => r.points > 0));
@@ -135,14 +135,14 @@ test("steps: the site's own points add up, then the letter, the unknowns and the
   assert.match(s[2], /40 is a B \(B is 21-40\)/);
   assert.match(s[3], /privacy policy isn't read yet: up to \+15 more, so the range is 40-55/);
   assert.match(s[3], /range is 40-55 \(B to C\)/);
-  const one = steps(scored({ domain: "n.example", trackers: [T.gAds, T.fb, T.amzn, T.gAn], cookieChoice: "accepted", policy: {} }));
+  const one = steps(scored({ domain: "n.example", trackers: [T.gAds, T.fb, T.amzn, { domain: "scorecardresearch.com", company: "Comscore", category: "Analytics", country: "US" }], cookieChoice: "accepted", policy: {} }));
   assert.match(one[3], /range is 45-60 \(a C either way\)/);
   assert.match(s[4], /Partly checked: 87% of the grade's 115 possible points have an answer/);
   const clean = steps(scored({ domain: "q.example", trackers: [], cookieChoice: "declined", policy: { sells: false, shares: false } }));
   assert.match(clean[1], /Nothing added points, so the score is 0/);
   assert.match(clean[3], /Nothing is unknown, so the range is just 0/);
   assert.match(clean[4], /Fully checked: 100%/);
-  const capped = steps(scored({ domain: "c.example", trackers: Array.from({ length: 12 }, () => T.gAds), cookieChoice: "accepted", policy: { sells: true }, owner: { company: "Y", country: "RU" },
+  const capped = steps(scored({ domain: "c.example", trackers: Array.from({ length: 12 }, (_, i) => ({ ...T.gAds, domain: `ad${i}.example`, company: `Ad Co ${i}` })), cookieChoice: "accepted", policy: { sells: true }, owner: { company: "Y", country: "RU" },
     breach: { name: "X", breachDate: "2026-06-01", addedDate: "2026-07-01" } }));
   assert.match(capped[1], /= 115, capped at 100/);
 });

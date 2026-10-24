@@ -229,3 +229,24 @@ test("the popup is told the website the tab really shows right now", async () =>
   const answer = await new Promise((r) => t.listeners.msg({ type: "privac-tab-site", tabId: 42 }, {}, r));
   assert.strictEqual(answer.domain, "google.com");
 });
+
+// Steadier grades (repo owner, 2026-10-24): each page load is one visit; each company is counted once per visit.
+test("visits: each page load counts once, and each company once per visit, however many addresses or requests", async () => {
+  const t = load();
+  t.listeners.nav({ frameId: 0, tabId: 7, url: "https://news.example/" });
+  t.listeners.req({ tabId: 7, url: "https://stats.g.doubleclick.net/x" });
+  t.listeners.req({ tabId: 7, url: "https://www.google-analytics.com/g" });
+  t.listeners.req({ tabId: 7, url: "https://stats.g.doubleclick.net/y" });
+  await t.flush();
+  t.listeners.nav({ frameId: 0, tabId: 7, url: "https://news.example/" });   // reload
+  t.listeners.req({ tabId: 7, url: "https://stats.g.doubleclick.net/x" });
+  t.listeners.req({ tabId: 7, url: "https://hotjar.com/s.js" });
+  await t.flush();
+  t.listeners.nav({ frameId: 0, tabId: 8, url: "https://news.example/b" });  // another tab, same site
+  await t.flush();
+  const site = t.store().privacData.sites.find(s => s.domain === "news.example");
+  assert.strictEqual(site.visits, 3);
+  assert.strictEqual(site.companyVisits.Google.n, 2);
+  assert.strictEqual(site.companyVisits.Hotjar.n, 1);
+  assert.strictEqual(site.trackers.length, 3, "the list still keeps every address seen this week");
+});
