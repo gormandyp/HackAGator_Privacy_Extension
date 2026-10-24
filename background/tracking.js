@@ -129,6 +129,7 @@ function saveSite(site) {
         cookieChoice: old.cookieChoice && old.cookieChoice !== "none" ? old.cookieChoice : site.cookieChoice,
         cookies: old.cookies || site.cookies,
         owner: site.owner || old.owner || null,
+        foreignHosts: [...new Set([...(old.foreignHosts || []), ...(site.foreignHosts || [])])],
         policy: old.policy && old.policy.source ? old.policy : site.policy
       };
     }
@@ -240,7 +241,7 @@ function handleRequest(details, site) {
   if (!hostname) return;
 
   const tracker = matchingTracker(hostname);
-  if (!tracker) return;
+  if (!tracker) return rememberForeignHost(site, hostname);
 
   // Don't count a site's own requests (or its owner's) as third-party tracking.
   if (isFirstParty(site.domain, hostname, tracker)) return;
@@ -252,6 +253,20 @@ function handleRequest(details, site) {
     saveSite(site);
     if (typeof PrivaCAlerts !== "undefined") PrivaCAlerts.check(details.tabId, site);
   }
+}
+
+// F1: an outside server not in the Atlas whose address ends in a listed country's code (cip.cu, tns-counter.ru).
+// Only its main name is kept (never the full address); it's shown on the grade with 0 points.
+function rememberForeignHost(site, hostname) {
+  if (typeof PrivaCData === "undefined" || !PrivaCData.countryOfAddress(hostname)) return;
+  if (isFirstParty(site.domain, hostname, null)) return;
+  const roots = siteRoots(hostname);
+  const name = roots[roots.length - 1] || hostname;
+  site.foreignHosts = site.foreignHosts || [];
+  if (site.foreignHosts.includes(name) || site.foreignHosts.length >= 20) return;
+  site.foreignHosts.push(name);
+  rememberTabs();
+  saveSite(site);
 }
 
 // Detect requests to known tracking domains.

@@ -19,6 +19,8 @@ function load() {
     tabs: { onRemoved: on("closed") }
   };
   const ctx = { chrome, console, URL, Promise, setTimeout };
+  ctx.window = ctx;   // shared/data.js (country web addresses, F1) loads first in the real extension too
+  vm.runInNewContext(fs.readFileSync(__dirname + "/../shared/data.js", "utf8"), ctx);
   vm.runInNewContext(fs.readFileSync(__dirname + "/../background/tracking.js", "utf8") + "\n;this.flush = async () => { await atlasReady; await tabsReady; for (let i = 0; i < 5; i++) await new Promise(r => setTimeout(r, 0)); await saveChain; }; this.setAtlas = setAtlas; this.update = updateCookieChoice; this.ownerOf = ownerOf;", ctx);
   return { listeners, store: () => store, setStore: (s) => { store = s; }, flush: () => ctx.flush(), setAtlas: ctx.setAtlas, update: (d, c) => ctx.update(d, c), ownerOf: (d) => ctx.ownerOf(d) };
 }
@@ -127,4 +129,18 @@ test("the site's owner is recorded with its country (ya.ru = Yandex, Russia)", a
   t.listeners.nav({ frameId: 0, tabId: 10, url: "https://ya.ru/" });
   await t.flush();
   assert.strictEqual(t.store().privacData.sites[0].owner.company, "Yandex");
+});
+
+test("F1: unknown outside servers with a listed country ending are remembered by name (label only)", async () => {
+  const t = load();
+  t.listeners.nav({ frameId: 0, tabId: 3, url: "https://granma.cu/" });
+  t.listeners.req({ tabId: 3, url: "https://static.granma.cu/a.js" });        // the site itself
+  t.listeners.req({ tabId: 3, url: "https://stats.cip.cu/c.js?x=1" });        // outside, Cuban ending
+  t.listeners.req({ tabId: 3, url: "https://cdn.unknown-cdn.com/x.js" });     // outside, no listed ending
+  t.listeners.nav({ frameId: 0, tabId: 4, url: "https://news.example/" });
+  t.listeners.req({ tabId: 4, url: "https://www.tns-counter.ru/V13a" });
+  await t.flush();
+  const sites = t.store().privacData.sites;
+  assert.deepStrictEqual(sites.find(s => s.domain === "granma.cu").foreignHosts, ["cip.cu"]);
+  assert.deepStrictEqual(sites.find(s => s.domain === "news.example").foreignHosts, ["tns-counter.ru"]);
 });

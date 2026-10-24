@@ -51,6 +51,10 @@
       <div class="flag" role="alert">
         <strong>Foreign-adversary link.</strong> This page contacted ${flaggedNames.join(" and ")},
         based in ${flaggedNames.length > 1 ? "countries" : "a country"} the U.S. Commerce Department lists as a foreign adversary.
+      </div>` : site.addressFlag && !site.ownerFlag ? `
+      <div class="flag" role="alert">
+        <strong>Foreign-adversary country web address.</strong> This site's address ends in ${escapeHtml(site.addressFlag.ending)},
+        the country code of ${escapeHtml(PrivaCData.FOREIGN_ADVERSARIES[site.addressFlag.country])}, a country the U.S. Commerce Department lists as a foreign adversary.
       </div>` : ""}
 
     <section>

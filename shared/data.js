@@ -32,6 +32,16 @@
     KP: "North Korea", RU: "Russia", VE: "Venezuela"
   };
 
+  // F1: country web-address endings for those countries. "xn--p1ai" is how browsers write ".рф".
+  const COUNTRY_ENDINGS = { ir: "IR", ru: "RU", su: "RU", "xn--p1ai": "RU", cn: "CN", hk: "HK", cu: "CU", kp: "KP", ve: "VE" };
+  const ENDING_SHOWN = { "xn--p1ai": "рф" };
+  function endingOf(host) { return String(host || "").toLowerCase().replace(/\.$/, "").split(".").pop(); }
+  // "en.irna.ir" -> "IR"; "cgtn.com" -> null. A web address ending is a public fact, not proof of where servers are.
+  function countryOfAddress(host) {
+    const parts = String(host || "").split(".");
+    return parts.length > 1 ? COUNTRY_ENDINGS[endingOf(host)] || null : null;
+  }
+
   const AD_CATEGORIES = ["Advertising", "Data broker", "Session recording"];
 
   const T = {
@@ -115,8 +125,25 @@
     } else if (owner) {
       flagLabel = `This site is owned by ${owner.company}, based in ${FOREIGN_ADVERSARIES[owner.country]} (a listed foreign-adversary country)`;
     }
-    const flagPts = flagged.length || owner ? 15 : 0;
+    // F1: the site's own web address ends in a listed country's code (.ir, .ru, .cn ...). Same single line.
+    const addrCountry = countryOfAddress(site.domain);
+    const addressFlag = addrCountry ? { ending: "." + (ENDING_SHOWN[endingOf(site.domain)] || endingOf(site.domain)), country: addrCountry } : null;
+    if (addressFlag && !flagged.length && !owner) {
+      flagLabel = `This site's web address ends in ${addressFlag.ending}, the country code of ${FOREIGN_ADVERSARIES[addrCountry]} (a listed foreign-adversary country)`;
+    }
+    const flagPts = flagged.length || owner || addressFlag ? 15 : 0;
     parts.push({ label: flagLabel, points: flagPts, kind: "observed" });
+
+    // Outside servers whose owner we don't know but whose address ends in a listed country's code: shown, 0 points.
+    const unknownHosts = [...new Set([
+      ...(site.foreignHosts || []),
+      ...t.filter(x => !FOREIGN_ADVERSARIES[x.country] && !x.listed && countryOfAddress(x.domain)).map(x => x.domain)
+    ])];
+    if (unknownHosts.length) {
+      const names = unknownHosts.slice(0, 5).map(h => `${h} (${FOREIGN_ADVERSARIES[countryOfAddress(h)]})`).join(", ");
+      const more = unknownHosts.length > 5 ? ` and ${unknownHosts.length - 5} more` : "";
+      parts.push({ label: `Also contacted outside ${unknownHosts.length === 1 ? "server" : "servers"} with a listed country's web address, owner unknown: ${names}${more}`, points: 0, kind: "observed" });
+    }
 
     const p = site.policy || {};
     let policyPts = 0, policyLabel = "Privacy policy not checked yet";
@@ -138,7 +165,7 @@
     }
 
     const score = Math.min(100, parts.reduce((s, x) => s + x.points, 0));
-    return { score, grade: gradeFor(score), parts, flagged, ownerFlag: owner };
+    return { score, grade: gradeFor(score), parts, flagged, ownerFlag: owner, addressFlag };
   }
 
   function gradeFor(score) {
@@ -210,5 +237,5 @@
     if (hasChrome()) await chrome.storage.local.remove("privacData");
   }
 
-  window.PrivaCData = { annotateListed, load, currentDomain, clearAll, computeScore, gradeFor, GRADE_WORDS, FOREIGN_ADVERSARIES };
+  window.PrivaCData = { countryOfAddress, annotateListed, load, currentDomain, clearAll, computeScore, gradeFor, GRADE_WORDS, FOREIGN_ADVERSARIES };
 })();
