@@ -50,6 +50,7 @@
   const ask = (q, about) => (window.PrivaCExplain ? PrivaCExplain.button(q, about) : "");
 
   // Column chart. series: [{ key, label, cls }], drawn bottom-up as a stack. Each column has a hover/focus tooltip.
+  // A column is one day ({ day, values }), or names itself with { x, title, aria, cls } (Today's grade columns).
   function columns(days, series, opts = {}) {
     const totals = days.map((d) => series.reduce((s, x) => s + (d.values[x.key] || 0), 0));
     const max = niceMax(Math.max(1, ...totals));
@@ -62,13 +63,14 @@
           ${ticks.map((t, i) => `<i class="grid" style="bottom:${i === 0 ? 100 : i === 1 ? 50 : 0}%"></i>`).join("")}
           <div class="cols" style="--n:${days.length}">
             ${days.map((d, i) => {
-              const tip = `<b>${esc(i === days.length - 1 ? "Today" : shortDate(d.day))}</b>` +
+              const tip = `<b>${esc(d.title || (i === days.length - 1 ? "Today" : shortDate(d.day)))}</b>` +
                 series.map((x) => `<span><i class="sw ${x.cls}"></i>${esc(x.label)}<em>${d.values[x.key] || 0}</em></span>`).join("");
-              return `<button type="button" class="col" data-tip="${esc(tip)}" aria-label="${esc(shortDate(d.day))}: ${series.map((x) => `${d.values[x.key] || 0} ${x.label}`).join(", ")}">
+              const aria = d.aria || `${shortDate(d.day)}: ${series.map((x) => `${d.values[x.key] || 0} ${x.label}`).join(", ")}`;
+              return `<button type="button" class="col${d.cls ? " " + d.cls : ""}" data-tip="${esc(tip)}" aria-label="${esc(aria)}">
                 <span class="stack" style="height:${(totals[i] / max) * 100}%">
                   ${series.map((x) => d.values[x.key] ? `<span class="seg ${x.cls}" style="flex-grow:${d.values[x.key]}"></span>` : "").reverse().join("")}
                 </span>
-                <span class="x">${i % labelEvery === (days.length - 1) % labelEvery ? esc(days.length <= 7 ? weekday(d.day) : shortDate(d.day)) : ""}</span>
+                <span class="x">${esc(d.x || (i % labelEvery === (days.length - 1) % labelEvery ? (days.length <= 7 ? weekday(d.day) : shortDate(d.day)) : ""))}</span>
               </button>`;
             }).join("")}
           </div>
@@ -151,6 +153,11 @@
       ["Tracked you without asking", t.neverAsked || 0, "How can a site track me without showing a cookie banner?", "st-critical"]
     ];
     const choiceMax = Math.max(1, ...choices.map((c) => c[1]));
+    // Today has one day, so it gets one column per grade instead of one column per day.
+    const byGrade = ["A", "B", "C", "D", "F"].map((g) => {
+      const n = t.grades[g] || 0;
+      return { x: g, title: `Graded ${g}`, aria: `Graded ${g}: ${plural(n, "site visit", "site visits")}`, cls: `grade-${g}`, values: { visits: n } };
+    });
     $("safety").innerHTML = `
       <div class="bento">
         <div class="card glass">
@@ -160,7 +167,8 @@
           <div class="grade-mix" aria-label="Site visits by grade">
             ${["A", "B", "C", "D", "F"].map((g) => `<span class="g grade-${g} ${t.grades[g] ? "" : "none"}"><b>${g}</b><span>${t.grades[g] || 0}</span></span>`).join("")}
           </div>
-          ${range.safety === "day" ? `<p class="hint">Pick 7 or 30 days to see how this changes day by day.</p>`
+          ${range.safety === "day" ? `<h3 class="chart-title">Today's site visits by grade</h3>${columns(byGrade, [{ key: "visits", label: "site visits", cls: "s-grade" }], { label: "Today's site visits by grade" })}
+               <p class="hint">Pick 7 or 30 days to see how this changes day by day.</p>`
             : `<h3 class="chart-title">Site visits per day</h3>${columns(days, [{ key: "risky", label: "Risky (D or F)", cls: "s-risk" }, { key: "other", label: "A to C", cls: "s-safe" }], { label: `Site visits per day ${when}, risky versus the rest` })}
                ${numbersTable(sum.days, [{ label: "Site visits", get: (d) => (d.snapshot && d.snapshot.sites) || 0 }, { label: "Risky (D or F)", get: (d) => d.snapshot ? (d.snapshot.grades.D || 0) + (d.snapshot.grades.F || 0) : 0 }])}`}
         </div>

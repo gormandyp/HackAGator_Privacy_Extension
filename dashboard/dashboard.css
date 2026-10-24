@@ -340,6 +340,7 @@ button.fact-title:hover { text-decoration-color: var(--hair-strong); }
 .sw { display: inline-block; width: 8px; height: 8px; border-radius: 2.5px; margin-right: 6px; }
 .s-c { background: var(--s-c); }
 .s-risk { background: var(--s-risk); }
+.s-grade { background: var(--g); }
 .s-base { background: var(--s-base); }
 .legend { display: flex; gap: 16px; font-size: 12px; color: var(--text-2); margin-top: 6px; }
 .chart-tip {
