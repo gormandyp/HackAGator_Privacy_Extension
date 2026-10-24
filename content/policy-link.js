@@ -15,7 +15,7 @@
     const links = collect();
     if (!links.length) return false;
     try {
-      chrome.runtime.sendMessage({ type: "privac-policy-links", domain: location.hostname.replace(/^www\./, ""), links });
+      chrome.runtime.sendMessage({ type: "privac-policy-links", domain: location.hostname.replace(/^www\./, ""), links }).catch(() => {});
     } catch (e) { /* extension was reloaded */ }
     return true;
   }

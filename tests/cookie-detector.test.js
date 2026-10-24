@@ -80,6 +80,7 @@ function load(controls, { hosts = [], cookie = "" } = {}) {
     MutationObserver: class {
       constructor(callback) { ctx.observer = { callback }; }
       observe(target, options) { ctx.observer.options = options; }
+      disconnect() { ctx.observer.disconnected = true; }
     },
     getComputedStyle: () => ({ display: "block", visibility: "visible" }),
     // onDecline's 200 ms waits run right away; the detector's own longer timers (its 1.5 s and 4 s re-checks,
@@ -93,7 +94,7 @@ function load(controls, { hosts = [], cookie = "" } = {}) {
     clearTimeout(id) { later.delete(id); },
     atob: (s) => Buffer.from(s, "base64").toString("binary"),
     chrome: { storage: { local: { get: async () => ({ privacData: { sites: [] } }), set: async (v) => saved.push(v) } },
-              runtime: { sendMessage: async (m) => { sent.push(m); } } }
+              runtime: { id: "privac-test", sendMessage: async (m) => { sent.push(m); } } }
   };
   ctx.window = ctx;
   ctx.top = ctx;   // the top page, not a frame
@@ -389,3 +390,28 @@ for (const kind of ["link", "submit"]) {
     assert.deepStrictEqual(load([control("Reject all", { kind, banner: null })]).kinds(), []);
   });
 }
+
+// chrome://extensions listed "PrivaC: Cookie banner did not disappear." as a warning on every failed decline
+// (Tesco, Oct 24). It's an expected outcome that C already tells you about, so it's a plain log now.
+test("a decline that didn't go through is logged quietly, not listed as an error on chrome://extensions", async () => {
+  const { controls } = bannerWith(["Accept all", "Reject all"]);
+  const page = load(controls);
+  const loud = [];
+  page.ctx.console = { log() {}, table() {}, warn: (...a) => loud.push(a), error: (...a) => loud.push(a) };
+  assert.strictEqual(await page.calls[0][1].onDecline(), "failed");
+  assert.deepStrictEqual(loud, []);
+});
+
+// After PrivaC is reloaded (or updated), Chrome leaves the old copy of this file running in open tabs, cut off
+// from the extension: every chrome.* call then fails with "Extension context invalidated".
+test("after PrivaC is reloaded, the old detector stops: no new pop-ups, no messages, and C's leftover is hidden", () => {
+  const controls = [];
+  const page = load(controls);
+  delete page.ctx.chrome.runtime.id;   // what Chrome does to the old copy
+  controls.push(...bannerWith(["Accept all", "Reject all"]).controls);
+  page.ctx.observer.callback([pageChange]);
+  page.clock.tick(5000);
+  assert.deepStrictEqual(page.kinds(), ["hide"]);
+  assert.strictEqual(page.ctx.observer.disconnected, true, "stops watching the page");
+  assert.deepStrictEqual(page.sent, []);
+});

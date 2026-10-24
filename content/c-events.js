@@ -7,8 +7,16 @@
   const P = window.PrivaCPrompt;
   const domain = () => location.hostname.replace(/^www\./, "");
 
+  // A message the background can't take (PrivaC was reloaded) fails quietly, not as an error on chrome://extensions.
   function send(msg) {
-    try { chrome.runtime.sendMessage(msg); } catch (e) { /* extension reloaded; ignore */ }
+    try {
+      const sent = chrome.runtime.sendMessage(msg);
+      if (sent && sent.catch) sent.catch(() => {});
+    } catch (e) { /* extension reloaded; ignore */ }
+  }
+  // False in the old copy Chrome leaves on open pages after PrivaC is reloaded (chrome.runtime.id is gone).
+  function connected() {
+    try { return !!(chrome.runtime && chrome.runtime.id); } catch (e) { return false; }
   }
   const event = (name) => send({ type: "privac-event", event: name, domain: domain() });
 
@@ -117,6 +125,10 @@
   }
   let acceptedOnce = false;
   document.addEventListener("click", (e) => {
+    // The old C left on the page after PrivaC was reloaded: his buttons would fail ("Extension context
+    // invalidated"), so pressing him takes him away instead. (This runs before his own buttons do.)
+    const oldC = e.target && e.target.closest && !connected() ? e.target.closest("privac-prompt") : null;
+    if (oldC) { e.stopImmediatePropagation(); e.preventDefault(); oldC.remove(); return; }
     if (acceptedOnce || !e.isTrusted || !e.target || !e.target.closest) return;
     const el = e.target.closest('button, [role="button"], input[type="button"], a');
     if (el && ACCEPT.some(p => p.test(label(el))) && inCookieBanner(el)) { acceptedOnce = true; choice("accepted"); event("accepted-on-site"); }

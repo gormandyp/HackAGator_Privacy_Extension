@@ -333,7 +333,7 @@
   async function finishDecline(bannerDismissed) {
     // The banner may stay on screen while the site still saved the choice.
     if (!bannerDismissed && optionalCookiesOff(document.cookie) !== true) {
-        console.warn("PrivaC: Cookie banner did not disappear.");
+        console.log("PrivaC: Cookie banner did not disappear.");   // C tells you himself; not an extension error
         return "failed";
     }
 
@@ -548,7 +548,26 @@
     });
   }
 
-  const check = inFrame ? checkFrame : checkForCookieBanner;
+  // After PrivaC is reloaded or updated, Chrome leaves this old copy running in open tabs, cut off from the
+  // extension (chrome.runtime.id is gone, and every chrome.* call fails with "Extension context invalidated").
+  // The old copy then stops watching the page and takes its C away; the new copy starts when the page reloads.
+  function connected() {
+    try { return !!(chrome.runtime && chrome.runtime.id); } catch (e) { return false; }
+  }
+  let retired = false;
+  function retire() {
+    retired = true;
+    observer.disconnect();
+    if (timer) { clearTimeout(timer); timer = null; }
+    try { if (window.PrivaCPrompt) PrivaCPrompt.hide(); } catch (e) { /* already gone */ }
+  }
+
+  const checkPage = inFrame ? checkFrame : checkForCookieBanner;
+  function check() {
+    if (retired) return;
+    if (!connected()) return retire();
+    checkPage();
+  }
 
   // Cookie banners often load after the webpage itself, or are already in the page and shown later by a
   // style or class change. Check at most every 350 ms while the page changes: a timer that restarted on

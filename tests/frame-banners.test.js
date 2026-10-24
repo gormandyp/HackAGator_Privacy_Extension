@@ -41,6 +41,7 @@ function load(labels, { inFrame = false, cookie = "", reply } = {}) {
     chrome: {
       storage: { local: { get: async () => ({ privacData: { sites: [] } }), set: async () => {} } },
       runtime: {
+        id: "privac-test",
         sendMessage: (msg) => { sent.push(plain(msg)); return reply ? reply(msg) : Promise.resolve(); },
         onMessage: { addListener: (fn) => { listener = fn; } }
       }

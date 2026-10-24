@@ -21,13 +21,13 @@ function load(pageButtons = [], settings = null, settingsLater = false) {
     querySelectorAll: () => pageButtons
   };
   const ctx = { console, Promise, setTimeout: (fn, ms) => timers.push({ fn, ms }), location: { hostname: "www.news.example" }, document,
-    chrome: { runtime: { sendMessage: (m) => sent.push(m) },
+    chrome: { runtime: { id: "privac-test", sendMessage: (m) => sent.push(m) },
       storage: { local: { get: () => ({ then: (fn) => { const give = () => fn({ privacSettings: settings }); if (settingsLater) setTimeout(give, 0); else give(); return { catch() {} }; } }) },
                  onChanged: { addListener: (fn) => storageListeners.push(fn) } } } };
   ctx.window = ctx;
   ctx.window.PrivaCPrompt = P;
   vm.runInNewContext(fs.readFileSync(__dirname + "/../content/c-events.js", "utf8"), ctx);
-  return { P: ctx.window.PrivaCPrompt, sent, calls, listeners, storageListeners, document, timers, hidden };
+  return { P: ctx.window.PrivaCPrompt, sent, calls, listeners, storageListeners, document, timers, hidden, ctx };
 }
 const events = (sent) => sent.filter(m => m.type === "privac-event").map(m => m.event);
 const choices = (sent) => sent.filter(m => m.type === "cookieChoice").map(m => m.choice);
@@ -173,4 +173,47 @@ test("if another C pop-up replaced the answer in the meantime, it isn't closed",
   buttons.push({ isConnected: true, innerText: "", getAttribute: () => null });   // a newer C
   page.timers.forEach((t) => t.fn());
   assert.strictEqual(page.hidden.length, 0);
+});
+
+// After PrivaC is reloaded, Chrome leaves the old copy of C on open pages, cut off from the extension. Pressing
+// one of his buttons then failed with "Uncaught (in promise) Error: Extension context invalidated" (his answer
+// pose is a file inside the extension). Now the leftover C goes away when you press it, and nothing runs.
+function click(onC) {
+  const host = { removed: false, remove() { this.removed = true; } };
+  const e = { isTrusted: true, stopped: false, prevented: false,
+    target: { closest: (sel) => (sel === "privac-prompt" && onC ? host : null) },
+    stopImmediatePropagation() { this.stopped = true; }, preventDefault() { this.prevented = true; } };
+  return { e, host };
+}
+
+test("after PrivaC is reloaded, pressing the old C's buttons removes him instead of running them", () => {
+  const { listeners, ctx } = load();
+  const live = click(true);
+  listeners.click(live.e);
+  assert.strictEqual(live.e.stopped, false, "while PrivaC is running, C's buttons work as usual");
+  assert.strictEqual(live.host.removed, false);
+
+  delete ctx.chrome.runtime.id;   // what Chrome does to the old copy
+  const dead = click(true);
+  listeners.click(dead.e);
+  assert.strictEqual(dead.e.stopped, true, "his own button never runs");
+  assert.strictEqual(dead.e.prevented, true);
+  assert.strictEqual(dead.host.removed, true);
+  const page = click(false);
+  listeners.click(page.e);
+  assert.strictEqual(page.e.stopped, false, "the website's own clicks are left alone");
+});
+
+test("a message the background can't take (PrivaC reloaded or busy) never shows up as an error", async () => {
+  const { P, ctx } = load();
+  const unhandled = [];
+  const note = (e) => unhandled.push(e);
+  process.on("unhandledRejection", note);
+  ctx.chrome.runtime.sendMessage = () => Promise.reject(new Error("Extension context invalidated."));
+  P.acceptOnly();
+  ctx.chrome.runtime.sendMessage = () => { throw new Error("Extension context invalidated."); };
+  P.acceptOnly();
+  await new Promise((r) => setTimeout(r, 20));
+  process.off("unhandledRejection", note);
+  assert.deepStrictEqual(unhandled, []);
 });

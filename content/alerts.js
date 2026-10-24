@@ -10,5 +10,5 @@
     shown = true;
     PrivaCPrompt.adversary({ companies: msg.companies });
   });
-  try { chrome.runtime.sendMessage({ type: "privac-get-adversary" }); } catch (e) { /* extension reloaded */ }
+  try { chrome.runtime.sendMessage({ type: "privac-get-adversary" }).catch(() => {}); } catch (e) { /* extension reloaded */ }
 })();
