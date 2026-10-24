@@ -1,9 +1,11 @@
 // Dashboard tabs, segmented controls and the Settings sheet.
-// Tabs: Overview, Sites, C's impact, Safety, Ask C, Grades. The open tab is kept in the address (#sites),
-// so reloading or the popup's links land on the right one.
+// Tabs: Overview, Sites, C's impact, Safety, Ask C, Grades. The open tab is kept in the address as #/sites
+// (not #sites: that would match the element with id="sites" and make Chrome jump to it), so reloading or a
+// link lands on the right tab.
 (function () {
   const $ = (id) => document.getElementById(id);
   const TABS = ["overview", "sites", "impact", "safety", "ask", "grades"];
+  const tabFromHash = () => location.hash.replace(/^#\/?/, "");
 
   // ---- Segmented controls: a glass thumb slides under the selected button ----
   function placeThumb(seg) {
@@ -46,7 +48,9 @@
       if (on && panel.hidden) { panel.hidden = false; panel.classList.remove("enter"); void panel.offsetWidth; panel.classList.add("enter"); }
       else if (!on) panel.hidden = true;
     }
-    if (!opts.keepHash && location.hash !== "#" + name) history.replaceState(null, "", "#" + name);
+    // Controls inside a panel that was hidden couldn't be measured; place their thumbs now.
+    $("panel-" + name).querySelectorAll(".segmented").forEach(placeThumb);
+    if (!opts.keepHash && location.hash !== "#/" + name) history.replaceState(null, "", "#/" + name);
     if (!opts.keepScroll) window.scrollTo({ top: 0 });
     document.dispatchEvent(new CustomEvent("privac-tab", { detail: name }));
   }
@@ -54,10 +58,10 @@
     const b = e.target.closest("button[data-tab]");
     if (b) show(b.dataset.tab);
   });
-  window.addEventListener("hashchange", () => show(location.hash.slice(1), { keepHash: true }));
+  window.addEventListener("hashchange", () => show(tabFromHash(), { keepHash: true }));
 
   // The popup's "Ask C why" opens the dashboard with ?ask=... : start on Ask C.
-  const startTab = new URLSearchParams(location.search).get("ask") ? "ask" : location.hash.slice(1);
+  const startTab = new URLSearchParams(location.search).get("ask") ? "ask" : tabFromHash();
   show(startTab || "overview", { keepScroll: true });
   // Fonts settle a moment after load; re-measure the thumbs once they have.
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => document.querySelectorAll(".segmented").forEach(placeThumb));
