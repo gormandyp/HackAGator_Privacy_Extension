@@ -70,6 +70,7 @@
     let removing = null;                  // a Delete in progress: nothing new loads or answers meanwhile
     let failedAt = 0;                     // when Gemma last failed to load or answer (0: it didn't)
     let gpuOk = false;                    // the graphics chip worked once: no need to ask Chrome again
+    let programsReady = false;            // Gemma's graphics-chip programs were compiled without blocking (see warmUpPrograms)
     let bundled = undefined;              // true/false once checked: is the model file packed inside the extension?
     let prepared = null;                  // { key, conv: Promise } a conversation with its system prompt already read
     let queue = Promise.resolve();        // one generation at a time
@@ -175,6 +176,45 @@
     }
 
     // ---------- loading Gemma into GPU memory ----------
+    // The model file: packed inside the extension, or downloaded. Each call opens it again (a stream is read once).
+    async function openModel() {
+      if (await hasBundled()) { const r = await d.fetch(d.bundledModelUrl); if (r.ok) return { stream: r.body, where: "bundled" }; }
+      const hit = await cached();
+      return hit ? { stream: hit.body, where: "downloaded" } : null;
+    }
+
+    // While Gemma loads, the runtime compiles ~150 small programs for the graphics chip with WebGPU's blocking call.
+    // Chrome compiles those on the same thread that draws every tab: when the graphics driver didn't have them yet (the
+    // first load after the download, and sometimes after Chrome restarts), all of Chrome froze for 15-20 s, every tab
+    // and every window. Fix: a warm-up pass loads Gemma once with
+    // stand-in programs, only to learn which programs it needs, then compiles those with the non-blocking call
+    // (createComputePipelineAsync). The real load then finds them already compiled. Measured on the demo Mac: Chrome
+    // kept drawing at full speed and loading took ~6 s instead of ~2 s plus the freeze. Once per page is enough: while
+    // Chrome stays open the graphics driver keeps the compiled programs, so a reload after 20 idle minutes doesn't freeze.
+    // Returns true if it read the model file (the real load then opens it again).
+    async function warmUpPrograms(model) {
+      if (programsReady || !d.lm.setupDefaultWebGpuDevice || !d.lm.getGlobalLiteRtLm) return false;
+      programsReady = true;   // (if it fails, the usual load still works; don't try again)
+      let device = null, blocking = null;
+      try {
+        await d.lm.setupDefaultWebGpuDevice();   // the same device Gemma uses
+        device = d.lm.getGlobalLiteRtLm().liteRtLmWasm.preinitializedWebGPUDevice;
+        blocking = device.createComputePipeline;
+        const wanted = [];
+        const standIn = device.createShaderModule({ code: "@compute @workgroup_size(1) fn standIn() {}" });
+        device.createComputePipeline = (desc) => { wanted.push(desc); return blocking.call(device, { layout: desc.layout, compute: { module: standIn, entryPoint: "standIn" } }); };
+        const trial = await d.lm.Engine.create({ model: model.stream, mainExecutorSettings: { maxNumTokens: CONTEXT_TOKENS } });
+        device.createComputePipeline = blocking;
+        await trial.delete();
+        await Promise.all(wanted.map((desc) => device.createComputePipelineAsync(desc).catch(() => {})));
+      } catch (e) {
+        /* the usual load below still works (it may freeze Chrome for a while, as before) */
+      } finally {
+        if (device && blocking) device.createComputePipeline = blocking;
+      }
+      return !!blocking;
+    }
+
     function load() {
       if (engine) return Promise.resolve(engine);
       if (loading) return loading;
@@ -183,14 +223,15 @@
       loading = (async () => {
         const why = await unsupportedReason();
         if (why) { set({ state: "unsupported", reason: why, error: REASONS[why] }); throw Object.assign(new Error(REASONS[why]), { code: "UNSUPPORTED" }); }
-        let stream = null, where = null;
-        if (await hasBundled()) { const r = await d.fetch(d.bundledModelUrl); if (r.ok) { stream = r.body; where = "bundled"; } }
-        if (!stream) { const hit = await cached(); if (hit) { stream = hit.body; where = "downloaded"; } }
-        if (!stream) { set({ state: "none" }); throw notReady(); }
+        let model = await openModel();
+        if (!model) { set({ state: "none" }); throw notReady(); }
         set({ state: "loading", error: null });
         const t0 = now();
         await d.lm.getOrLoadGlobalLiteRtLm(d.wasmUrl);   // our own copy, never a CDN (the library retries after a failure)
-        engine = await d.lm.Engine.create({ model: stream, mainExecutorSettings: { maxNumTokens: CONTEXT_TOKENS } });
+        if (await warmUpPrograms(model)) model = await openModel();
+        if (!model) { set({ state: "none" }); throw notReady(); }
+        const { where } = model;
+        engine = await d.lm.Engine.create({ model: model.stream, mainExecutorSettings: { maxNumTokens: CONTEXT_TOKENS } });
         failedAt = 0;
         set({ state: "ready", where, loadMs: now() - t0, error: null });
         return engine;

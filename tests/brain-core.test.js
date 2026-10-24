@@ -9,8 +9,22 @@ const { create, MODEL, REASONS } = window.PrivaCBrainCore;
 
 const SIZE = 1000;   // the tests' stand-in for the 2 GB model file (create({ model }) below)
 
-function fakeLM({ failCreate, chunks = ["Criteo is ", "an ad company."], delay = 0, createDelay = 0, streamError, runtimeFails = 0 } = {}) {
-  const calls = { engines: 0, convs: [], deleted: 0, wasm: null, settings: null, runtimeStarts: 0 };
+// gpuPrograms: the real runtime makes its graphics-chip programs (WebGPU compute pipelines) inside Engine.create,
+// with the blocking createComputePipeline. Given a list, the fake does the same on a fake device and records, for each
+// program the engine made, whether it had already been compiled the non-blocking way (createComputePipelineAsync).
+function fakeGpuDevice(calls) {
+  const compiled = new Set();
+  return {
+    createShaderModule: (d) => ({ code: d.code }),
+    createComputePipeline(desc) { calls.programs.push({ code: desc.compute.module.code, alreadyCompiled: compiled.has(desc.compute.module.code) }); return { desc }; },
+    createComputePipelineAsync: async (desc) => { calls.asyncCompiles.push(desc.compute.module.code); compiled.add(desc.compute.module.code); return { desc }; }
+  };
+}
+
+function fakeLM({ failCreate, chunks = ["Criteo is ", "an ad company."], delay = 0, createDelay = 0, streamError, runtimeFails = 0, gpuPrograms, failFirstCreate } = {}) {
+  const calls = { engines: 0, convs: [], deleted: 0, wasm: null, settings: null, runtimeStarts: 0, programs: [], asyncCompiles: [] };
+  const wasm = { preinitializedWebGPUDevice: null };
+  const setupDevice = async () => { wasm.preinitializedWebGPUDevice = wasm.preinitializedWebGPUDevice || fakeGpuDevice(calls); };
   class Conv {
     constructor(cfg) { this.cfg = cfg; this.cancelled = false; calls.convs.push(this); }
     sendMessageStreaming(msg) {
@@ -32,11 +46,21 @@ function fakeLM({ failCreate, chunks = ["Criteo is ", "an ad company."], delay =
     calls,
     SamplerType: { TOP_P: 2, GREEDY: 3 },
     getOrLoadGlobalLiteRtLm: async (url) => { calls.wasm = url; if (++calls.runtimeStarts <= runtimeFails) throw new Error("Aborted(OOM)"); },
+    ...(gpuPrograms ? {
+      setupDefaultWebGpuDevice: setupDevice,
+      getGlobalLiteRtLm: () => ({ liteRtLmWasm: wasm })
+    } : {}),
     Engine: {
       create: async (settings) => {
         calls.engines++; calls.settings = settings;
         if (createDelay) await new Promise((r) => setTimeout(r, createDelay));
         if (failCreate) throw new Error(failCreate);
+        if (failFirstCreate && calls.engines === 1) throw new Error(failFirstCreate);
+        if (gpuPrograms) {
+          await setupDevice();
+          const device = wasm.preinitializedWebGPUDevice;
+          for (const code of gpuPrograms) device.createComputePipeline({ layout: { code }, compute: { module: device.createShaderModule({ code }), entryPoint: "main" } });
+        }
         return { createConversation: async (cfg) => new Conv(cfg), delete: async () => { calls.engineDeleted = true; } };
       }
     }
@@ -360,4 +384,39 @@ test("a slow first load or answer keeps the background listening (a message at l
   const { brain, posts } = brainWith({ caches, delay: 30, setTimeout: fast });
   await brain.handle({ cmd: "generate", id: "slow", system: "p", user: "u", json: true });
   assert.ok(posts.filter((m) => m.type === "privac-brain-busy").length >= 3);
+});
+
+test("loading Gemma doesn't freeze Chrome: its graphics-chip programs are compiled the non-blocking way first", async () => {
+  // Measured on the demo Mac: compiling Gemma's 153 programs the blocking way stopped every Chrome tab from drawing
+  // for 16-20 s; the non-blocking way took ~4 s with Chrome drawing normally (docs/IN-BROWSER-AI.md).
+  const caches = fakeCaches(); caches.store.set(MODEL.url, SIZE);
+  const { brain, lm } = brainWith({ caches, gpuPrograms: ["matmul", "softmax", "rope"] });
+  await brain.handle({ cmd: "warm", system: "You are C." });
+  assert.strictEqual(brain.status().state, "ready");
+  const real = lm.calls.programs.filter((p) => ["matmul", "softmax", "rope"].includes(p.code));
+  assert.strictEqual(real.length, 3, "Gemma made its real programs");
+  assert.ok(real.every((p) => p.alreadyCompiled), "each one was compiled without blocking before Gemma asked for it");
+  assert.deepStrictEqual(lm.calls.asyncCompiles.sort(), ["matmul", "rope", "softmax"]);
+  const r = await brain.handle({ cmd: "generate", id: "q", system: "You are C.", user: "u" });
+  assert.strictEqual(r.text, "Criteo is an ad company.");
+});
+
+test("the non-blocking warm-up runs once per brain page, not on every reload of Gemma", async () => {
+  const caches = fakeCaches(); caches.store.set(MODEL.url, SIZE);
+  const { brain, lm } = brainWith({ caches, gpuPrograms: ["matmul"] });
+  await brain.handle({ cmd: "warm", system: "s" });
+  assert.strictEqual(lm.calls.engines, 2, "a warm-up pass, then Gemma itself");
+  await brain.handle({ cmd: "unload" });
+  await brain.handle({ cmd: "warm", system: "s" });
+  assert.strictEqual(lm.calls.engines, 3, "after that, Gemma loads directly (the graphics driver keeps the compiled programs)");
+  assert.strictEqual(lm.calls.asyncCompiles.length, 1);
+});
+
+test("if the warm-up pass fails, Gemma still loads the usual way", async () => {
+  const caches = fakeCaches(); caches.store.set(MODEL.url, SIZE);
+  const { brain, lm } = brainWith({ caches, gpuPrograms: ["matmul"], failFirstCreate: "warm-up went wrong" });
+  await brain.handle({ cmd: "warm", system: "s" });
+  assert.strictEqual(brain.status().state, "ready");
+  assert.strictEqual(brain.status().error, null);
+  assert.strictEqual(lm.calls.engines, 2);
 });
