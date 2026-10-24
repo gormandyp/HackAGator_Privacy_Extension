@@ -544,19 +544,26 @@ button.fact-title:hover { text-decoration-color: var(--hair-strong); }
 [data-style="clean"] .tint-row .swatches { opacity: .4; }
 [data-style="clean"] .tint-note { display: block !important; }
 
-/* Top bar tabs as icons (dashboard/tab-icons.js): the full name shows in a glass label on hover or keyboard focus. */
-#tabs.icon-tabs button { display: grid; place-items: center; width: 44px; height: 32px; padding: 0; }
-#tabs.icon-tabs button svg { display: block; }
-#tabs.icon-tabs .tab-c svg { display: block; }
+/* Top bar tabs: icon + name (dashboard/tab-icons.js). In narrower windows only the icons show, and the name appears
+   in a glass label on hover or keyboard focus. */
+#tabs.icon-tabs button { display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 12px 0 10px; }
+#tabs.icon-tabs button svg { display: block; width: 16px; height: 16px; flex: none; }
+#tabs.icon-tabs .tab-c svg { width: 17px; height: 17px; }
+#tabs.icon-tabs button[aria-selected="true"] svg { color: var(--focus); }
 [data-theme="dark"] #tabs .tab-c svg [stroke="#16233f"] { stroke: #dfe5ef; }
-.tab-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap; }
-#tabs.icon-tabs button::after {
-  content: attr(data-tip); position: absolute; top: calc(100% + 10px); left: 50%;
-  transform: translate(-50%, -3px); white-space: nowrap; pointer-events: none;
-  padding: 5px 10px; border-radius: 9px; font-size: 12px; font-weight: 600; color: var(--text);
-  background: var(--glass-sheet); -webkit-backdrop-filter: blur(16px) saturate(170%); backdrop-filter: blur(16px) saturate(170%);
-  border: 1px solid var(--hair); box-shadow: 0 6px 18px rgba(0, 0, 0, .14);
-  opacity: 0; transition: opacity 140ms ease, transform 140ms ease; transition-delay: 0ms;
+.tab-label { white-space: nowrap; font-size: 13px; font-weight: 500; }
+#tabs.icon-tabs button::after { display: none; }
+@media (max-width: 1180px) {
+  #tabs.icon-tabs button { justify-content: center; width: 44px; padding: 0; }
+  .tab-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%); }
+  #tabs.icon-tabs button::after {
+    display: block; content: attr(data-tip); position: absolute; top: calc(100% + 10px); left: 50%;
+    transform: translate(-50%, -3px); white-space: nowrap; pointer-events: none;
+    padding: 5px 10px; border-radius: 9px; font-size: 12px; font-weight: 600; color: var(--text);
+    background: var(--glass-sheet); -webkit-backdrop-filter: blur(16px) saturate(170%); backdrop-filter: blur(16px) saturate(170%);
+    border: 1px solid var(--hair); box-shadow: 0 6px 18px rgba(0, 0, 0, .14);
+    opacity: 0; transition: opacity 140ms ease, transform 140ms ease; transition-delay: 0ms;
+  }
+  #tabs.icon-tabs button:hover::after, #tabs.icon-tabs button:focus-visible::after { opacity: 1; transform: translate(-50%, 0); transition-delay: 250ms; }
+  [data-style="clean"] #tabs.icon-tabs button::after { background: var(--panel); -webkit-backdrop-filter: none; backdrop-filter: none; }
 }
-#tabs.icon-tabs button:hover::after, #tabs.icon-tabs button:focus-visible::after { opacity: 1; transform: translate(-50%, 0); transition-delay: 250ms; }
-[data-style="clean"] #tabs.icon-tabs button::after { background: var(--panel); -webkit-backdrop-filter: none; backdrop-filter: none; }

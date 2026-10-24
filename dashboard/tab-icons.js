@@ -1,5 +1,5 @@
-// Top bar tabs as icons (Max, 2026-10-24). Each tab keeps its name: hovering shows it in a small glass
-// label (CSS: #tabs.icon-tabs button::after), and screen readers read it from aria-label and .tab-label.
+// Top bar tabs: an icon before each name (Max, 2026-10-24). In narrower windows only the icons show and the name
+// appears on hover (CSS: #tabs.icon-tabs in dashboard.css); screen readers read it from aria-label and .tab-label.
 // Ask C is C himself. Runs before tabs.js so the sliding highlight measures the icon widths.
 (function () {
   const ICONS = {

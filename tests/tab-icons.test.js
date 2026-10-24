@@ -1,4 +1,4 @@
-// dashboard/tab-icons.js: the top bar's tabs show icons; hovering shows the full name; Ask C is C himself.
+// dashboard/tab-icons.js: the top bar's tabs show an icon and the name; narrow windows show icons with the name on hover; Ask C is C himself.
 // Run with: node --test
 const test = require("node:test");
 const assert = require("node:assert");
@@ -40,6 +40,12 @@ test("the dashboard loads the icons before tabs.js measures the tab widths, and 
   assert.ok(html.indexOf("tab-icons.js") > 0 && html.indexOf("tab-icons.js") < html.indexOf('src="tabs.js"'));
   assert.ok(html.indexOf("mascot.js") < html.indexOf("tab-icons.js"));
   const css = read("dashboard/dashboard.css");
-  assert.match(css, /#tabs\.icon-tabs button::after[\s\S]*attr\(data-tip\)/);
-  assert.match(css, /\.tab-label\s*\{[^}]*clip/);
+  // Wide windows: icon and name side by side. Narrower windows: icons only, name in a hover label.
+  const narrow = css.slice(css.indexOf("@media (max-width: 1180px)"));
+  assert.ok(narrow.length > 30, "a narrow-window rule exists");
+  assert.match(narrow, /#tabs\.icon-tabs button::after[\s\S]*attr\(data-tip\)/);
+  assert.match(narrow, /\.tab-label\s*\{[^}]*clip/);
+  const wide = css.slice(css.indexOf("/* Top bar tabs: icon + name"), css.indexOf("@media (max-width: 1180px)"));
+  assert.doesNotMatch(wide, /\.tab-label\s*\{[^}]*clip/, "the name is visible in wide windows");
+  assert.match(wide, /button\[aria-selected="true"\] svg \{ color: var\(--focus\)/, "the selected tab's icon turns orange");
 });
