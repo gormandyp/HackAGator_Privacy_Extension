@@ -12,9 +12,10 @@ How to answer:
 - Plain English, no jargon. 2 to 4 short sentences, then a line starting "What you can do:" with 2 or 3 concrete steps from the Steps list.
 - Answer the question that was asked first. Then connect it to their own browsing if something there is relevant.
 - Use ONLY the evidence you are given. If it doesn't answer the question, say you don't know yet.
-- Put a source tag right after each fact, copied exactly from the evidence line it came from: [Seen on your visit], [Tracker Radar], [Privacy policy], [HIBP], [CA Broker Registry], [Cookie Database] or [Government list]. Never invent other tags.
+- Put a source tag right after each fact, copied exactly from the evidence line it came from: [Seen on your visit], [Tracker Radar], [Privacy policy], [HIBP], [CA Broker Registry], [Cookie Database], [RegTrack] or [Government list]. Never invent other tags.
 - When asked what a site collects, list the cookies by purpose, name 2 or 3 advertising cookies with their company and how long they last, say which ones the site doesn't need to work, and mention device fingerprinting if present.
 - If a site had a data breach [HIBP], say when, how many accounts and what kind of data, and tell the person to change that password. No backticks, no markdown, no lists with symbols.
+- When cookies or cookie banners come up, you may quote one RegTrack fact. RegTrack only compared doing nothing with clicking accept-all, so never say rejecting removes a number of trackers.
 - Never say data was sent to a government. A tracker loading means the company could collect data; it doesn't prove the data was sold or shared.
 - Don't mention sample data; the dashboard already says so.
 - You don't know which site the person has open right now. Don't say "you are currently visiting".
@@ -28,7 +29,7 @@ Answer: Criteo is an advertising company based in France. [Tracker Radar] Its tr
 - The U.S. Commerce Department lists 'foreign adversary' countries in 15 CFR 7.4: China (including Hong Kong), Cuba, Iran, North Korea, Russia and Venezuela. [Government list]
 - China's 2017 National Intelligence Law (Article 7) says organizations must support and cooperate with state intelligence work, so Chinese companies may be legally unable to refuse a government request for data they hold. [Government list]
 - Russia's 2016 "Yarovaya" laws require internet and phone companies to store users' data and hand it to security services on request, and a 2015 law requires Russians' personal data to be stored inside Russia. [Government list]
-- The Pentagon's 1260H list names Chinese military companies; Baidu and Alibaba are on it. [Government list]
+- The Pentagon's Section 1260H list (updated June 8, 2026) names Chinese military companies. Baidu, Alibaba and Tencent are on it; ByteDance (TikTok) and Yandex are not. Being listed is a government designation about the company; it doesn't show what happened to your data. [Government list]
 
 - Every request to a tracker sends your IP address (which shows your rough location), the address of the page you're on, and your browser and device details. Cookies let the tracker recognize you again next time.
 - Cookies marked "advertising and profiling" or "measures your visits" are not needed for a site to work. Advertising cookies build a profile of your interests that ad companies use to target you; registered data brokers sell profiles like these.
@@ -46,9 +47,31 @@ Steps the person can take (no tag needed):
     return `data breach on ${b.breachDate} (added to Have I Been Pwned ${b.addedDate}): ${fmtCount(b.pwnCount)} accounts; exposed ${b.dataClasses.join(", ").toLowerCase()} [HIBP]`;
   }
 
-  function siteLine(s) {
-    const t = (s.trackers || []).map(x => `${x.company} (${x.category}, based in ${x.country || "unknown country"}) [Tracker Radar]` +
-      (x.broker ? `, registered California data broker [CA Broker Registry]` : "")).join("; ") || "none";
+  // 1260H entry for a tracker's company, from shared/flagged-companies.json (hand-checked).
+  function listedCompany(company, extra) {
+    const list = extra && extra.flagged && extra.flagged.companies;
+    return (list && company && list.find(c => c.atlasCompany.toLowerCase() === String(company).toLowerCase())) || null;
+  }
+  function listedText(entry) {
+    return `, on the Pentagon's Section 1260H list of Chinese military companies (June 2026)` +
+      (/sued|contest/i.test(entry.note || "") ? `, and ${entry.atlasCompany} is contesting this in court` : "") + ` [Government list]`;
+  }
+
+  // RegTrack findings, from shared/regtrack-facts.json (each with its page number).
+  function regtrackLines(extra) {
+    const r = extra && extra.regtrack;
+    if (!r || !r.facts) return "";
+    const lines = r.facts.filter(f => f.id !== "limits").map(f => `- ${f.text} (RegTrack, ${r.venue.includes("MADWeb") ? "MADWeb 2026" : "2026"}, p. ${f.page}) [RegTrack]`);
+    return `\n\nResearch on cookie consent (RegTrack, a 2026 study of 743 websites; it did not measure rejecting, only doing nothing versus clicking accept-all):\n${lines.join("\n")}`;
+  }
+
+  function siteLine(s, extra) {
+    const t = (s.trackers || []).map(x => {
+      const listed = listedCompany(x.company, extra);
+      return `${x.company} (${x.category}, based in ${x.country || "unknown country"}) [Tracker Radar]` +
+        (listed ? listedText(listed) : "") +
+        (x.broker ? `, registered California data broker [CA Broker Registry]` : "");
+    }).join("; ") || "none";
     const p = s.policy || {};
     const pol = p.sells === true ? "says it sells personal info [Privacy policy]" : p.shares === true ? "says it shares with partners [Privacy policy]"
       : (p.sells === false && p.shares === false) ? "says it doesn't sell or share [Privacy policy]" : "not reviewed yet";
@@ -107,12 +130,22 @@ Steps the person can take (no tag needed):
     return facts;
   }
 
-  function buildContext(data, today, facts) {
+  // extra = { flagged, regtrack }: the checked fact files (optional; context still builds without them).
+  function buildContext(data, today, facts, extra) {
     const sites = [...((data && data.sites) || [])].sort((a, b) => (b.score || 0) - (a.score || 0));
     const date = `Today is ${today || new Date().toISOString().slice(0, 10)}.` +
       (facts && facts.length ? `\n\nFacts about what you asked:\n${facts.join("\n")}` : "");
-    if (!sites.length) return `${date}\n${BACKGROUND}\n\nThe person hasn't visited any sites with PrivaC on yet.`;
-    return `${date}\n${BACKGROUND}\n\nSites you visited, riskiest first (${sites.length}):\n${sites.map(siteLine).join("\n")}`;
+    const bg = BACKGROUND + regtrackLines(extra);
+    if (!sites.length) return `${date}\n${bg}\n\nThe person hasn't visited any sites with PrivaC on yet.`;
+    return `${date}\n${bg}\n\nSites you visited, riskiest first (${sites.length}):\n${sites.map(s => siteLine(s, extra)).join("\n")}`;
+  }
+
+  // In the extension, load the checked fact files once. Tests pass them in through deps.facts instead.
+  let FACT_FILES = null;
+  if (typeof chrome !== "undefined" && chrome.runtime && chrome.runtime.getURL && typeof fetch === "function") {
+    Promise.all(["shared/flagged-companies.json", "shared/regtrack-facts.json"].map(p => fetch(chrome.runtime.getURL(p)).then(r => r.json())))
+      .then(([flagged, regtrack]) => { FACT_FILES = { flagged, regtrack }; })
+      .catch(e => console.warn("PrivaC: fact files didn't load; C answers without them", e));
   }
 
   const TAGS = ["Seen on your visit", "Tracker Radar", "CA Broker Registry", "HIBP", "RegTrack", "Privacy policy", "Government list", "Cookie Database"];
@@ -149,15 +182,17 @@ Steps the person can take (no tag needed):
     const lists = deps.lists ? await deps.lists() : null;
     const atlas = deps.atlas ? deps.atlas() : null;
     const facts = lookupFacts(q, lists, atlas);
+    const extra = deps.facts ? await deps.facts() : FACT_FILES;
     const trace = [{ tool: "get_site_report", label: "Your browsing" }];
     try {
-      const raw = await deps.ask(q, { system: SYSTEM_PROMPT, context: buildContext(data, null, facts), options: { temperature: 0.2 } });
+      const raw = await deps.ask(q, { system: SYSTEM_PROMPT, context: buildContext(data, null, facts, extra), options: { temperature: 0.2 } });
       const text = cleanAnswer(raw);
       if (/\[Government list\]/.test(text)) trace.push({ tool: "background_facts", label: "Government lists" });
       if (/\[Tracker Radar\]/.test(text)) trace.push({ tool: "lookup_company", label: "Tracker Radar" });
       if (/\[Cookie Database\]/.test(text)) trace.push({ tool: "cookies", label: "Cookie Database" });
       if (/\[HIBP\]/.test(text)) trace.push({ tool: "breaches", label: "Have I Been Pwned" });
       if (/\[CA Broker Registry\]/.test(text)) trace.push({ tool: "brokers", label: "CA Broker Registry" });
+      if (/\[RegTrack\]/.test(text)) trace.push({ tool: "regtrack_compare", label: "RegTrack" });
       return { answer: text, trace };
     } catch (e) {
       return { error: e.message || "I couldn't reach Gemma. Is Ollama running?", trace };

@@ -51,6 +51,37 @@
     "What is this site collecting about me?"
   ];
 
+  // Suggested questions built from the person's own browsing (falls back to SUGGESTED on sample data).
+  function suggestionsFor(data) {
+    const sites = (data && !data.sample && data.sites) || [];
+    if (!sites.length) return SUGGESTED.slice();
+    const out = [];
+    const add = (q) => { if (q && !out.includes(q) && out.length < 4) out.push(q); };
+    const article = (g) => (g === "A" || g === "F" ? "an" : "a");
+
+    // 1. The riskiest site (only if it isn't already an A).
+    const risky = [...sites].sort((a, b) => (b.score || 0) - (a.score || 0))[0];
+    if (risky && risky.grade && risky.grade !== "A") add(`Why did ${risky.domain} get ${article(risky.grade)} ${risky.grade}?`);
+
+    // 2. The tracker company seen on the most sites.
+    const count = {};
+    for (const s of sites) for (const c of new Set((s.trackers || []).map((t) => t.company).filter(Boolean))) count[c] = (count[c] || 0) + 1;
+    const top = Object.entries(count).sort((a, b) => b[1] - a[1])[0];
+    if (top) add(`Who is ${top[0]} and should I worry?`);
+
+    // 3. A site with a known data breach.
+    const breached = sites.find((s) => s.breach);
+    if (breached) add(`Was ${breached.domain} hacked?`);
+
+    // 4. Data brokers, else what the riskiest site collects.
+    if (sites.some((s) => (s.trackers || []).some((t) => t.broker))) add("Which data brokers have seen me?");
+    const withCookies = [...sites].sort((a, b) => (b.score || 0) - (a.score || 0)).find((s) => s.cookies && s.cookies.length);
+    if (withCookies) add(`What is ${withCookies.domain} collecting about me?`);
+    add("Which sites I visited are the riskiest?");
+    add("Should I accept cookies?");
+    return out;
+  }
+
   // ---------- Sample answers (used only when the real AI isn't connected) ----------
   const SAMPLE = {
     "who is liveramp and should i worry?": {
@@ -179,7 +210,9 @@
   function init() {
     if (!$("ask-c")) return;
     setMood("wave");
-    $("ask-suggest").innerHTML = SUGGESTED.map((q) => `<button type="button" class="suggest">${esc(q)}</button>`).join("");
+    const showSuggestions = (qs) => { $("ask-suggest").innerHTML = qs.map((q) => `<button type="button" class="suggest">${esc(q)}</button>`).join(""); };
+    showSuggestions(SUGGESTED);
+    if (window.PrivaCData) window.PrivaCData.load().then((d) => showSuggestions(suggestionsFor(d))).catch(() => {});
     $("ask-suggest").addEventListener("click", (e) => {
       const b = e.target.closest(".suggest");
       if (b) ask(b.textContent);
@@ -201,7 +234,7 @@
       ask(question);
     },
     // Pure helpers, exported for tests (tests/askc-panel.test.js).
-    sampleFor, renderAnswer, questionFromUrl
+    sampleFor, renderAnswer, questionFromUrl, suggestionsFor
   };
 
   if (typeof document !== "undefined") init();
