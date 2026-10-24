@@ -85,6 +85,7 @@ Supporting (older, so NOT the theme answer): DuckDuckGo Tracker Radar (domain to
   - **Status:** not started; small (PLAN R6).
 - Make it so we are able to customize the liquid glass (i.e., green hue background, blue hue background, etc).
   - **Status: done 2026-10-24 (branch `max/glass-tint`).** Settings > Appearance > Glass color: Aurora (original), Ocean (blue), Forest (green), Sunset, Rose, Graphite, each in light and dark.
+ - Mcdonalds.com has a warning about cookies usage but C does not pop up with a warning and yield sign. 
 
 **Justin
 - Have a "Clear Cache" button within PrivaC to clear users chache with a possible explanation for users about what it does and how its useful.
