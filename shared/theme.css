@@ -14,11 +14,14 @@
   --orange-soft: #ffe7de;
 
   /* Grade colors: used ONLY for grades and risk, never decoration */
-  --grade-a: #1f8a5b;
-  --grade-b: #5a9a2e;
-  --grade-c: #c99100;
-  --grade-d: #df6d14;
-  --grade-f: #cc2f2a;
+  /* Readable (WCAG AA 4.5:1) as text on the light page and behind a white letter (team doc: "more visible
+     and accessible"). The -solid colors fill grade badges in both light and dark mode. */
+  --grade-a: #15803d;
+  --grade-b: #4d7c0f;
+  --grade-c: #a16207;
+  --grade-d: #c2410c;
+  --grade-f: #b91c1c;
+  --grade-a-solid: #15803d; --grade-b-solid: #4d7c0f; --grade-c-solid: #a16207; --grade-d-solid: #c2410c; --grade-f-solid: #b91c1c;
   --flag: #b4232a;
   --flag-soft: #fde8e8;
 

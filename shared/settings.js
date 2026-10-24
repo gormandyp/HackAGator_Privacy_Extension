@@ -7,6 +7,7 @@
     policyReader: true                          (Gemma reads privacy policies on this computer)
     autoDecline: false                          ("Protect me automatically": C declines extra cookies without asking;
                                                  content/c-events.js)
+    gradeChip:  true                            (a small grade box in the top right when a site opens; content/grade-chip.js)
     toolbar:    "panel" | "window"              (toolbar button: rounded panel on the page, or Chrome's own pop-up window;
                                                  see background/toolbar.js)
     tint:       "aurora" | "ocean" | "forest" | "sunset" | "rose" | "graphite"
@@ -21,6 +22,7 @@
     policyReader: true,
     toolbar: "panel",
     autoDecline: false,
+    gradeChip: true,
     tint: "aurora"
   };
   const APPEARANCES = ["system", "light", "dark"];
@@ -40,6 +42,7 @@
       policyReader: typeof s.policyReader === "boolean" ? s.policyReader : DEFAULTS.policyReader,
       toolbar: TOOLBARS.includes(s.toolbar) ? s.toolbar : DEFAULTS.toolbar,
       autoDecline: typeof s.autoDecline === "boolean" ? s.autoDecline : DEFAULTS.autoDecline,
+      gradeChip: typeof s.gradeChip === "boolean" ? s.gradeChip : DEFAULTS.gradeChip,
       tint: TINTS.includes(s.tint) ? s.tint : DEFAULTS.tint
     };
   }

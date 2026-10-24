@@ -97,7 +97,7 @@ Supporting (older, so NOT the theme answer): DuckDuckGo Tracker Radar (domain to
 
 ## Smiley
 - Clear cache button within PrivaC, with explanation on what it means to clear ur cache and how its good
-  - **Status:** not started (PLAN R15). Needs Chrome's "browsingData" permission; ask before adding it.
+  - **Status: done 2026-10-24 (per site).** The popup's "Clear this site's data" clears that site's own cookies, storage and cache after a second tap, and explains what it does and doesn't do (other companies' tracking cookies stay). Uses Chrome's "browsingData" permission (no install warning).
 - Change "decline extras" on C popup to "protect me" because its sounds better.
   - **Status: done 2026-10-24** (repo owner asked): the button says "Protect me" everywhere. Also new: Settings > "Protect me automatically" declines with no click.
 -   Could not verify that the website saved your choice on a couple websites. Said "could not verify" if site made choice or not 
@@ -106,8 +106,8 @@ Supporting (older, so NOT the theme answer): DuckDuckGo Tracker Radar (domain to
 
 ## From the team Google Doc (read 2026-10-24 4 PM)
 - Show the PrivaC grade box in the top right as soon as you open a site, with an x to close it (you shouldn't have to click the extension).
-  - **Status:** not started (PLAN R15). The rounded panel (content/panel.js) can already float there; needs a setting so it's not annoying.
+  - **Status: done 2026-10-24.** A small grade box shows 4 seconds after a site opens, once per site a day, closes by itself after 8 seconds, has an x, and opens the full panel when clicked (content/grade-chip.js). Settings > "Show the grade box" turns it off.
 - After you decline or accept cookies, a short box that explains what your choice means for your visit.
-  - **Status:** not started (PLAN R15); fits after C's "Nice!".
+  - **Status: done 2026-10-24.** After C's "Nice!" (or after you click the site's own Accept/Reject), the same box says what the choice means: trackers can still load, and the 10 cookie points come off (or are added).
 - The grade's color coding needs to be more visible and accessible.
-  - **Status:** not started (PLAN R15).
+  - **Status: done 2026-10-24.** Grade badges and grade-colored text now meet the WCAG AA contrast standard (4.5:1) in light and dark mode (tests/grade-colors.test.js).

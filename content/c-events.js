@@ -30,7 +30,11 @@
       if (area === "local" && changes.privacSettings) useSettings(changes.privacSettings.newValue);
     });
   } catch (e) { /* storage unavailable: keep defaults */ }
-  const choice = (c) => send({ type: "cookieChoice", domain: domain(), choice: c });
+  const choice = (c) => {
+    send({ type: "cookieChoice", domain: domain(), choice: c });
+    // A short "what this means" box after you decline or accept (content/grade-chip.js, loaded later).
+    try { if ((c === "declined" || c === "accepted") && window.PrivaCGradeChip) window.PrivaCGradeChip.explain(c); } catch (e) { /* never break C */ }
+  };
   const newest = () => [...document.querySelectorAll("privac-prompt")].pop() || null;   // C's pop-up on the page
 
   function label(el) {

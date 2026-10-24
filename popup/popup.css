@@ -112,6 +112,9 @@ main { display: grid; gap: 8px; margin-top: 8px; }
 .co small { color: var(--flag); font-size: 10.5px; font-weight: 650; }
 .co.more { color: var(--text-3); padding-left: 9px; }
 .honesty { margin: 10px 0 0; font-size: 11px; color: var(--text-3); line-height: 1.4; }
+.clear-what { margin: 6px 0 10px; font-size: 12px; color: var(--text-2); line-height: 1.45; }
+.clear-btn { width: 100%; }
+.clear-btn.armed { background: var(--danger); color: #fff; }
 .calm { display: flex; gap: 6px; align-items: center; margin: 4px 0 0; color: var(--text-2); font-size: 12.5px; }
 .calm svg { color: var(--t-green); }
 
