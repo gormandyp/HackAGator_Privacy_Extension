@@ -90,12 +90,37 @@
     const t = site.trackers || [];
     const parts = [];
 
-    const trackerPts = Math.min(40, t.length * 5);
-    parts.push({ label: `${t.length} tracker ${t.length === 1 ? "connection" : "connections"} to outside companies`, points: trackerPts, kind: "observed" });
+    // Each company counts once, however many web addresses it loads from (Google has 96), and over several
+    // visits only companies seen on at least half of them add points, so reloads and ad auctions don't pile
+    // points up (repo owner, 2026-10-24). Records without visit counts (older data, samples) count every company.
+    const visits = site.visits || 0, seen = site.companyVisits || {};
+    const regular = (co) => !(visits > 1 && seen[co]) || seen[co].n * 2 >= visits;
+    const byCompany = new Map();
+    for (const x of t) {
+      const co = x.company || x.domain;
+      const c = byCompany.get(co) || { ad: false, afterAccept: true };
+      c.ad = c.ad || AD_CATEGORIES.includes(x.category) || !!x.broker;
+      c.afterAccept = c.afterAccept && !!x.afterAccept;   // only if every one of its addresses loaded after Accept
+      byCompany.set(co, c);
+    }
+    // Companies that loaded only after you clicked Accept are listed, not counted: the grade is about the site,
+    // and your choice already costs the 10 cookie points (repo owner, 2026-10-24).
+    const counted = [...byCompany.entries()].filter(([co, c]) => !c.afterAccept && regular(co));
+    const trackerPts = Math.min(40, counted.length * 5);
+    parts.push({ label: `${counted.length} outside ${counted.length === 1 ? "company" : "companies"} with trackers here`, points: trackerPts, kind: "observed" });
 
-    const adCount = t.filter(x => AD_CATEGORIES.includes(x.category) || x.broker).length;
+    const adCount = counted.filter(([, c]) => c.ad).length;
     const adPts = Math.min(20, adCount * 5);
-    parts.push({ label: `${adCount} used for advertising, data brokering or recording your screen`, points: adPts, kind: "observed" });
+    parts.push({ label: `${adCount} of them for advertising, data brokering or recording your screen`, points: adPts, kind: "observed" });
+
+    const unlocked = [...byCompany.entries()].filter(([, c]) => c.afterAccept).map(([co]) => co).sort((a, b) => a.localeCompare(b));
+    if (unlocked.length) {
+      parts.push({ label: `Loaded only after you clicked Accept (listed, 0 points; accepting costs the 10 cookie points): ${unlocked.join(", ")}`, points: 0, kind: "observed" });
+    }
+    const occasional = [...byCompany.entries()].filter(([co, c]) => !c.afterAccept && !regular(co)).map(([co]) => co).sort((a, b) => a.localeCompare(b));
+    if (occasional.length) {
+      parts.push({ label: `Also seen on fewer than half of your ${visits} visits (0 points): ${occasional.join(", ")}`, points: 0, kind: "observed" });
+    }
 
     // Cookies: points come off when you weren't given a real way to say no.
     // No banner is only fine when the site doesn't track you (nothing to refuse).

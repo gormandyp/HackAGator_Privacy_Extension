@@ -56,7 +56,7 @@ test("questions that aren't in the score yet carry 0 points", () => {
 test("code checks' maximum points match the real score", () => {
   const max = (site) => computeScore({ cookieChoice: "declined", policy: {}, trackers: [], ...site });
   const part = (r, kind, i = 0) => r.parts.filter((p) => p.kind === kind)[i].points;
-  const many = Array.from({ length: 12 }, () => ({ domain: "x.com", company: "X", category: "Advertising", country: "US" }));
+  const many = Array.from({ length: 12 }, (_, i) => ({ domain: `x${i}.com`, company: `X${i}`, category: "Advertising", country: "US" }));
   const r = max({ trackers: many });
   const byId = Object.fromEntries(code.map((c) => [c.id, c.maxPoints]));
   assert.strictEqual(byId.trackers, part(r, "observed", 0));
