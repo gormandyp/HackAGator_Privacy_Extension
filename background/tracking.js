@@ -266,10 +266,15 @@ chrome.webNavigation.onCommitted.addListener(details => {
   });
 });
 
+function isPreload(details) {
+  return details.type === "main_frame" || details.type === "other";
+}
+
 function handleRequest(details, site) {
-  // A whole-page load is never a tracker on the page you're on. Google's results page pre-loads ("prefetches")
-  // result and ad pages in the same tab (e.g. aliexpress.com); those were wrongly counted as google.com trackers.
-  if (details.type === "main_frame") return;
+  // A whole-page load is never a tracker on the page you're on, and neither is a pre-load. Google's results page
+  // pre-loads ("prefetches") result and ad pages in the same tab (aliexpress.com, taobao.com); Chrome reports
+  // those as "main_frame" or "other". They were wrongly counted as google.com trackers.
+  if (isPreload(details)) return;
   const hostname = cleanDomain(details.url);
   if (!hostname) return;
 
@@ -330,6 +335,7 @@ function handleResponse(details) {
   if (!hostname) return;
   const country = PrivaCIP.countryOfIp(details.ip);
   const site = tabSites.get(details.tabId);
+  if (details.type === "other") return;   // pre-loads (see isPreload)
   if (details.type === "main_frame") {
     mainServer.set(details.tabId, { domain: hostname, country });
     // The page was already committed (this response was waiting for the lists to load): fill it in now.

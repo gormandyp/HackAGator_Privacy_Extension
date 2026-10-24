@@ -150,6 +150,7 @@ test("pages Google pre-loads from its results (navigation prefetch) are not trac
   const t = load();
   t.listeners.nav({ frameId: 0, tabId: 9, url: "https://www.google.com/search?q=aliexpress" });
   t.listeners.req({ tabId: 9, type: "main_frame", url: "https://hm.baidu.com/landing" });   // a known tracker domain
+  t.listeners.req({ tabId: 9, type: "other", url: "https://hm.baidu.com/prefetched" });   // <link rel=prefetch> / speculative prefetch
   t.listeners.req({ tabId: 9, type: "script", url: "https://mc.yandex.ru/watch" });
   await t.flush();
   const g = t.store().privacData.sites.find(s => s.domain === "google.com");
