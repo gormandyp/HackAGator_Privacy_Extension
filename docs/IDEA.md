@@ -82,5 +82,10 @@ Supporting (older, so NOT the theme answer): DuckDuckGo Tracker Radar (domain to
   - **Status:** planned in two parts (PLAN R3 then R7). First the privacy-policy reader (Gemma reads the policy, quotes "sells"/"shares", feeds the existing policy points). Then terms of service through the same reader, or ToS;DR ratings only if a whole-list download exists (looking up each site would break the privacy promise).
 - Make sure that the suggested Ask C topics adjust to your browsing trends.
   - **Status:** not started; small (PLAN R6).
-- Make it so we are able to customize the liquid glass (i.e., green hue background, blue hue background, etc). 
+- Make it so we are able to customize the liquid glass (i.e., green hue background, blue hue background, etc).
 
+## Smiley
+- Clear cache button within PrivaC, with explanation on what it means to clear ur cache and how its good
+- Change "decline extras" on C popup to "protect me" because its sounds better.
+-   Could not verify that the website saved your choice on a couple websites. Said "could not verify" if site made choice or not 
+- 
