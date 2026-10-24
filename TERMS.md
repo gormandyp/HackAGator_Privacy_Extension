@@ -19,6 +19,8 @@ PrivaC is free. There are no accounts, payments, ads or paid features. It shows 
 
 When you allow it (or turn on **Protect me automatically**), PrivaC clicks a site's Reject button on cookie banners. It also clicks a button labeled "Do not sell or share my personal information" once per page when a site shows one. Declining cookies can change how a site works, for example remembered logins, preferences or embedded videos. You can turn C's pop-ups and automatic declining off in **Settings › C on websites**. Sites can change their banners at any time, so PrivaC cannot promise every choice is saved; it tells you when it couldn't confirm one.
 
+**Clear this site's data** (in PrivaC's pop-up, after a second tap) has Chrome remove that one site's own cookies, saved data and cache. That signs you out of the site and resets its preferences. Other companies' tracking cookies stay.
+
 ## 4. Your part
 
 - Use PrivaC only on your own browser, and follow the law and each website's terms.
