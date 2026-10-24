@@ -10,15 +10,17 @@
 How to answer:
 - Talk to the person as "you". Never say "the user".
 - Plain English, no jargon. 2 to 4 short sentences.
-- Add a last line starting "What you can do:" with 2 or 3 concrete steps from the Steps list only when the person asks for advice or about a risk (should I worry, is it safe, how do I protect myself, was it hacked). Leave it out of explanations, definitions and follow-up questions.
-- You are only PrivaC's privacy guide, not a general assistant. Don't write poems, stories, jokes, code or homework, and don't talk about topics outside privacy and the person's browsing; say in one sentence that you stick to their privacy and suggest a privacy question instead.
+- Add a last line starting "What you can do:" with only the 2 or 3 steps that fit the question, from the Steps list, only when the person asks for advice or about a risk (should I worry, is it safe, how do I protect myself, was it hacked). Leave it out of explanations, definitions and follow-up questions.
+- You are only PrivaC's privacy guide, not a general assistant. Don't write poems, stories, jokes, code or homework. Questions about hacks, breaches, security, companies, websites, trackers, cookies and data are always on topic: answer them. Only for a request that has nothing to do with privacy, say in one sentence that you only help with privacy.
+- If the evidence has nothing about what the person asked, say plainly that PrivaC has no record of it, then answer what you can from the evidence.
 - "Earlier in this conversation" shows the last questions and your answers. Use it to understand follow-ups like "what about its cookies?", but answer only the new question.
 - Answer the question that was asked first. Then connect it to their own browsing if something there is relevant.
 - Use ONLY the evidence you are given. If it doesn't answer the question, say you don't know yet.
 - Put a source tag right after each fact, copied exactly from the evidence line it came from: [Seen on your visit], [Tracker Radar], [Privacy policy], [HIBP], [CA Broker Registry], [Cookie Database], [RegTrack], [State Media Monitor] or [Government list]. Never invent other tags.
 - Write button and menu names in quotes ("Reject all"), never in square brackets: square brackets are only for the source tags above.
 - When asked what a site collects, list the cookies by purpose, name 2 or 3 advertising cookies with their company and how long they last, say which ones the site doesn't need to work, and mention device fingerprinting if present.
-- If a site had a data breach [HIBP], say when, how many accounts and what kind of data, and tell the person to change that password. No backticks, no markdown, no lists with symbols.
+- If a site had a data breach [HIBP], say when, how many accounts and what kind of data, and tell the person to change that password. Scraped or leaked data listed with [HIBP] counts as a breach too: never say you have no information about it.
+- If the person says yes to something you offered earlier, give it now from the evidence. Never claim you already told them something that isn't in your earlier answer. No backticks, no markdown, no lists with symbols.
 - When cookies or cookie banners come up, you may quote one RegTrack fact. RegTrack only compared doing nothing with clicking accept-all, so never say rejecting removes a number of trackers.
 - Never say data was sent to a government. A tracker loading means the company could collect data; it doesn't prove the data was sold or shared.
 - Don't mention sample data; the dashboard already says so.
@@ -27,6 +29,9 @@ How to answer:
 Examples
 Question: What is a tracker?
 Answer: A tracker is a piece of code from another company that a site loads, so that company can see your visit and recognize you on other sites. [Tracker Radar] On your visits, 3 of the sites you visited loaded trackers from Criteo. [Seen on your visit]
+
+Question: Who tracked me the most this week?
+Answer: Google did: its trackers were on 7 of your 9 sites. [Seen on your visit] Next were Facebook on 5 of your 9 sites and Criteo on 3. [Seen on your visit]
 
 Question: Who is Criteo and should I worry?
 Answer: Criteo is an advertising company based in France. [Tracker Radar] Its tracker loaded on 3 of the sites you visited, including dailynews.example. [Seen on your visit] That lets it recognize you across those sites to show you ads. What you can do: decline extra cookies when C offers, and turn on "Block third-party cookies" in Chrome settings.`;
@@ -47,7 +52,8 @@ Steps the person can take (no tag needed):
 - Avoid entering personal details (name, email, phone, payment) on sites with an F grade or a foreign-adversary flag.
 - Use a tracker-blocking browser extension.
 - Clear a site's cookies after visiting: click the icon left of the address bar > Cookies and site data.
-- Check the site's privacy policy for "sell" or "share" before creating an account.`;
+- Check the site's privacy policy for "sell" or "share" before creating an account.
+- After a site's data breach: change that password, and the same password anywhere else you used it; turn on two-step sign-in; watch for emails that pretend to be that site.`;
 
   function fmtCount(n) { return n >= 1e6 ? `${(n / 1e6).toFixed(1)} million` : n >= 1e3 ? `${Math.round(n / 1e3)} thousand` : String(n); }
   function breachText(b) {
@@ -185,6 +191,160 @@ Steps the person can take (no tag needed):
     return byCo;
   }
 
+  // ---------- Data breaches (Have I Been Pwned), docs/ASKC-FIXES.md ----------
+  // "Was linkedin.com hacked?" (real Gemma, 2026-10-24): C only ever saw a site's newest breach, matched only by its
+  // web address or breach name, so "Was LinkedIn hacked?" or "linked in" found nothing and the 2012 hack was missed.
+  const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const MONTHS_LONG = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+  function monthYear(iso) { const [y, m] = String(iso || "").split("-"); return m ? `${MONTHS_LONG[+m - 1]} ${y}` : (y || "date unknown"); }
+  // Words that are also the names of breached sites but almost always mean the word itself.
+  const BREACH_STOP = new Set(["data", "cookie", "cookies", "privacy", "tracker", "trackers", "account", "accounts", "email", "password",
+    "passwords", "game", "games", "chat", "mail", "news", "online", "best", "free", "shop", "phone", "info", "home", "music", "video",
+    "social", "dating", "forum", "health", "money", "bank", "cloud", "site", "sites", "website", "breach", "hacked", "leak", "past",
+    "tell", "about", "what", "which", "have", "been", "them", "their", "with", "from", "this", "that", "yes", "okay",
+    "crypto", "exchange", "wallet", "school", "phone", "photos", "photo", "camera", "computer", "laptop", "router", "wifi", "work",
+    "company", "store", "shopping", "streaming", "browser", "device", "server", "network", "credit", "card", "identity"]);
+
+  // Sites in the breach list that the question means: by web address ("linkedin.com"), by name ("LinkedIn",
+  // "linked in", "Ashley Madison"). At most 3, in the order found.
+  function breachSites(question, lists) {
+    const by = lists && lists.hibp && lists.hibp.byDomain;
+    if (!by) return [];
+    const q = String(question || "").toLowerCase();
+    const domains = (q.match(/[a-z0-9-]+(?:\.[a-z0-9-]+)+/g) || []).map((d) => d.replace(/^www\./, ""));
+    const words = q.replace(/[a-z0-9-]+(?:\.[a-z0-9-]+)+/g, (d) => d.replace(/^www\./, "").split(".")[0]).match(/[a-z0-9]+/g) || [];
+    const names = new Set(words);
+    // "linked in" -> "linkedin", "my space" -> "myspace": only when the second word is short, so ordinary words never fuse.
+    for (let i = 0; i + 1 < words.length; i++) if (words[i + 1].length <= 3) names.add(words[i] + words[i + 1]);
+    const L = (typeof window !== "undefined" ? window : self).PrivaCLists;
+    const nq = L ? " " + L.norm(question) + " " : "";
+    const named = (n) => { const x = L ? L.norm(n) : ""; return x.length >= 5 && !BREACH_STOP.has(x) && nq.includes(" " + x + " "); };
+    const hits = [];
+    for (const [d, b] of Object.entries(by)) {
+      const n = siteName(d);
+      if (domains.includes(d) || (n.length >= 4 && !BREACH_STOP.has(n) && !COMMON_WORDS.has(n) && names.has(n)) || named(b.title) ||
+          [b, ...(b.earlier || [])].some((x) => named(x.name))) hits.push([d, b]);
+      if (hits.length >= 3) break;
+    }
+    return hits;
+  }
+
+  // Every breach on record for a site, newest first: [{ when, title, count, kinds }].
+  function breachList(b) {
+    return [b, ...(b.earlier || [])].sort((x, y) => (String(x.breachDate) < String(y.breachDate) ? 1 : -1)).map((x) => ({
+      when: monthYear(x.breachDate), title: x.title || x.name,
+      count: x.pwnCount ? `${fmtCount(x.pwnCount)} accounts` : "number of accounts not given",
+      kinds: (x.dataClasses || []).join(", ").toLowerCase()
+    }));
+  }
+  function siteLabel(d, b) {   // the shortest title is usually the company itself ("LinkedIn", not "LinkedIn Scraped Data (2021)")
+    const titles = [b, ...(b.earlier || [])].map((x) => x.title || x.name).filter(Boolean).sort((x, y) => x.length - y.length);
+    return `${titles[0] || d} (${d})`;
+  }
+  function breachHead(d, b) {
+    const n = 1 + ((b.earlier && b.earlier.length) || 0);
+    return `${siteLabel(d, b)} has ${n} data breach${n > 1 ? "es" : ""} on record in Have I Been Pwned`;
+  }
+  // "Was X hacked?" answered from the list itself (like grade questions): every breach, exact numbers, no guessing.
+  const BREACH_Q = /\b(hack\w*|breach\w*|leak\w*|pwn\w*|compromis\w*|stolen)\b/i;
+  const FOLLOW_UP = /\b(it|its|it's|they|them|their|that|this|those|yes|yeah|yep|ok|okay|sure|please)\b/i;
+  // Companies the tracker data knows ("Google"), named in the question as whole words.
+  function namedCompanies(question, atlas) {
+    return atlas && atlas.domains ? companiesIn(question, Object.keys(companiesOf(atlas))).slice(0, 2) : [];
+  }
+  // The one way every part of C finds the companies a question names (facts, sites shown in full, breach answers).
+  // Backtest 2026-10-24: three different matchers meant "Who is Amazon?" found no facts while "Was Amazon hacked?"
+  // did, "Who is Meta?" found nothing (Tracker Radar calls it Facebook), and "Did any site I visit get hacked?"
+  // was answered about a tracker company named VISIT.
+  const COMPANY_ALIASES = { meta: "Facebook", "meta platforms": "Facebook", instagram: "Facebook", whatsapp: "Facebook",
+    alphabet: "Google", youtube: "Google", tiktok: "ByteDance", linkedin: "Microsoft", bing: "Microsoft",
+    yahoo: "Verizon Media", aol: "Verizon Media", snapchat: "Snap", amazon: "Amazon.com", verizon: "Verizon Media" };
+  // Company names that are everyday words: they count only when written the way the company writes them, not first.
+  const EVERYDAY_NAMES = new Set(["visit", "next", "impact", "about you", "answers", "insider", "move", "near", "optimize", "orange",
+    "polar", "smile", "stamped", "uplift", "indeed", "increasingly", "narrative", "stuff", "epic", "affinity", "iterate", "institute",
+    "herald", "maverick", "terminus", "consumable", "radial", "admiral", "agora", "arbitrage", "triumphant", "seattle", "quant", "plex", "fomo"]);
+  const escapeRe = (x) => x.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  function companiesIn(question, names) {
+    const L = (typeof window !== "undefined" ? window : self).PrivaCLists;
+    if (!L || !question) return [];
+    const raw = String(question);
+    const nq = " " + L.norm(raw) + " ";
+    const known = new Set(names);
+    const full = [], first = [];
+    for (const [alias, co] of Object.entries(COMPANY_ALIASES)) if (known.has(co) && nq.includes(" " + alias + " ")) full.push(co);
+    for (const co of names) {
+      const n = L.norm(co);
+      if (n.length >= 4 && !BREACH_STOP.has(n) && nq.includes(" " + n + " ")) {
+        if (EVERYDAY_NAMES.has(n)) { const m = new RegExp(`(^|[^A-Za-z])${escapeRe(co)}(?![A-Za-z])`).exec(raw); if (!m || m.index + m[1].length === 0) continue; }
+        full.push(co);
+      } else {   // "Lotame Solutions" also answers to "Lotame"; generic first words ("Digital", "Global") never do. Many first
+        // words are everyday words too ("Better Commerce", "Improve Digital", "Index Exchange"), so the first word counts only
+        // written with its capital, and not as the question's first word ("How can I make it better?" names no company).
+        const w = n.split(" ")[0];
+        const word = String(co).split(/[^A-Za-z0-9]/)[0];
+        if (w !== n && w.length >= 5 && !BREACH_STOP.has(w) && !GENERIC_FIRST.has(w) && /^[A-Z]/.test(word) &&
+            new RegExp(`[^A-Za-z]${escapeRe(word)}(?![A-Za-z])`).test(raw)) first.push(co);
+      }
+    }
+    return [...new Set([...full, ...first.sort((x, y) => x.length - y.length)])];
+  }
+  const GENERIC_FIRST = new Set(["digital", "media", "global", "network", "networks", "group", "systems", "technologies", "technology",
+    "solutions", "services", "software", "interactive", "mobile", "marketing", "analytics", "labs", "internet", "united", "american",
+    "national", "international", "first", "smart", "cloud", "online", "social", "advanced", "audience", "trade", "direct", "content",
+    "video", "local", "north", "south", "east", "west", "china", "beijing", "shanghai", "russia", "new", "general", "public", "power"]);
+
+  const MORE_Q = /\b(more|else|again|why|how so|explain)\b/i;
+  const AND_ABOUT = /^\s*(?:and|what about|how about|same for|also)\b/i;
+  // sites = your browsing (data.sites), atlas = tracker data: so a name PrivaC knows gets an answer even without a breach.
+  function breachAnswer(q, lists, history, sites, atlas) {
+    if (!(lists && lists.hibp && lists.hibp.byDomain)) return null;
+    const last = recent(history).slice(-1)[0];
+    const lastWasBreach = !!(last && BREACH_Q.test(last.question));
+    if (!BREACH_Q.test(q) && !(lastWasBreach && AND_ABOUT.test(q))) return null;   // "what about google?" after a breach question
+    let hits = breachSites(q, lists);
+    if (!hits.length && FOLLOW_UP.test(q) && last && !AND_ABOUT.test(q)) hits = breachSites(last.question, lists);   // "yes, its breaches"
+    if (hits.length) {
+      const parts = hits.map(([d, b]) => `${breachHead(d, b)} [HIBP]:\n` +
+        breachList(b).map((x) => `- ${x.when}, ${x.title}: ${x.count}${x.kinds ? `; exposed ${x.kinds}` : ""}.`).join("\n"));
+      const who = hits.length === 1 ? siteLabel(hits[0][0], hits[0][1]).replace(/ \(.*$/, "") : "one of these sites";
+      return parts.join("\n\n") + `\n\nWhat you can do: if you have a ${who} account, change its password and the same password anywhere ` +
+        `else you used it, turn on two-step sign-in, and watch for emails pretending to be ${hits.length === 1 ? who : "these sites"}.`;
+    }
+    const domain = (q.toLowerCase().match(/[a-z0-9-]+(?:\.[a-z0-9-]+)+/) || [])[0];
+    const visited = namedSites(sites || [], q)[0];
+    const company = namedCompanies(q, atlas)[0];
+    // "Did any site I visit get hacked?", "Which of my sites leaked data?": your own sites, from the same list (backtest
+    // 2026-10-24: six wordings went three different ways, one answered about a tracker company named VISIT).
+    if (!domain && !visited && !company && MY_SITES.test(q)) return yourBreaches(lists, sites || []);
+    // No breach on record. Say so for anything PrivaC knows: a web address, a site you visited, or a tracker company.
+    const subject = domain ? domain.replace(/^www\./, "") : visited ? visited.domain : company;
+    if (!subject) return null;   // nothing PrivaC knows: Gemma answers from the rest of the evidence
+    const at = String(lists.hibp.fetchedAt || "").slice(0, 10).split("-");
+    const updated = at.length === 3 ? ` (updated ${MONTHS[+at[1] - 1]} ${+at[2]}, ${at[0]})` : "";
+    let seen = "";
+    if (company && !domain && !visited) {
+      const on = (sites || []).filter((s) => (s.trackers || []).some((t) => t && t.company === company)).length;
+      if (on) seen = ` ${company}'s trackers were on ${on} of your ${sites.length} sites this week [Seen on your visit], which is about tracking, not a breach.`;
+    }
+    return `Have I Been Pwned's list${updated} has no breach on record for ${subject} [HIBP]. ` +
+      "That doesn't prove it was never breached: the list only has breaches that became public." + seen +
+      "\n\nWhat you can do: use a different password for each site and turn on two-step sign-in, so one breach can't unlock your other accounts.";
+  }
+
+  const MY_SITES = /\b(?:web)?sites?\b|\bi\s+(?:visit|visited|went|use|go)\b|\bmy\s+(?:browsing|history)\b/i;
+  function yourBreaches(lists, sites) {
+    const by = lists.hibp.byDomain;
+    const hit = sites.map((s) => [s.domain, by[s.domain] || s.breach]).filter(([, b]) => b);
+    const at = String(lists.hibp.fetchedAt || "").slice(0, 10).split("-");
+    const updated = at.length === 3 ? ` (updated ${MONTHS[+at[1] - 1]} ${+at[2]}, ${at[0]})` : "";
+    if (!hit.length) return `None of the ${sites.length} site${sites.length === 1 ? "" : "s"} you visited in the last 7 days is in Have I Been Pwned's list${updated} [HIBP]. ` +
+      "That doesn't prove they were never breached: the list only has breaches that became public.";
+    return `${hit.length} of the ${sites.length} sites you visited in the last 7 days ${hit.length === 1 ? "is" : "are"} in Have I Been Pwned's list${updated} [HIBP]:\n` +
+      hit.map(([d, b]) => `- ${d}: ` + breachList(b).map((x) => `${x.when}, ${x.title}: ${x.count}${x.kinds ? `; exposed ${x.kinds}` : ""}`).join(". ") + ".").join("\n") +
+      "\n\nWhat you can do: if you have an account on one of these sites, change its password and the same password anywhere else you used it, " +
+      "turn on two-step sign-in, and watch for emails pretending to be that site.";
+  }
+
   // Facts about companies or sites named in the question, looked up in the local lists.
   function lookupFacts(question, lists, atlas) {
     const L = (typeof window !== "undefined" ? window : self).PrivaCLists;
@@ -196,11 +356,14 @@ Steps the person can take (no tag needed):
 
     if (atlas && atlas.domains) {
       const byCo = companiesOf(atlas);
-      for (const [co, x] of Object.entries(byCo)) {
-        if (facts.length >= 6 || !has(co)) continue;
+      for (const co of companiesIn(question, Object.keys(byCo))) {
+        if (facts.length >= 6) break;
+        const x = byCo[co];
         seen.add(L.norm(co));
         const cat = Object.entries(x.cats).sort((a, b) => b[1] - a[1])[0][0];
-        facts.push(`- ${co} runs ${x.n} tracker domain${x.n > 1 ? "s" : ""} (mostly ${cat}), the biggest on about ${x.prev}% of popular websites${x.ctry ? `; based in ${countryName(x.ctry)}` : ""} [Tracker Radar]`);
+        const alias = Object.keys(COMPANY_ALIASES).find((a) => COMPANY_ALIASES[a] === co && q.includes(" " + a + " "));
+        const owns = alias ? ` (Tracker Radar lists ${alias.replace(/\b\w/g, (c) => c.toUpperCase())}'s trackers under ${co}, its owner)` : "";
+        facts.push(`- ${co}${owns} runs ${x.n} tracker domain${x.n > 1 ? "s" : ""} (mostly ${cat}), the biggest on about ${x.prev}% of popular websites${x.ctry ? `; based in ${countryName(x.ctry)}` : ""} [Tracker Radar]`);
         const b = L.brokerFor(co, x.top, lists, atlas.entities && atlas.entities[co]);
         if (b) facts.push(`- ${co} is registered as a data broker in California (as "${b.name}") [CA Broker Registry]`);
       }
@@ -210,11 +373,12 @@ Steps the person can take (no tag needed):
       const hit = [b.name, b.dba].find(n => n && has(n) && !seen.has(L.norm(n)));
       if (hit) { seen.add(L.norm(hit)); facts.push(`- ${b.name} is registered as a data broker in California [CA Broker Registry]`); }
     }
-    const by = (lists && lists.hibp && lists.hibp.byDomain) || {};
-    const mentioned = (question.toLowerCase().match(/[a-z0-9-]+(\.[a-z0-9-]+)+/g) || []).map(d => d.replace(/^www\./, ""));
-    for (const [d, b] of Object.entries(by)) {
+    for (const [d, b] of breachSites(question, lists)) {
       if (facts.length >= 10) break;
-      if (mentioned.includes(d) || has(b.name) || has(b.title)) facts.push(`- ${b.title} (${d}) had a ${breachText(b)}`);
+      // Same first part as before (the newest breach), then every earlier one, so Gemma sees the whole record.
+      const older = breachList(b).filter((x) => x.title !== (b.title || b.name) || x.when !== monthYear(b.breachDate));
+      facts.push(`- ${b.title} (${d}) had a ${breachText(b)}` +
+        (older.length ? `; earlier breaches on record: ${older.map((x) => `${x.when}, ${x.title}: ${x.count}${x.kinds ? `; exposed ${x.kinds}` : ""}`).join(". ")} [HIBP]` : ""));
     }
     return facts;
   }
@@ -259,12 +423,9 @@ Steps the person can take (no tag needed):
     const L = (typeof window !== "undefined" ? window : self).PrivaCLists;
     let byCompany = [];
     if (L) {
-      const nq = " " + L.norm(question) + " ";
-      const asked = new Set();
-      for (const s of sites) for (const t of s.trackers || []) {
-        const n = t && t.company && L.norm(t.company);
-        if (n && n.length >= 4 && nq.includes(" " + n + " ")) asked.add(t.company);
-      }
+      const seenCos = new Set();
+      for (const s of sites) for (const t of s.trackers || []) if (t && t.company) seenCos.add(t.company);
+      const asked = new Set(companiesIn(question, [...seenCos]));
       if (asked.size) byCompany = sites.filter(s => (s.trackers || []).some(t => t && asked.has(t.company)));
     }
     const ownSites = byCompany.length ? named.slice(0, 1) : named;
@@ -382,7 +543,7 @@ Steps the person can take (no tag needed):
   // every answer. Questions about C itself and requests that have nothing to do with privacy get C's own
   // answer without asking Gemma, which otherwise talks like a general chatbot ("I can write a poem").
   const WANTS_STEPS = /\b(should (i|we)|worr\w*|safe\w*|unsafe|danger\w*|risk\w*|protect\w*|stop|avoid|block\w*|remov\w*|delet\w*|opt[- ]?out|prevent\w*|what (can|should) i do|how (do|can|should) i|hack\w*|breach\w*|leak\w*|pwn\w*|scam\w*)\b/i;
-  const ABOUT_C = /^\s*(?:(?:what|how)\s+(?:else\s+)?(?:can|could|do)\s+you\s+(?:do|help)\b|what\s+(?:can|could)\s+you\s+help(?:\s+me)?\s+with\b|(?:who|what)\s+are\s+you\b|what\s+(?:can|should)\s+i\s+ask\b|how\s+do(?:es)?\s+(?:you|ask c|privac)\s+work\b|help)\s*(?:you|for\s+me|here|exactly|me\s+with)?\s*[?!.]*\s*$/i;   // the whole question, so "What can you do about X?" goes to Gemma
+  const ABOUT_C = /^\s*(?:(?:what|how)\s+(?:else\s+)?(?:can|could|do)\s+you\s+(?:do|help)\b|what\s+(?:can|could)\s+you\s+help(?:\s+me)?\s+with\b|(?:who|what)\s+are\s+you\b|what\s+are\s+you\s+able\s+to\s+do\b|what\s+(?:can|should)\s+i\s+ask\b|how\s+do(?:es)?\s+(?:you|ask c|privac)\s+work\b|help)\s*(?:you|for\s+me|here|exactly|me\s+with)?\s*[?!.]*\s*$/i;   // the whole question, so "What can you do about X?" goes to Gemma
   const OFF_TOPIC_THING = /\b(poems?|poetry|haikus?|songs?|lyrics|stor(?:y|ies)|essays?|jokes?|riddles?|recipes?|homework|code|python|javascript|programs?)\b/i;
   const OFF_TOPIC_ASK = /\b(write|compose|make|generate|tell|give|create|sing)\b/i;
   const PRIVACY_WORDS = /privacy|data|cookie|track|site|broker|breach|grade|polic|\.[a-z]{2,}\b/i;
@@ -411,15 +572,32 @@ Steps the person can take (no tag needed):
     const g = worst === r.grade ? `still ${article(worst)} ${worst}` : `${article(worst)} ${worst}`;
     return `Partly checked: ${r.unknowns.join(", and ")}, so this could be as high as ${r.range.max} out of 100 (${g}). [${PART_TAG.disclosed}]`;
   }
-  function gradeAnswer(q, sites) {
-    if (!/\b(why|how)\b/i.test(q) || !(GRADE_WORDS_Q.test(q) || GRADE_LETTER.test(q))) return null;
+  // "Why does CNN have a bad grade?": the "a" there is a word, not the letter A. A lowercase "a" is the letter only when
+  // nothing follows it, or "grade" does (backtest 2026-10-24: C answered "cnn.com got a D, not an A").
+  function askedLetter(q) {
+    for (const m of String(q).matchAll(new RegExp(GRADE_LETTER.source, "g"))) {
+      if (m[1] !== "a") return m[1].toUpperCase();
+      const after = q.slice(m.index + m[0].length);
+      if (/^["']?\s*(?:grade\b|rating\b|[?.!,]|$)/i.test(after)) return "A";
+    }
+    return undefined;
+  }
+  // Every wording of "what's cnn.com's grade and why" gets the same answer: a site the person visited plus a grade word
+  // ("explain cnn.com's grade", "cnn grade?", "what made its score go up"), or "why is cnn so bad". Before, only
+  // questions starting with why/how did, and the rest went to Gemma and came back different each time.
+  const SO_BAD = /\bwhy\b[^?]*\b(?:so\s+)?(?:bad|poor|low|high|good|terrible|awful)\b/i;
+  function gradeIntent(q) { return GRADE_WORDS_Q.test(q) || SO_BAD.test(q) || (/\b(why|how)\b/i.test(q) && askedLetter(q) !== undefined); }
+  function gradeAnswer(q, sites, history) {
+    const last = recent(history).slice(-1)[0];
+    const followUp = !gradeIntent(q) && last && gradeIntent(last.question) && AND_ABOUT.test(q);   // "and espn?" after a grade question
+    if (!gradeIntent(q) && !followUp) return null;
     const named = namedSites(sites, q).slice(0, 3);
     if (!named.length) {
       const domain = (q.toLowerCase().match(/\b[a-z0-9-]+(?:\.[a-z0-9-]+)+\b/) || [])[0];
       return domain ? `I haven't seen ${domain.replace(/^www\./, "")} with PrivaC on in the last 7 days, so it has no grade yet. ` +
         "Open it with PrivaC on, then ask me again. [Seen on your visit]" : null;
     }
-    const asked = ((q.match(GRADE_LETTER) || [])[1] || "").toUpperCase() || undefined;
+    const asked = followUp ? undefined : askedLetter(q);
     const parts = named.map(s => [s, scoreParts(s)]);
     if (parts.some(([, r]) => !r)) return null;
     return parts.map(([s, r]) => {
@@ -450,7 +628,8 @@ Steps the person can take (no tag needed):
     if (!turns.length) return "";
     const cut = (s, n) => { s = s.replace(/\s+/g, " ").trim(); return s.length > n ? s.slice(0, n) + "..." : s; };
     return "\n\nEarlier in this conversation (oldest first; only to understand follow-up questions):\n" +
-      turns.map(t => `- They asked: ${cut(t.question, 200)}\n  You answered: ${cut(t.answer, 300)}`).join("\n");
+      // Without its "What you can do" steps: Gemma copied the same tips into every next answer.
+      turns.map(t => `- They asked: ${cut(t.question, 200)}\n  You answered: ${cut(dropSteps(t.answer), 300)}`).join("\n");
   }
 
   // In the extension, load the checked fact files once. Tests pass them in through deps.facts instead.
@@ -482,6 +661,27 @@ Steps the person can take (no tag needed):
     return v;
   }
 
+  // C repeating himself (backtest 2026-10-24): a small model at low temperature can say the same sentence twice, and
+  // with the conversation memory it says "Earlier I told you..." instead of answering. Both are taken out here.
+  const TOLD_YOU = /^(?:earlier(?: in (?:this|our) conversation)?,?\s+i\s+(?:told|said|mentioned|explained|shared)|i\s+(?:already\s+)?(?:told|mentioned|explained)\s+(?:you\s+)?(?:this\s+)?(?:earlier|before|already))\b/i;
+  const AS_I_SAID = /^as i (?:mentioned|said|explained|noted)(?: earlier| before)?,\s*/i;
+  function noRepeats(text) {
+    const seen = new Set();
+    return text.split(/\n{2,}/).map((para) => {
+      const out = [];
+      for (const piece of para.split(/(?<=[.!?])\s+(?=[A-Z"(\[])|(?<=\])\s+(?=[A-Z"(])/)) {
+        if (/^(\[[^\]]+\]\s*)+$/.test(piece)) { if (out.length && !out[out.length - 1].dropped) out[out.length - 1].text += " " + piece; continue; }
+        let sentence = piece.replace(AS_I_SAID, "");
+        if (sentence !== piece) sentence = sentence.charAt(0).toUpperCase() + sentence.slice(1);
+        const key = sentence.replace(/\[[^\]]+\]/g, "").replace(/\s+/g, " ").trim().toLowerCase();
+        const dropped = TOLD_YOU.test(sentence) || (key.length > 0 && seen.has(key));
+        if (key) seen.add(key);
+        out.push({ text: sentence, dropped });
+      }
+      return out.filter((x) => !x.dropped).map((x) => x.text).join(" ");
+    }).filter(Boolean).join("\n\n");
+  }
+
   // Fix Gemma's small formatting slips so the panel shows clean labels and "you".
   function cleanAnswer(text) {
     let t = String(text || "").replace(/`/g, "").replace(/\*\*/g, "");
@@ -502,8 +702,13 @@ Steps the person can take (no tag needed):
     });
     t = t.replace(/(\[[^\]]+\])(\s*\1)+/g, "$1");           // same tag twice in a row
     t = t.replace(/\s*(What you can do:)/i, "\n\n$1");       // steps on their own line
+    t = noRepeats(t);
     return t.replace(/[ \t]+([.,;])/g, "$1").replace(/[ \t]{2,}/g, " ").trim();
   }
+
+  // The same question with the same evidence gets the same answer: Gemma picks its words with a fixed seed
+  // (with a random one, asking twice gave two different answers).
+  const SEED = 7;
 
   async function answer(question, deps) {
     const q = String(question || "").trim();
@@ -512,19 +717,29 @@ Steps the person can take (no tag needed):
     if (canned) return { answer: canned, trace: [] };
     const steps = WANTS_STEPS.test(q);
     const data = await deps.load();
-    const graded = gradeAnswer(q, ((data && data.sites) || []).filter(Boolean));
+    const graded = gradeAnswer(q, ((data && data.sites) || []).filter(Boolean), deps.history);
     if (graded) return { answer: graded, trace: [{ tool: "get_site_report", label: "Your browsing" }] };
     const lists = deps.lists ? await deps.lists() : null;
+    const breach = breachAnswer(q, lists, deps.history, ((data && data.sites) || []).filter(Boolean), deps.atlas ? deps.atlas() : null);
+    if (breach) return { answer: breach, trace: [{ tool: "breaches", label: "Have I Been Pwned" }] };
     const atlas = deps.atlas ? deps.atlas() : null;
-    const facts = lookupFacts(q, lists, atlas);
+    // A follow-up that names nothing ("does it fingerprint me?", "tell me more") keeps the last question's facts, so
+    // C doesn't lose what he knows about Criteo one question later (backtest 2026-10-24).
+    let facts = lookupFacts(q, lists, atlas);
+    const last = recent(deps.history).slice(-1)[0];
+    if (!facts.length && last && (FOLLOW_UP.test(q) || MORE_Q.test(q) || q.split(/\s+/).length <= 4)) facts = lookupFacts(last.question, lists, atlas);
     const extra = deps.facts ? await deps.facts() : FACT_FILES;
     const trace = [{ tool: "get_site_report", label: "Your browsing" }];
     try {
-      const raw = await deps.ask(q, { system: SYSTEM_PROMPT, context: buildContext(data, null, facts, extra, q, deps.history) +
-        (steps ? "" : `\n\nFor this question: Don't add a "What you can do" line; just answer it.`), options: { temperature: 0.2 },
+      const context = buildContext(data, null, facts, extra, q, deps.history) +
+        (steps ? "" : `\n\nFor this question: Don't add a "What you can do" line; just answer it.`);
+      const raw = await deps.ask(q, { system: SYSTEM_PROMPT, context, options: { temperature: 0.2, seed: SEED },
                                       ...(deps.signal ? { signal: deps.signal } : {}),
                                       ...(deps.onToken ? { onToken: (piece, so) => deps.onToken(piece, steps ? so : hideSteps(so)) } : {}) });
-      const text = steps ? cleanAnswer(raw) : dropSteps(cleanAnswer(raw));
+      // A source tag needs evidence behind it: Gemma wrote [HIBP] with no breach facts (2026-10-24), which also showed a
+      // "Have I Been Pwned" check mark C never made. Tags that aren't in the evidence are removed, so their chips don't show.
+      const sourced = cleanAnswer(raw).replace(/\s*\[([^\]]+)\]/g, (m, tag) => (TAGS.includes(tag) && !context.includes(`[${tag}]`) ? "" : m));
+      const text = steps ? sourced : dropSteps(sourced);
       if (/\[Government list\]/.test(text)) trace.push({ tool: "background_facts", label: "Government lists" });
       if (/\[Tracker Radar\]/.test(text)) trace.push({ tool: "lookup_company", label: "Tracker Radar" });
       if (/\[Cookie Database\]/.test(text)) trace.push({ tool: "cookies", label: "Cookie Database" });
