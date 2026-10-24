@@ -34,7 +34,7 @@
             <input id="ask-input" type="text" autocomplete="off" placeholder="Who is Criteo? Which sites shared the most?">
             <button class="btn" id="ask-send" type="submit">Ask</button>
           </form>
-          <p class="ask-fine">C runs on this computer (Gemma 4 through Ollama). Your questions and browsing never leave it.</p>
+          <p class="ask-fine">C runs on this computer: Gemma 4 in your browser (or Ollama). Your questions and browsing never leave it.</p>
         </div>
       </div>
     </section>
@@ -90,7 +90,7 @@
 
   <footer class="wrap foot">
     <p><b>Your browsing and your questions to C stay on this computer.</b> PrivaC only downloads public lists (trackers, data breaches, data brokers) and never sends anything about what you visit. It saves site names and cookie names only (never full web addresses or what's inside a cookie), and deletes history older than 7 days on its own. Daily totals (numbers only, no site names) are kept for 90 days so you can see your week and month.</p>
-    <p class="sources">Sources: tracker data from <a href="https://github.com/duckduckgo/tracker-radar" target="_blank" rel="noopener">DuckDuckGo Tracker Radar</a> (CC BY-NC-SA 4.0) · breach data from <a href="https://haveibeenpwned.com" target="_blank" rel="noopener">Have I Been Pwned</a> (CC BY 4.0) · data broker list from the <a href="https://cppa.ca.gov/data_broker_registry/" target="_blank" rel="noopener">California Privacy Protection Agency</a> · cookie purposes from the <a href="https://github.com/jkwakman/Open-Cookie-Database" target="_blank" rel="noopener">Open Cookie Database</a> (Apache 2.0) · AI: Gemma 4 running locally with Ollama.</p>
+    <p class="sources">Sources: tracker data from <a href="https://github.com/duckduckgo/tracker-radar" target="_blank" rel="noopener">DuckDuckGo Tracker Radar</a> (CC BY-NC-SA 4.0) · breach data from <a href="https://haveibeenpwned.com" target="_blank" rel="noopener">Have I Been Pwned</a> (CC BY 4.0) · data broker list from the <a href="https://cppa.ca.gov/data_broker_registry/" target="_blank" rel="noopener">California Privacy Protection Agency</a> · cookie purposes from the <a href="https://github.com/jkwakman/Open-Cookie-Database" target="_blank" rel="noopener">Open Cookie Database</a> (Apache 2.0) · AI: Gemma 4 running in your browser with <a href="https://ai.google.dev/edge/litert-lm" target="_blank" rel="noopener">LiteRT-LM</a> (Apache 2.0), or locally with Ollama.</p>
   </footer>
 
   <script src="../shared/mascot.js"></script>
@@ -99,5 +99,6 @@
   <script src="../shared/data.js"></script>
   <script src="dashboard.js"></script>
   <script src="ask-c.js"></script>
+  <script src="brain-card.js"></script>
 </body>
 </html>

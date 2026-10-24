@@ -1,0 +1,35 @@
+/* "C's brain" card above the Ask C conversation (dashboard/brain-card.js). Uses the page's own colors when it has
+   them (shared/theme.css, the glass dashboard), with plain fallbacks. */
+#brain-card { margin: 0 0 12px; }
+.brain-card {
+  display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+  padding: 12px 14px; border-radius: 14px;
+  background: var(--fill, var(--surface, rgba(22, 35, 63, 0.05)));
+  border: 1px solid var(--hair, var(--line, rgba(22, 35, 63, 0.12)));
+  font: 13px/1.45 var(--font-body, system-ui, -apple-system, "Segoe UI", sans-serif);
+  color: var(--ink, #16233f);
+}
+.brain-card.tone-offer { border-color: color-mix(in srgb, var(--orange, #fa4616) 45%, transparent); }
+.brain-card.tone-warn { border-color: color-mix(in srgb, var(--flag, #b4232a) 45%, transparent); }
+.brain-card.tone-quiet { padding: 8px 12px; background: transparent; }
+.brain-text { flex: 1 1 260px; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.brain-text b { font-weight: 650; }
+.brain-text span { color: var(--ink-2, #4a5670); }
+.brain-card.tone-quiet .brain-text b { font-weight: 500; color: var(--ink-2, #4a5670); }
+.brain-card.tone-quiet .brain-text b::before {
+  content: ""; display: inline-block; width: 7px; height: 7px; margin-right: 7px; border-radius: 50%;
+  background: var(--good, var(--grade-a, #1f9d55)); vertical-align: 1px;
+}
+.brain-card.busy .brain-text b::after { content: ""; display: inline-block; width: 10px; height: 10px; margin-left: 8px; border-radius: 50%;
+  border: 2px solid currentColor; border-right-color: transparent; vertical-align: -1px; animation: brain-spin .8s linear infinite; }
+@keyframes brain-spin { to { transform: rotate(360deg); } }
+.brain-bar { height: 6px; margin-top: 6px; border-radius: 99px; background: var(--hair, rgba(22, 35, 63, 0.12)); overflow: hidden; }
+.brain-bar i { display: block; height: 100%; border-radius: inherit; background: var(--orange, #fa4616); transition: width .4s ease; }
+.brain-actions { display: flex; align-items: center; gap: 12px; }
+.brain-btn {
+  font: inherit; font-weight: 650; cursor: pointer; border: 0; border-radius: 999px; padding: 7px 14px;
+  background: var(--ink, #16233f); color: var(--paper, #fff);
+}
+.brain-link { font: inherit; cursor: pointer; border: 0; background: none; padding: 4px 2px; color: var(--ink-2, #4a5670); text-decoration: underline; }
+.brain-btn:focus-visible, .brain-link:focus-visible { outline: 3px solid var(--focus, var(--orange, #fa4616)); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { .brain-card.busy .brain-text b::after { animation: none; } .brain-bar i { transition: none; } }
