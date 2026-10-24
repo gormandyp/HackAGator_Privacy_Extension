@@ -19,6 +19,26 @@
   <main class="wrap">
     <section class="intro" id="intro"></section>
 
+    <section class="block" id="ask-c" aria-labelledby="ask-c-title">
+      <h2 id="ask-c-title">Ask C</h2>
+      <p class="lede">Ask about any company or site. C searches tracker, data-broker, breach and research records on this computer and labels where each fact came from.</p>
+      <div class="ask-card">
+        <div class="ask-face" id="ask-c-face" aria-hidden="true"></div>
+        <div class="ask-main">
+          <div class="ask-thread" id="ask-thread" aria-live="polite">
+            <p class="ask-empty" id="ask-empty">Try a question below, or type your own.</p>
+          </div>
+          <div class="ask-suggest" id="ask-suggest"></div>
+          <form class="ask-form" id="ask-form">
+            <label class="visually-hidden" for="ask-input">Your question for C</label>
+            <input id="ask-input" type="text" autocomplete="off" placeholder="Who is Criteo? Which sites shared the most?">
+            <button class="btn" id="ask-send" type="submit">Ask</button>
+          </form>
+          <p class="ask-fine">C's answers come from an AI running on this computer. Your questions and browsing never leave it.</p>
+        </div>
+      </div>
+    </section>
+
     <section class="block">
       <h2>Who followed you across sites</h2>
       <p class="lede">Each dot means that company's tracker loaded while you were on that site. A company that shows up on many sites has a chance to connect those visits into one picture of you.</p>
@@ -74,5 +94,6 @@
   <script src="../shared/mascot.js"></script>
   <script src="../shared/data.js"></script>
   <script src="dashboard.js"></script>
+  <script src="ask-c.js"></script>
 </body>
 </html>

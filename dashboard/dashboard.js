@@ -53,11 +53,16 @@
     <tbody>
       ${companies.map((c, i) => `
         <tr class="${ADV[c.country] ? "flagged" : ""} ${i === 0 && c.sites.size > 1 ? "top-row" : ""}">
-          <th scope="row">${esc(c.name)}<small>${esc([...c.categories].join(", "))}</small></th>
+          <th scope="row">${esc(c.name)} <button type="button" class="ask-link" data-q="Who is ${esc(c.name)} and should I worry?" aria-label="Ask C about ${esc(c.name)}">Ask C</button><small>${esc([...c.categories].join(", "))}</small></th>
           ${siteCols.map((d) => `<td>${c.sites.has(d) ? `<span class="dot" title="${esc(c.name)} on ${esc(d)}"></span>` : `<span class="no-dot" aria-hidden="true"></span>`}</td>`).join("")}
           <td class="reach">${c.sites.size} of ${sites.length}</td>
         </tr>`).join("")}
     </tbody>`;
+
+  $("matrix").addEventListener("click", (e) => {
+    const b = e.target.closest(".ask-link");
+    if (b && window.PrivaCAsk) window.PrivaCAsk.ask(b.dataset.q);
+  });
 
   const top = companies[0];
   if (top && top.sites.size > 1) {
