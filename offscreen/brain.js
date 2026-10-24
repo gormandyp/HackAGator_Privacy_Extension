@@ -15,6 +15,9 @@ function watchGpu() {
   } catch (e) { /* the runtime isn't loaded yet */ }
 }
 
+// The runtime reads this when it starts: its routine lines go to the console as plain logs, not as extension errors.
+self.Module = { printErr: (line) => console[PrivaCBrainCore.logLevel(line)](line) };
+
 const brain = PrivaCBrainCore.create({
   lm: LM,
   wasmUrl: chrome.runtime.getURL("vendor/litert-lm/wasm/litertlm_wasm_internal.js"),
