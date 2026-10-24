@@ -55,11 +55,12 @@
   }
 
   // The runtime prints all its lines with console.error, so chrome://extensions listed routine start-up lines
-  // ("INFO: Creating LiteRT environment") as errors. Which console method each line deserves:
+  // ("INFO: Creating LiteRT environment") as errors. Its warnings ("no NPU" on a laptop) are plain logs too:
+  // none is something you can act on, and C's status already says when Gemma can't load. Which method each line gets:
   function logLevel(line) {
     const m = /^(?:(INFO|WARNING|ERROR|FATAL):|([IWEF])\d{4} )/.exec(String(line || ""));
     const kind = m && (m[1] || m[2])[0];
-    return kind === "I" ? "log" : kind === "W" ? "warn" : "error";
+    return kind === "I" || kind === "W" ? "log" : "error";
   }
 
   function textOf(chunk) {
@@ -287,7 +288,8 @@
         key: `${greedy ? "g" : `${req.temperature}/${req.seed}`}|${req.maxTokens || 600}|${req.system || ""}`,
         config: {
           preface: { messages: req.system ? [{ role: "system", content: req.system }] : [], extra_context: { enable_thinking: false } },
-          sessionConfig: { samplerParams, maxOutputTokens: req.maxTokens || 600 },
+          // Text only: with the audio reader on, the runtime set it up (mel_filterbank.cc) for every conversation.
+          sessionConfig: { samplerParams, maxOutputTokens: req.maxTokens || 600, audioModalityEnabled: false, visionModalityEnabled: false },
           prefillPrefaceOnInit: true
         }
       };

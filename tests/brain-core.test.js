@@ -423,11 +423,13 @@ test("if the warm-up pass fails, Gemma still loads the usual way", async () => {
 
 test("the runtime's routine start-up lines aren't reported as extension errors; real errors still are", () => {
   // The runtime prints everything with console.error, so chrome://extensions listed "INFO: ..." lines as errors.
+  // Its warnings were listed too, again and again (Oct 24): "no NPU" is normal on a laptop, and none of them is
+  // something you can act on. C's own status already says when Gemma can't load. So warnings are plain logs.
   const { logLevel } = window.PrivaCBrainCore;
   assert.strictEqual(logLevel("INFO: [environment.cc:36] Creating LiteRT environment with options"), "log");
   assert.strictEqual(logLevel("I1024 20:31:56.416999 2378752 engine.cc:12] Loaded"), "log");
-  assert.strictEqual(logLevel("WARNING: [npu_registry.cc:34] NPU accelerator could not be loaded and registered"), "warn");
-  assert.strictEqual(logLevel("W1024 20:31:56.416999 2378752 mel_filterbank.cc:137] Missing 10 bands"), "warn");
+  assert.strictEqual(logLevel("WARNING: [npu_registry.cc:34] NPU accelerator could not be loaded and registered"), "log");
+  assert.strictEqual(logLevel("W1024 20:31:56.416999 2378752 mel_filterbank.cc:137] Missing 10 bands"), "log");
   assert.strictEqual(logLevel("ERROR: [engine.cc:80] Failed to create engine"), "error");
   assert.strictEqual(logLevel("E1024 20:31:56.416999 2378752 gpu.cc:9] Device lost"), "error");
   assert.strictEqual(logLevel("Aborted(OOM)"), "error");
@@ -440,4 +442,18 @@ test("a seed makes Ask C's sampling repeatable, and is part of the prepared conv
   const p = lm.calls.convs[0].cfg.sessionConfig.samplerParams;
   assert.strictEqual(p.type, lm.SamplerType.TOP_P);
   assert.strictEqual(p.seed, 7);
+});
+
+// The model file also holds Gemma's audio and image readers. Conversations had them switched on, so the runtime
+// set up its audio reader (mel_filterbank.cc) for every question and printed a warning each time. C only reads text.
+test("conversations are text only: Gemma's audio and image readers stay off", async () => {
+  const caches = fakeCaches(); caches.store.set(MODEL.url, MODEL.bytes);
+  const { brain, lm } = brainWith({ caches });
+  await brain.handle({ cmd: "generate", id: "t1", system: "You are C.", user: "Who is Criteo?" });
+  await brain.handle({ cmd: "generate", id: "t2", system: "You are C.", user: "Who is Criteo?", temperature: 0.2, seed: 7 });
+  for (const conv of lm.calls.convs) {
+    assert.strictEqual(conv.cfg.sessionConfig.audioModalityEnabled, false);
+    assert.strictEqual(conv.cfg.sessionConfig.visionModalityEnabled, false);
+  }
+  assert.ok(lm.calls.convs.length >= 2);
 });
