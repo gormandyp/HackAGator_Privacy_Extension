@@ -69,6 +69,7 @@ Every later update: raise `"version"` in manifest.json first (for example 0.1.0 
 | `webNavigation` | Knows when a tab starts a new page so trackers are counted for the right site, and ignores background pre-loads that the user never saw. |
 | `cookies` | Lists the names, owners and lifetimes of cookies a site sets so PrivaC can show what it stores in the browser. Cookie values are never read into storage. |
 | `alarms` | Refreshes the public breach and data-broker lists once a day. |
+| `browsingData` | Only when the user taps "Clear this site's data" twice in PrivaC's pop-up: removes that one site's own cookies, local storage, IndexedDB, cache storage, service workers and cache. Never history, passwords or downloads. |
 | `scripting` | When the user clicks the toolbar button on a tab that was open before PrivaC was installed, adds PrivaC's panel to that one tab. |
 | `offscreen` | Runs the on-device AI model (Gemma 4 via WebGPU) in a hidden extension page, because a service worker can't use WebGPU. |
 | Host permission `http://*/*`, `https://*/*` | PrivaC's purpose is to show who tracks the user on every site they visit, which requires observing requests on all sites, detecting cookie banners in the page so C can offer to decline them, and showing C's alerts on the page. |
