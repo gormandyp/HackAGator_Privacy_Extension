@@ -154,10 +154,23 @@
       }
     });
 
+
     root.querySelector('[data-a="choose"]').addEventListener("click", () => {
-      hide();
       if (onChoose) onChoose();
+
+      const card = root.querySelector(".card");
+
+      card.innerHTML = `
+        <p class="who">C from PrivaC</p>
+        <p>Oh, so we're doing this ourselves now?</p>
+      `;
+
+      root.querySelector(".c").innerHTML =
+        PrivaCMascot.svg("uneasy", { size: 120 });
+
+      setTimeout(() => hide(), 2200);
     });
+
   }
 
   function adversary({ companies = [] } = {}) {
