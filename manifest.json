@@ -17,12 +17,23 @@
       "32": "icons/icon32.png"
     }
   },
-  "permissions": ["storage", "activeTab"],
+  "permissions": [
+    "storage",
+    "activeTab"
+  ],
   "content_scripts": [
     {
-      "matches": ["<all_urls>"],
-      "js": ["shared/mascot.js", "content/c-prompt.js"],
+      "matches": [
+        "<all_urls>"
+      ],
+      "js": [
+        "shared/mascot.js",
+        "content/c-prompt.js"
+      ],
       "run_at": "document_idle"
     }
+  ],
+  "host_permissions": [
+    "http://localhost:11434/*"
   ]
 }

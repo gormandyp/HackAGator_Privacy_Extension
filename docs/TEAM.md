@@ -1,13 +1,13 @@
-# Who does what (5 people, no fixed titles; just own one area)
+# Who does what (5 people, each owns one area)
 
-Everyone: install **GitHub Desktop**, clone the repo, open the folder in the **Claude desktop app → Code tab**, and work one PLAN.md step at a time: `/clear` → `/next-step <number>`. Pull before you start; push when the step's check passes.
+Everyone: GitHub Desktop → clone the repo → make your branch (name below) → work one PLAN.md step at a time. Pull before you start; push when the step's check passes; update your row in docs/STATUS.md.
 
-| Area | Person | Starts with (tonight) | Then |
-|---|---|---|---|
-| **core**: background script, real data | Repo owner (integrator, merges to main) | Step 1 (push repo), step 3 (capture requests) | Step 6 cookie detection |
-| **gemma**: on-device AI | ___ | Step 2: install the Hugging Face Gemma 4 demo extension, time it on the demo Mac | Steps 7, 8, 9, 11 |
-| **data**: lists and facts | ___ | Step 4: trackers.json, flagged-companies.json, find 2 demo sites | Steps 10, 12 |
-| **ui**: popup, dashboard, C look | whoever built privac-ui | Step 5: Privacy Score display + "What C checked" panel | Step 13 polish |
-| **demo**: pitch and submission | ___ | Read the Devpost rules; draft the 3-minute story; start docs/DIFFICULTIES.md | Steps 14-16, testing everyone's work |
+| Area | Person | Branch | Starts with (tonight) | Then |
+|---|---|---|---|---|
+| **core + integrator**: background script, merges to main, Ollama | Repo owner (gormandyp) | main / core | Ollama connected (done: shared/gemma.js); step 3 capture requests | Step 6 cookie detection, merges |
+| **data**: lists and facts | Josh Davis | data | Step 4: pick datasets, write docs/DATA.md, trackers.json, flagged-companies.json | Steps 10, 12 |
+| **Ask C**: question panel + policy questions | Max Glassman | ask-c | Step 11: "Ask C" area in the popup using `PrivaCGemma.ask` (docs/OLLAMA.md) | Step 9 policy questions; Honesty rules wording |
+| **ui**: C pop-up and look | Matthew Finkelstein | ui | C's on-page pop-up (content/c-prompt.js), push the cookie pop-up test | Step 5 score display, step 13 polish |
+| **demo**: pitch, testing, submission | Justin Smilowitz | demo | Devpost rules, 3-minute story, find 3 real demo sites, start docs/DIFFICULTIES.md | Steps 14-16, testing everyone's work |
 
-Rules: don't edit another area's files without telling them. Post in the group chat when you merge. Checkpoint: **Sat 1 PM**.
+Rules: don't edit another area's files without telling them. `shared/data.js` and `shared/gemma.js` are shared: ask the repo owner before changing. Post in the group chat when you push. Checkpoint: **Sat 1 PM**.
