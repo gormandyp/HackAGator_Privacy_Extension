@@ -155,6 +155,78 @@
     }
 
 
+
+    // Reads the consent tool's own record of your choice, only to answer "are the optional cookies off?".
+    // Returns true (all off), false (something optional is on) or null (no record PrivaC knows).
+    // Nothing from the cookies is kept or sent anywhere.
+    function optionalCookiesOff(cookieString) {
+        const jar = new Map();
+        for (const part of String(cookieString || "").split(/;\s*/)) {
+            const i = part.indexOf("=");
+            if (i > 0) jar.set(part.slice(0, i), part.slice(i + 1));
+        }
+        const decode = (value) => {
+            try { return decodeURIComponent(value); } catch (e) { return value; }
+        };
+        const answers = [];
+
+        // OneTrust: groups=C0001:1,C0002:0,... (C0001 is the strictly necessary group).
+        if (jar.has("OptanonConsent")) {
+            const match = decode(jar.get("OptanonConsent")).match(/(?:^|&)groups=([^&]+)/);
+            if (match) {
+                const optional = decode(match[1]).split(",")
+                    .map(group => group.split(":"))
+                    .filter(([id]) => id !== "C0001");
+                if (optional.length) answers.push(optional.every(([, on]) => on === "0"));
+            }
+        }
+
+        // Ensighten (John Lewis): one cookie per category, e.g. JOHNLEWIS_ENSIGHTEN_PRIVACY_Advertising=0.
+        // Skip its "banner viewed/loaded" flags and the always-on essential category.
+        const ensighten = [...jar].filter(([name, value]) =>
+            /_ENSIGHTEN_PRIVACY_/.test(name) &&
+            !/_(VIEWED|LOADED)$/i.test(name) &&
+            !/_ENSIGHTEN_PRIVACY_(essential|necessary|required|strictly)/i.test(name) &&
+            /^[01]$/.test(value)
+        );
+        if (ensighten.length) answers.push(ensighten.every(([, value]) => value === "0"));
+
+        // CookieYes: cookieyes-consent=consentid:...,necessary:yes,functional:no,analytics:no,...
+        if (jar.has("cookieyes-consent")) {
+            const fields = new Map(decode(jar.get("cookieyes-consent")).split(",")
+                .map(pair => pair.split(":")));
+            const optional = ["functional", "analytics", "performance", "advertisement", "other"]
+                .filter(name => fields.has(name));
+            if (optional.length) answers.push(optional.every(name => fields.get(name) === "no"));
+        }
+
+        // Cookiebot: CookieConsent={...,preferences:false,statistics:false,marketing:false,...}
+        // ("-1" means the visitor's region needs no consent: nothing to check).
+        if (jar.has("CookieConsent")) {
+            const value = decode(jar.get("CookieConsent"));
+            const optional = ["preferences", "statistics", "marketing"]
+                .map(name => (value.match(new RegExp("[{,]" + name + ":(true|false)")) || [])[1])
+                .filter(Boolean);
+            if (optional.length) answers.push(optional.every(on => on === "false"));
+        }
+
+        // Didomi: didomi_token is base64 JSON with purposes.enabled / purposes.disabled.
+        if (jar.has("didomi_token")) {
+            try {
+                const token = JSON.parse(atob(decode(jar.get("didomi_token")).replace(/-/g, "+").replace(/_/g, "/")));
+                const purposes = token && token.purposes;
+                const enabled = (purposes && purposes.enabled) || [];
+                const disabled = (purposes && purposes.disabled) || [];
+                if (enabled.length || disabled.length) answers.push(enabled.length === 0);
+            } catch (e) {
+                // Not a token we can read: leave it unverified.
+            }
+        }
+
+        if (!answers.length) return null;
+        return answers.every(Boolean);
+    }
+
   function checkForCookieBanner() {
 
     // If the original cookie button disappeared,
@@ -292,41 +364,12 @@
 
         
 
-        let verification = "unverified";
+        // Check whether the site's consent tool saved the optional categories as off.
+        const verification =
+          optionalCookiesOff(document.cookie) === true ? "confirmed" : "unverified";
 
-        // Check whether OneTrust saved the cookie preferences.
-        const consentCookie = document.cookie
-          .split("; ")
-          .find(cookie => cookie.startsWith("OptanonConsent="));
-
-        if (consentCookie) {
-          try {
-            const cookieValue = decodeURIComponent(
-              consentCookie.substring("OptanonConsent=".length)
-            );
-
-            const groupsMatch = cookieValue.match(/(?:^|&)groups=([^&]+)/);
-
-            if (groupsMatch) {
-              const groups = decodeURIComponent(groupsMatch[1])
-                .split(",")
-                .map(group => group.split(":"));
-
-              const optionalGroups = groups.filter(
-                ([id]) => id !== "C0001"
-              );
-
-              if (
-                optionalGroups.length > 0 &&
-                optionalGroups.every(([, enabled]) => enabled === "0")
-              ) {
-                verification = "confirmed";
-                console.log("PrivaC: OneTrust rejection verified!");
-              }
-            }
-          } catch (e) {
-            console.warn("PrivaC: Could not verify OneTrust consent", e);
-          }
+        if (verification === "confirmed") {
+          console.log("PrivaC: cookie rejection verified!");
         }
 
         // Only record a confirmed rejection in the privacy score.

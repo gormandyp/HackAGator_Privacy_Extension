@@ -62,6 +62,7 @@ function load(controls, { hosts = [], cookie = "" } = {}) {
     // so each test decides how many checks run.
     setTimeout: (fn, ms) => { if (ms <= 200) setImmediate(fn); return 0; },
     clearTimeout() {},
+    atob: (s) => Buffer.from(s, "base64").toString("binary"),
     chrome: { storage: { local: { get: async () => ({ privacData: { sites: [] } }), set: async (v) => saved.push(v) } } }
   };
   ctx.window = ctx;
@@ -108,4 +109,63 @@ for (const [labels, site] of [
 
 test("a banner with Continue and accept plus a real Reject gets the decline offer, not the warning", () => {
   assert.deepStrictEqual(load(bannerWith(["Continue and accept", "Reject all"]).controls).kinds(), ["cookie"]);
+});
+
+// After "Decline extras", C reads the consent tool's own record to say "Nice!" (confirmed) or "couldn't verify".
+// Fake document.cookie strings for each tool, shaped like the real ones.
+const b64 = (o) => Buffer.from(JSON.stringify(o)).toString("base64");
+const RECORDS = {
+  OneTrust: {
+    declined: "OptanonConsent=isGpcEnabled=0&datestamp=Sat+Oct+24+2026&groups=C0001%3A1%2CC0002%3A0%2CC0003%3A0%2CC0004%3A0",
+    accepted: "OptanonConsent=isGpcEnabled=0&datestamp=Sat+Oct+24+2026&groups=C0001%3A1%2CC0002%3A1%2CC0003%3A0%2CC0004%3A1"
+  },
+  "Ensighten (John Lewis)": {
+    declined: "JOHNLEWIS_ENSIGHTEN_PRIVACY_BANNER_VIEWED=1; JOHNLEWIS_ENSIGHTEN_PRIVACY_Advertising=0; JOHNLEWIS_ENSIGHTEN_PRIVACY_Analytics=0",
+    accepted: "JOHNLEWIS_ENSIGHTEN_PRIVACY_BANNER_VIEWED=1; JOHNLEWIS_ENSIGHTEN_PRIVACY_Advertising=1; JOHNLEWIS_ENSIGHTEN_PRIVACY_Analytics=1"
+  },
+  CookieYes: {
+    declined: "cookieyes-consent=consentid:dGVzdA,consent:no,action:yes,necessary:yes,functional:no,analytics:no,performance:no,advertisement:no,other:no",
+    accepted: "cookieyes-consent=consentid:dGVzdA,consent:yes,action:yes,necessary:yes,functional:yes,analytics:yes,performance:yes,advertisement:yes,other:yes"
+  },
+  Cookiebot: {
+    declined: "CookieConsent={stamp:%27k3b9%27%2Cnecessary:true%2Cpreferences:false%2Cstatistics:false%2Cmarketing:false%2Cmethod:%27explicit%27%2Cver:1%2Cutc:1792800000000%2Cregion:%27gb%27}",
+    accepted: "CookieConsent={stamp:%27k3b9%27%2Cnecessary:true%2Cpreferences:true%2Cstatistics:true%2Cmarketing:true%2Cmethod:%27explicit%27%2Cver:1%2Cutc:1792800000000%2Cregion:%27gb%27}"
+  },
+  Didomi: {
+    declined: "didomi_token=" + b64({ user_id: "u1", purposes: { enabled: [], disabled: ["analytics", "advertising"] }, vendors: { enabled: [], disabled: ["google"] }, version: 2 }),
+    accepted: "didomi_token=" + b64({ user_id: "u1", purposes: { enabled: ["analytics", "advertising"], disabled: [] }, vendors: { enabled: ["google"], disabled: [] }, version: 2 })
+  }
+};
+
+// Opens C on a Reject banner, has the site's banner close when Reject is clicked, then sets the cookies.
+async function declineWith(cookie, sites = []) {
+  const { controls } = bannerWith(["Accept all", "Reject all"]);
+  const page = load(controls);
+  page.ctx.chrome.storage.local.get = async () => ({ privacData: { sites } });
+  const reject = controls[1];
+  reject.click = () => { reject.isConnected = false; page.ctx.document.cookie = cookie; };
+  const result = await page.calls.find((c) => c[0] === "cookie")[1].onDecline();
+  return { result, saved: page.saved };
+}
+
+for (const [tool, record] of Object.entries(RECORDS)) {
+  test(`${tool}: declined -> "confirmed", accepted -> not confirmed`, async () => {
+    assert.strictEqual((await declineWith(record.declined)).result, "confirmed");
+    assert.notStrictEqual((await declineWith(record.accepted)).result, "confirmed");
+  });
+}
+
+test("no consent record PrivaC knows: C keeps the honest \"couldn't verify\"", async () => {
+  assert.strictEqual((await declineWith("")).result, "unverified");
+  assert.strictEqual((await declineWith("session=abc123; theme=dark")).result, "unverified");
+  assert.strictEqual((await declineWith("CookieConsent=-1")).result, "unverified", "Cookiebot's 'no consent needed here'");
+  assert.strictEqual((await declineWith("didomi_token=not-base64!")).result, "unverified");
+});
+
+test("a confirmed decline saves only the choice, never the cookie's contents", async () => {
+  const { result, saved } = await declineWith(RECORDS.CookieYes.declined, [{ domain: "shop.example" }]);
+  assert.strictEqual(result, "confirmed");
+  assert.strictEqual(saved.length, 1);
+  assert.strictEqual(saved[0].privacData.sites[0].cookieChoice, "declined");
+  assert.ok(!/consentid|dGVzdA|cookieyes/.test(JSON.stringify(saved)), "no cookie names or values stored");
 });
