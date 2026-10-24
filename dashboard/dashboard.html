@@ -25,6 +25,7 @@
         <button role="tab" id="tab-safety" aria-controls="panel-safety" data-tab="safety">Safety</button>
         <button role="tab" id="tab-ask" aria-controls="panel-ask" data-tab="ask">Ask C</button>
         <button role="tab" id="tab-grades" aria-controls="panel-grades" data-tab="grades">Grades</button>
+        <button role="tab" id="tab-about" aria-controls="panel-about" data-tab="about">About</button>
       </nav>
       <button class="icon-btn" id="open-settings" aria-label="Settings" aria-haspopup="dialog" aria-controls="settings">
         <svg viewBox="0 0 24 24" width="19" height="19" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" d="M12 15.2a3.2 3.2 0 1 0 0-6.4 3.2 3.2 0 0 0 0 6.4Z"/><path fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" d="M19.4 13.5a7.7 7.7 0 0 0 0-3l2-1.6-2-3.4-2.4 1a7.6 7.6 0 0 0-2.6-1.5L14 2.5h-4l-.4 2.5a7.6 7.6 0 0 0-2.6 1.5l-2.4-1-2 3.4 2 1.6a7.7 7.7 0 0 0 0 3l-2 1.6 2 3.4 2.4-1a7.6 7.6 0 0 0 2.6 1.5l.4 2.5h4l.4-2.5a7.6 7.6 0 0 0 2.6-1.5l2.4 1 2-3.4-2-1.6Z"/></svg>
@@ -149,6 +150,45 @@
         <p><b>Your browsing and your questions to C stay on this computer.</b> PrivaC only downloads public lists (trackers, data breaches, data brokers) and never sends anything about what you visit. It saves site names and cookie names only (never full web addresses or what's inside a cookie), and deletes history older than 7 days on its own. Daily totals (numbers only, no site names) are kept for 90 days so you can see your week and month.</p>
         <p class="sources">Sources: tracker data from <a href="https://github.com/duckduckgo/tracker-radar" target="_blank" rel="noopener">DuckDuckGo Tracker Radar</a> (CC BY-NC-SA 4.0) · breach data from <a href="https://haveibeenpwned.com" target="_blank" rel="noopener">Have I Been Pwned</a> (CC BY 4.0) · data broker list from the <a href="https://cppa.ca.gov/data_broker_registry/" target="_blank" rel="noopener">California Privacy Protection Agency</a> · cookie purposes from the <a href="https://github.com/jkwakman/Open-Cookie-Database" target="_blank" rel="noopener">Open Cookie Database</a> (Apache 2.0) · AI: Gemma 4 running locally with Ollama.</p>
       </footer>
+    </section>
+
+    <!-- About: what's new in PrivaC, for Gator Hack V judges ("Fresh off the frontier") -->
+    <section class="panel" id="panel-about" role="tabpanel" aria-labelledby="tab-about" hidden>
+      <div class="panel-head">
+        <h1>Built on what's new</h1>
+        <p>PrivaC was built at Gator Hack V (October 23-25, 2026) for the "Fresh off the frontier" challenge. Everything in this first list was first made public in the 12 months before the hackathon, and each one does real work in PrivaC.</p>
+      </div>
+      <ol class="about-list">
+        <li class="card glass" data-released="2026-03-31">
+          <h3>Gemma 4 <span>Google, March 31, 2026</span></h3>
+          <p>C's brain. Ask C answers your questions from what PrivaC saw, with a source tag on every fact, and reads privacy policies for "sells" and "shares", quoting the exact sentence. It runs on your own computer, so your browsing never leaves it.</p>
+          <p class="where">In <code>shared/askc.js</code>, <code>shared/policy.js</code>, <code>shared/gemma.js</code> · <a href="https://ai.google.dev/gemma/docs/releases" target="_blank" rel="noopener">Gemma releases</a></p>
+        </li>
+        <li class="card glass" data-released="2026-05-18">
+          <h3>LiteRT-LM for the web <span>Google, first released May 18, 2026</span></h3>
+          <p>Runs Gemma 4 inside Chrome on the graphics chip (WebGPU), so the in-browser version of PrivaC needs no other app: first words in about a second.</p>
+          <p class="where">In <code>vendor/litert-lm/</code>, <code>offscreen/brain.js</code> (in-browser version) · <a href="https://ai.google.dev/edge/litert-lm/js" target="_blank" rel="noopener">LiteRT-LM docs</a></p>
+        </li>
+        <li class="card glass" data-released="2026-02-23">
+          <h3>RegTrack study <span>University of British Columbia, NDSS MADWeb, February 2026</span></h3>
+          <p>Measured 743 websites from 8 locations: accepting all cookies raised tracking from 48.5 to 56.2 domains per site from Ohio. C quotes it, with page numbers, when cookies come up.</p>
+          <p class="where">In <code>shared/regtrack-facts.json</code>, <code>content/regtrack-line.js</code> · <a href="https://www.ndss-symposium.org/wp-content/uploads/madweb2026-10.pdf" target="_blank" rel="noopener">Paper</a></p>
+        </li>
+        <li class="card glass" data-released="2026-06-08">
+          <h3>Pentagon Section 1260H list <span>U.S. Department of War, June 8, 2026</span></h3>
+          <p>The update that first lists Alibaba and Baidu as Chinese military companies. C names the company, the list and its date when a page loads one of their services.</p>
+          <p class="where">In <code>shared/flagged-companies.json</code>, <code>background/alerts.js</code> · <a href="https://www.federalregister.gov/documents/2026/06/10/2026-11571/notice-of-availability-of-designation-of-chinese-military-companies" target="_blank" rel="noopener">Federal Register</a></p>
+        </li>
+        <li class="card glass" data-released="2026-01-31">
+          <h3>California Data Broker Registry 2026 <span>California Privacy Protection Agency, 2026 registrations</span></h3>
+          <p>603 companies that buy and sell personal information. Downloaded whole every day; trackers owned by a registered broker are marked and count in the grade.</p>
+          <p class="where">In <code>shared/lists.js</code> · <a href="https://cppa.ca.gov/data_broker_registry/" target="_blank" rel="noopener">CPPA registry</a></p>
+        </li>
+      </ol>
+      <div class="card glass about-older">
+        <h3>Also used (older, kept up to date)</h3>
+        <p>DuckDuckGo Tracker Radar (which company owns each tracker), the Open Cookie Database (what each cookie is for), Have I Been Pwned (data breaches, downloaded daily), State Media Monitor (state-run news outlets, profiles updated 2026), the U.S. foreign-adversary country list (15 CFR 7.4) and the internet registries' address lists.</p>
+      </div>
     </section>
   </main>
 

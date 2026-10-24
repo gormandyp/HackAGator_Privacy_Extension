@@ -1,10 +1,10 @@
 // Dashboard tabs, segmented controls and the Settings sheet.
-// Tabs: Overview, Sites, C's impact, Safety, Ask C, Grades. The open tab is kept in the address as #/sites
+// Tabs: Overview, Sites, C's impact, Safety, Ask C, Grades, About. The open tab is kept in the address as #/sites
 // (not #sites: that would match the element with id="sites" and make Chrome jump to it), so reloading or a
 // link lands on the right tab.
 (function () {
   const $ = (id) => document.getElementById(id);
-  const TABS = ["overview", "sites", "impact", "safety", "ask", "grades"];
+  const TABS = ["overview", "sites", "impact", "safety", "ask", "grades", "about"];
   const tabFromHash = () => location.hash.replace(/^#\/?/, "");
 
   // ---- Segmented controls: a glass thumb slides under the selected button ----
