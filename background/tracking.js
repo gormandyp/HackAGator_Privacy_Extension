@@ -22,10 +22,21 @@ const TRACKERS = [
 const tabSites = new Map(); // tabId -> site being visited (rebuilt as you browse)
 
 let ATLAS = null, COOKIE_DB = null;
-function setAtlas(a) { ATLAS = a; }
+let OWNER_OF = {};          // "yandex.ru" -> "Yandex" (from Tracker Radar entities)
+let COUNTRY_OF = {};        // "Yandex" -> "RU" (from atlas.json)
+function setAtlas(a) {
+  ATLAS = a;
+  OWNER_OF = {}; COUNTRY_OF = {};
+  for (const [co, props] of Object.entries(a.entities || {})) for (const d of props) if (!OWNER_OF[d]) OWNER_OF[d] = co;
+  for (const v of Object.values(a.domains || {})) if (v[2] && !COUNTRY_OF[v[0]]) COUNTRY_OF[v[0]] = v[2];
+}
 function setCookieDb(d) { COOKIE_DB = d; }
+
+// The Atlas loads a moment after Chrome wakes the background script. Requests that arrive
+// before that wait for it, so they're never judged with the short fallback list.
+let atlasReady = Promise.resolve();
 if (typeof chrome !== "undefined" && chrome.runtime && chrome.runtime.getURL) {
-  fetch(chrome.runtime.getURL("shared/atlas.json")).then(r => r.json()).then(setAtlas)
+  atlasReady = fetch(chrome.runtime.getURL("shared/atlas.json")).then(r => r.json()).then(setAtlas)
     .catch(e => console.warn("PrivaC: atlas.json didn't load, using the short fallback list", e));
   fetch(chrome.runtime.getURL("shared/cookie-db.json")).then(r => r.json()).then(setCookieDb)
     .catch(e => console.warn("PrivaC: cookie-db.json didn't load", e));
@@ -71,6 +82,15 @@ function isFirstParty(siteDomain, hostname, tracker) {
   return !!(owned && roots.some(r => owned.includes(r)));
 }
 
+// Which company owns this site, and where it's based (when known).
+function ownerOf(siteDomain) {
+  for (const r of siteRoots(siteDomain)) {
+    const co = OWNER_OF[r];
+    if (co) return { company: co, country: COUNTRY_OF[co] || null };
+  }
+  return null;
+}
+
 // Only real web pages count as visits (not the new-tab page, settings, or extension pages).
 function cleanDomain(url) {
   try {
@@ -108,6 +128,7 @@ function saveSite(site) {
         trackers,
         cookieChoice: old.cookieChoice && old.cookieChoice !== "none" ? old.cookieChoice : site.cookieChoice,
         cookies: old.cookies || site.cookies,
+        owner: site.owner || old.owner || null,
         policy: old.policy && old.policy.source ? old.policy : site.policy
       };
     }
@@ -171,46 +192,79 @@ function updateCookieChoice(domain, choice) {
   return saveChain;
 }
 
+// Chrome pauses the background script when idle and forgets tabSites. Keep a copy in
+// session storage (cleared when Chrome closes) and restore it when the script wakes up.
+let tabsReady = Promise.resolve();
+if (chrome.storage.session) {
+  tabsReady = chrome.storage.session.get("privacTabs").then(r => {
+    for (const [id, site] of Object.entries((r && r.privacTabs) || {})) if (!tabSites.has(Number(id))) tabSites.set(Number(id), site);
+  }).catch(() => {});
+}
+let tabsTimer = null;
+function rememberTabs() {
+  if (!chrome.storage.session) return;
+  clearTimeout(tabsTimer);
+  tabsTimer = setTimeout(() => chrome.storage.session.set({ privacTabs: Object.fromEntries(tabSites) }).catch(() => {}), 300);
+}
+
+// Background preloads (Google prerenders search results) are not visits.
+function isBackgroundPage(details) {
+  return details.documentLifecycle && details.documentLifecycle !== "active";
+}
+
 // Start a fresh record when a tab navigates to a new website.
 chrome.webNavigation.onCommitted.addListener(details => {
-  if (details.frameId !== 0) return;
+  if (details.frameId !== 0 || isBackgroundPage(details)) return;
 
   const domain = cleanDomain(details.url);
   if (!domain) return;
 
-  tabSites.set(details.tabId, {
+  const site = {
     domain,
     lastVisit: new Date().toISOString(),
     cookieChoice: "none",
     policy: { sells: null, shares: null, source: null },
     trackers: []
+  };
+  tabSites.set(details.tabId, site);
+  rememberTabs();
+  atlasReady.then(() => {
+    site.owner = ownerOf(domain);
+    saveSite(site);
+    if (typeof PrivaCAlerts !== "undefined") PrivaCAlerts.check(details.tabId, site);
   });
-
-  saveSite(tabSites.get(details.tabId));
 });
+
+function handleRequest(details, site) {
+  const hostname = cleanDomain(details.url);
+  if (!hostname) return;
+
+  const tracker = matchingTracker(hostname);
+  if (!tracker) return;
+
+  // Don't count a site's own requests (or its owner's) as third-party tracking.
+  if (isFirstParty(site.domain, hostname, tracker)) return;
+
+  if (!site.trackers.some(t => t.domain === tracker.domain)) {
+    site.trackers.push(tracker);
+    site.lastVisit = new Date().toISOString();
+    rememberTabs();
+    saveSite(site);
+    if (typeof PrivaCAlerts !== "undefined") PrivaCAlerts.check(details.tabId, site);
+  }
+}
 
 // Detect requests to known tracking domains.
 chrome.webRequest.onBeforeRequest.addListener(
   details => {
-    if (details.tabId < 0) return;
-
+    if (details.tabId < 0 || isBackgroundPage(details)) return;
     const site = tabSites.get(details.tabId);
-    if (!site) return;
-
-    const hostname = cleanDomain(details.url);
-    if (!hostname) return;
-
-    const tracker = matchingTracker(hostname);
-    if (!tracker) return;
-
-    // Don't count a site's own requests (or its owner's) as third-party tracking.
-    if (isFirstParty(site.domain, hostname, tracker)) return;
-
-    if (!site.trackers.some(t => t.domain === tracker.domain)) {
-      site.trackers.push(tracker);
-      site.lastVisit = new Date().toISOString();
-      saveSite(site);
-    }
+    if (site && ATLAS) return handleRequest(details, site);
+    // Not ready yet (just woke up): wait for the Atlas and the restored tabs, then judge it.
+    Promise.all([atlasReady, tabsReady]).then(() => {
+      const s = site || tabSites.get(details.tabId);
+      if (s) handleRequest(details, s);
+    });
   },
   { urls: ["<all_urls>"] }
 );
@@ -218,11 +272,12 @@ chrome.webRequest.onBeforeRequest.addListener(
 // "Clear my PrivaC data" removes privacData: forget the open tabs too, so nothing comes back.
 if (chrome.storage.onChanged) {
   chrome.storage.onChanged.addListener((changes, area) => {
-    if (area === "local" && changes.privacData && !changes.privacData.newValue) tabSites.clear();
+    if (area === "local" && changes.privacData && !changes.privacData.newValue) { tabSites.clear(); rememberTabs(); }
   });
 }
 
 // Clean up closed tabs.
 chrome.tabs.onRemoved.addListener(tabId => {
   tabSites.delete(tabId);
+  rememberTabs();
 });

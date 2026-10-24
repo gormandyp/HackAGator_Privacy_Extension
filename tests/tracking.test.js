@@ -19,8 +19,8 @@ function load() {
     tabs: { onRemoved: on("closed") }
   };
   const ctx = { chrome, console, URL, Promise, setTimeout };
-  vm.runInNewContext(fs.readFileSync(__dirname + "/../background/tracking.js", "utf8") + "\n;this.flush = () => saveChain; this.setAtlas = setAtlas; this.update = updateCookieChoice;", ctx);
-  return { listeners, store: () => store, setStore: (s) => { store = s; }, flush: () => ctx.flush(), setAtlas: ctx.setAtlas, update: (d, c) => ctx.update(d, c) };
+  vm.runInNewContext(fs.readFileSync(__dirname + "/../background/tracking.js", "utf8") + "\n;this.flush = async () => { await atlasReady; await tabsReady; for (let i = 0; i < 5; i++) await new Promise(r => setTimeout(r, 0)); await saveChain; }; this.setAtlas = setAtlas; this.update = updateCookieChoice; this.ownerOf = ownerOf;", ctx);
+  return { listeners, store: () => store, setStore: (s) => { store = s; }, flush: () => ctx.flush(), setAtlas: ctx.setAtlas, update: (d, c) => ctx.update(d, c), ownerOf: (d) => ctx.ownerOf(d) };
 }
 
 test("records known trackers per site and keeps earlier sites", async () => {
@@ -77,7 +77,8 @@ test("with the Atlas: finds trackers by parent domain, skips the site owner's ow
   t.listeners.req({ tabId: 6, url: "https://stats.g.doubleclick.net/x" });      // Google on a news site
   t.listeners.req({ tabId: 6, url: "https://analytics.tiktok.com/i18n/pixel" }); // ByteDance
   await t.flush();
-  const [g, n] = t.store().privacData.sites;
+  const by = Object.fromEntries(t.store().privacData.sites.map(s => [s.domain, s]));
+  const g = by["google.com"], n = by["news.example"];
   assert.strictEqual(g.trackers.length, 0);
   assert.deepStrictEqual(n.trackers.map(x => x.company), ["Google", "ByteDance"]);
   assert.strictEqual(n.trackers[1].country, "CN");
@@ -103,4 +104,27 @@ test("cookie choices: declined/accepted win over no-reject, and stick through tr
   t.listeners.req({ tabId: 8, url: "https://hotjar.com/s.js" });
   await t.flush();
   assert.strictEqual(t.store().privacData.sites[0].cookieChoice, "declined");
+});
+
+test("prerendered pages (Google preloading results) are not visits and don't add trackers", async () => {
+  const t = load();
+  t.setAtlas(atlas);
+  t.listeners.nav({ frameId: 0, tabId: 9, url: "https://www.google.com/search?q=x" });
+  t.listeners.nav({ frameId: 0, tabId: 9, url: "https://www.temu.com/", documentLifecycle: "prerender" });
+  t.listeners.req({ tabId: 9, url: "https://www.baidu.com/x.js", documentLifecycle: "prerender" });
+  await t.flush();
+  const sites = t.store().privacData.sites;
+  assert.deepStrictEqual(sites.map(s => s.domain), ["google.com"]);
+  assert.strictEqual(sites[0].trackers.length, 0);
+});
+
+test("the site's owner is recorded with its country (ya.ru = Yandex, Russia)", async () => {
+  const t = load();
+  t.setAtlas(atlas);
+  const o = t.ownerOf("ya.ru");
+  assert.strictEqual(o.company, "Yandex");
+  assert.strictEqual(o.country, "RU");
+  t.listeners.nav({ frameId: 0, tabId: 10, url: "https://ya.ru/" });
+  await t.flush();
+  assert.strictEqual(t.store().privacData.sites[0].owner.company, "Yandex");
 });
