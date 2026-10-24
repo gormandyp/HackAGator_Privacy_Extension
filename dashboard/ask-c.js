@@ -127,7 +127,7 @@
 
   // Speed: stream the answer from the background (background.js "privac-ask" port) so C's first words show
   // as soon as Gemma writes them. Resolves null if streaming isn't available (then askBackground asks normally).
-  function askStreaming(question, onText) {
+  function askStreaming(question, onText, history) {
     return new Promise((resolve) => {
       let port;
       try { port = chrome.runtime.connect({ name: "privac-ask" }); } catch (e) { resolve(null); return; }
@@ -146,18 +146,18 @@
       // Gone before it started: this background can't stream, so the panel asks the normal way (null).
       // Gone after it started: say so instead of asking Gemma a second time.
       port.onDisconnect.addListener(() => finish(started ? { error: "C stopped answering (PrivaC restarted). Ask again." } : null));
-      try { port.postMessage({ type: "ask", question }); } catch (e) { finish(null); }
+      try { port.postMessage({ type: "ask", question, history: history || [] }); } catch (e) { finish(null); }
     });
   }
 
-  async function askBackground(question, onText) {
+  async function askBackground(question, onText, history) {
     if (hasRuntime() && onText && chrome.runtime.connect) {
-      const res = await askStreaming(question, onText);
+      const res = await askStreaming(question, onText, history);
       if (res) return { ...res, sample: false };
     }
     if (hasRuntime()) {
       try {
-        const res = await withTimeout(chrome.runtime.sendMessage({ type: "askC", question }), 90000);
+        const res = await withTimeout(chrome.runtime.sendMessage({ type: "askC", question, history: history || [] }), 90000);
         if (res && (res.answer || res.error)) return { ...res, sample: false };
       } catch (e) {
         if (e && e.message === "timeout") return { error: "I took too long to answer. Try a shorter question.", sample: false };
@@ -205,6 +205,14 @@
 
   let busy = false;
 
+  // C's short memory: the last 3 questions he really answered (not errors or sample answers), kept only while
+  // this page is open. Sent with each question so follow-ups like "what about its cookies?" make sense.
+  let history = [];
+  function remember(list, question, res) {
+    if (!res || !res.answer || res.error || res.sample) return list;
+    return [...list, { question, answer: res.answer }].slice(-3);
+  }
+
   async function ask(question) {
     question = (question || "").trim();
     if (!question || busy) return;
@@ -227,7 +235,7 @@
     };
     const onText = (text) => { partial = text; if (!frame) frame = requestAnimationFrame(draw); };
 
-    let res = await askBackground(question, onText);
+    let res = await askBackground(question, onText, history);
     if (frame) cancelAnimationFrame(frame);
     partial = null;
     // Gemma unreachable (e.g. Ollama not running): a suggested question still gets its sample answer.
@@ -248,6 +256,7 @@
       // reveal the checks one by one
       pending.querySelectorAll(".trace > span").forEach((s, i) => { s.style.animationDelay = `${i * 180}ms`; });
       setMood("happy");
+      history = remember(history, question, res);
     }
     busy = false;
     $("ask-send").disabled = false;
@@ -283,7 +292,7 @@
       ask(question);
     },
     // Pure helpers, exported for tests (tests/askc-panel.test.js).
-    sampleFor, renderAnswer, questionFromUrl, suggestionsFor, partialText, askStreaming
+    sampleFor, renderAnswer, questionFromUrl, suggestionsFor, partialText, askStreaming, remember
   };
 
   if (typeof document !== "undefined") init();
