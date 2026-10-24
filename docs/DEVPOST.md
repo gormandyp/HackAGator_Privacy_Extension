@@ -1,7 +1,7 @@
 # Devpost submission draft (paste into gatorhack2026.devpost.com; due Sun Oct 25 5:00 PM ET, aim for 4 PM)
 Checked against the code on main, 2026-10-24. Before pasting, re-read docs/SPEC.md "Honesty rules" and change any number that has changed.
 
-**Prizes to select:** Best Use of Gemma (MLH; Devpost calls it "Best Use of Gemini", the UF prizes page says "Build with Gemma, Google's open model, free on the Gemini API or run locally"), Best Open Source Project (MLH; needs a LICENSE file in the repo first), Vobile Prize. The main awards need no selection. Twinly needs Twinly's own APIs, so skip it.
+**Prizes to select:** Best Use of Gemma (MLH; Devpost calls it "Best Use of Gemini", the UF prizes page says "Build with Gemma, Google's open model, free on the Gemini API or run locally"), Best Open Source Project (MLH; the repo is MIT licensed since 2026-10-24), Vobile Prize. The main awards need no selection. Twinly needs Twinly's own APIs, so skip it.
 
 ---
 
@@ -37,7 +37,7 @@ Each of these was first made public in the 12 months before the hackathon and do
 - **California Data Broker Registry** (2026 registrations).
 
 ## Challenges we ran into
-- Running Gemma in the browser: loading the model froze Chrome for 15 to 20 seconds while it built about 150 graphics programs; we warm them up the non-blocking way first.
+- Running Gemma in the browser: loading the model froze Chrome for 15 to 20 seconds while it built about 150 graphics programs; we now build them the non-blocking way first (check the `brain-no-freeze` fix is on main before pasting).
 - Every consent tool saves your choice differently, and some pop-ups live inside frames or shadow roots where a normal content script can't see them.
 - U.S. visitors rarely see cookie banners, so we test on U.K. sites and our own demo page.
 - Gemma sometimes invented source labels; code now cleans the answer and every evidence line carries its tag.
@@ -68,5 +68,6 @@ More in docs/DIFFICULTIES.md.
 javascript, chrome-extension, manifest-v3, gemma, litert-lm, webgpu, ollama, duckduckgo-tracker-radar, have-i-been-pwned, open-cookie-database, node.js
 
 ## Links
-- Code: https://github.com/gormandyp/HackAGator_Privacy_Extension (download main.zip; setup in README)
+- Code: https://github.com/gormandyp/HackAGator_Privacy_Extension (MIT license; download main.zip; setup in README)
+- Privacy policy: PRIVACY.md in the repo
 - Video: (paste the YouTube or Vimeo link, 3:00 or shorter)

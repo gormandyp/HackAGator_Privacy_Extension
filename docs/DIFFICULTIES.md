@@ -1,7 +1,7 @@
 # Difficulties log (for the "what difficulties you faced" part of the pitch)
 Add one line per real obstacle: what broke, what we tried, what worked.
 
-- **Running Gemma in the browser vs. on the computer.** Plan v2 ran Gemma 4 inside Chrome (Transformers.js + WebGPU). We switched to Ollama on the demo Mac: simpler for beginners and faster on 24 GB. Cost: the user installs Ollama.
+- **Running Gemma in the browser vs. on the computer.** Plan v2 ran Gemma 4 inside Chrome (Transformers.js + WebGPU). We first switched to Ollama on the demo Mac (simpler, faster on 24 GB, but the user has to install it), then got Gemma 4 E2B running inside Chrome with Google's LiteRT-LM (WebGPU), which became the main download on Saturday. Ollama is the fallback.
 - **Ollama blocked the extension (HTTP 403).** Ollama only accepts requests from approved origins. Fix: `launchctl setenv OLLAMA_ORIGINS "chrome-extension://*"` and restart Ollama.
 - **Gemma for cookie banners was the wrong tool.** A teammate pointed out the page's own JavaScript finds the Reject button faster and more reliably, so Gemma moved to answering questions and (next) reading policies.
 - **RegTrack data is 1.5 TB on Globus.** Dropped the download; we use the paper's published figures with section numbers.
@@ -12,5 +12,7 @@ Add one line per real obstacle: what broke, what we tried, what worked.
 - **Two parts writing the same storage at once.** The cookie detector and the tracker recorder could overwrite each other's results. All writes now go through the background script in order.
 - **Teamwork with beginners on Git.** Zip uploads, a scary "force push" prompt, and lock files. Rules now: pull first, push code not zips, never force push.
 - **"Did the decline really work?" Every consent tool saves your choice differently.** C could only confirm OneTrust, so most sites got "couldn't verify". Now it reads the yes/no from five tools' own records (never storing them). Some banners (Tesco) slide out of view but stay in the page, which C first took as a failed click.
-- **Pop-ups C can't see.** Some consent tools live in a shadow root (now searched) or an iframe (content scripts only run in the top page; not solved before the freeze).
-- **Chrome forgets tab state.** Chrome pauses the background script when idle, so trackers can be missed afterwards (fix planned: PLAN R9).
+- **Pop-ups C can't see.** Some consent tools live in a shadow root (now searched) or an iframe (Sourcepoint, TrustArc). Content scripts normally run only in the top page, so the cookie detector now also runs in frames and tells the top page where the Reject button is.
+- **Chrome forgets tab state.** Chrome pauses the background script when idle, so trackers could be missed afterwards. Fixed: tab state is mirrored to session storage and survives the pause.
+- **Loading Gemma froze Chrome.** Right after C's brain downloaded, every tab stopped drawing for 15-20 s while the runtime built about 150 graphics programs with a blocking call. The fix (branch `brain-no-freeze`, being merged before the freeze) does a quick practice load to find the programs, then builds them the non-blocking way first.
+- **C stayed silent on busy pages.** The re-check timer restarted on every page change, so pages that never stop changing were never re-checked. Re-checks now run at most every 350 ms, and also when a pop-up is shown later by a style change.
