@@ -2,7 +2,9 @@
 
 Found 2026-10-24 ~6 PM ET by Max's Claude, testing `shared/askc.js` on main (`ceeb94f`) with the real code and a fake Gemma
 (48 checks: 26 probes + every question the app's own buttons send). All 454 existing tests pass; none cover these.
-Not yet seen with real Gemma (see "Check with real Gemma" at the end).
+**Confirmed with real Gemma on Max's Mac (in-browser brain, 2026-10-24 6:15 PM ET):** Fixes 1, 4 and 5 (see each fix's
+"Seen live" line). Max's screenshots are in the Project doc `claude/askc-fixes.md`'s chat; the answers are quoted below.
+**Do the fixes in this order: 1, 5, 4, then 2, 3, 6.** The first three are bugs people actually saw.
 
 **Rules for this work:** branch `askc-fixes` from main. One fix per commit, each with a failing test first (CLAUDE.md).
 Only `shared/askc.js` and `tests/` change. Run `node --test` before every commit. Don't push to main until the repo
@@ -15,6 +17,7 @@ owner says so. Each fix below was tried on a scratch copy: all the probes passed
 **Repro:** `answer("What can you do about trackers on cnn.com?")` never calls Gemma and returns C's canned intro "I'm C,
 PrivaC's privacy guide…". The same happens for "What could you do about Baidu tracking me?", "What can you do to protect me on
 wired.com?" and "How can you help me with cookies on ikea.com?" (4 of 4).
+**Seen live:** asked "What can you do about trackers on cnn.com?" and got the full intro paragraph, with no answer about cnn.com.
 **Cause:** `ABOUT_C` matches "what can you do" at the start of any question.
 **Fix:** only treat it as a question about C when that phrase is the whole question. At the end of `ABOUT_C`, replace
 `|help\s*[?!.]*\s*$)/i` with
@@ -48,6 +51,8 @@ and `shares === false` → "says it doesn't share with partners (quote); it does
 Already a suspect in PLAN R13; now confirmed. The per-site tracker list reads "Baidu (Analytics, based in CN)", the "Companies
 seen on the most sites" line reads "Criteo (Advertising, FR)", and `lookupFacts` says "based in US". So C can answer
 "based in CN". (The foreign-adversary lines already use names.)
+**Seen live:** "Who is yandex" got: "Yandex is a company based in Russia that runs 12 tracker domains… They are based in RU
+[Tracker Radar]." Gemma repeated the fact, once with the name and once with the code (the code came from `lookupFacts`).
 **Fix:** let `countryName()` fall back to `new Intl.DisplayNames(["en"], { type: "region" })` (works in Chrome and Node; wrap it
 in try/catch) for every code, and use `countryName(...)` in `siteLine` (tracker text), `overview` (top companies) and
 `lookupFacts`. **Also update `rank()` in `siteLine`**: it looks for `based in (CN|HK|RU|IR|CU|KP|VE)`, so change it to the
@@ -62,6 +67,9 @@ kept first on busy sites.
 ## Fix 5: lowercase grade questions skip the instant answer
 **Repro:** "Why did cnn.com get an F?" gets the exact breakdown from the score. "why did cnn.com get an f" and "why does cnn.com
 have a c grade" go to Gemma instead, which is slower and can reply "I don't know yet" (the bug from the team doc).
+**Seen live:** "why did tass.com get a d" went to Gemma, which answered "tass.com received a grade of F because it is
+state-run media… high exposure score of 85/100". That's wrong: the 85 is a sum, and state-run media is only its 15-point line.
+The instant answer lists every line, so it can't make this mistake.
 **Fix:** in `GRADE_LETTER`, allow lowercase letters (`[A-Fa-f]`), and uppercase the letter where it's read:
 `const asked = ((q.match(GRADE_LETTER) || [])[1] || "").toUpperCase() || undefined;`
 **New test:** the two lowercase questions → answered locally with "cnn.com got a…". "Why is cnn.com a concern?" still goes to
@@ -76,6 +84,11 @@ isn't a known tag. Deleting made-up tags is on purpose (`tests/askc.test.js`, "[
 
 ---
 
+## Also seen live (add to PLAN R13's list of bad answers; no code fix yet)
+- "Who tracked me the most this week?" got one sentence, "Google tracked you the most. [Tracker Radar]", with no count of sites,
+  and labeled [Tracker Radar] instead of [Seen on your visit]. The evidence already has "on N of M sites" in the "Companies seen
+  on the most sites" line, so a prompt example for "most / which" questions would likely fix it.
+
 ## Check with real Gemma (repo owner's Mac, after the fixes)
 Reload PrivaC, open Ask C, and ask each of these. Write down the answer and which brain answered (in Chrome or Ollama):
 1. What can you do about trackers on cnn.com? (expect a real answer, not the intro)
@@ -88,10 +101,10 @@ Also note any answer that's wrong, too long, missing source tags, or that says "
 those go in PLAN R13's list of bad answers.
 
 ## Status
-- [ ] Fix 1: about-C questions
+- [ ] Fix 1: about-C questions (confirmed live)
 - [ ] Fix 2: grammar after "the user"
 - [ ] Fix 3: doesn't-sell policy
-- [ ] Fix 4: country names
-- [ ] Fix 5: lowercase grade letters
+- [ ] Fix 4: country names (confirmed live)
+- [ ] Fix 5: lowercase grade letters (confirmed live)
 - [ ] Fix 6: brackets rule in the prompt
 - [ ] Real-Gemma check on the Mac
