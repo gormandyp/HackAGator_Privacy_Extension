@@ -6,8 +6,9 @@ const assert = require("node:assert");
 const fs = require("node:fs");
 const vm = require("node:vm");
 
-function load(pageButtons = []) {
+function load(pageButtons = [], settings = null) {
   const sent = [], calls = [], listeners = {};
+  const storageListeners = [];
   const P = {
     cookie(opts) { calls.push(["cookie", opts]); },
     acceptOnly() { calls.push(["acceptOnly"]); },
@@ -20,11 +21,13 @@ function load(pageButtons = []) {
     querySelectorAll: () => pageButtons
   };
   const ctx = { console, Promise, location: { hostname: "www.news.example" }, document,
-    chrome: { runtime: { sendMessage: (m) => sent.push(m) } } };
+    chrome: { runtime: { sendMessage: (m) => sent.push(m) },
+      storage: { local: { get: () => ({ then: (fn) => { fn({ privacSettings: settings }); return { catch() {} }; } }) },
+                 onChanged: { addListener: (fn) => storageListeners.push(fn) } } } };
   ctx.window = ctx;
   ctx.window.PrivaCPrompt = P;
   vm.runInNewContext(fs.readFileSync(__dirname + "/../content/c-events.js", "utf8"), ctx);
-  return { P: ctx.window.PrivaCPrompt, sent, calls, listeners };
+  return { P: ctx.window.PrivaCPrompt, sent, calls, listeners, storageListeners };
 }
 const events = (sent) => sent.filter(m => m.type === "privac-event").map(m => m.event);
 const choices = (sent) => sent.filter(m => m.type === "cookieChoice").map(m => m.choice);
@@ -83,3 +86,22 @@ test("clicking a cookie banner's Accept button yourself is recorded as accepted"
   listeners.click({ isTrusted: true, target: other });                          // not in a cookie banner
   assert.deepStrictEqual(choices(sent), ["accepted"]);
 });
+
+test("pop-ups turned off in Settings don't show and aren't counted; cookie choices are still recorded", () => {
+  const { P, sent, calls } = load([], { popups: { adversary: false, acceptOnly: false } });
+  P.adversary({ companies: ["Baidu (China)"] });
+  P.acceptOnly();
+  P.cookie({});
+  assert.deepStrictEqual(calls.map(c => c[0]), ["cookie"]);
+  assert.deepStrictEqual(events(sent), ["popup-cookie"]);
+  assert.deepStrictEqual(choices(sent), ["no-reject"]);
+});
+
+test("changing a setting takes effect right away on open pages", () => {
+  const { P, calls, storageListeners } = load();
+  storageListeners.forEach(fn => fn({ privacSettings: { newValue: { popups: { cookie: false } } } }, "local"));
+  P.cookie({});
+  P.adversary({});
+  assert.deepStrictEqual(calls.map(c => c[0]), ["adversary"]);
+});
+

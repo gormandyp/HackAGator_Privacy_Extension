@@ -3,7 +3,7 @@
   const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const ADV = PrivaCData.FOREIGN_ADVERSARIES;
 
-  $("wordmark").innerHTML = PrivaCMascot.wordmark(26);
+  $("wordmark").innerHTML = PrivaCMascot.wordmark(22);
 
   const data = await PrivaCData.load();
   if (data.sample) $("sample-note").hidden = false;
@@ -30,16 +30,15 @@
   const flaggedSites = sites.filter((s) => s.flagged.length);
 
   $("intro").innerHTML = `
-    <div>${PrivaCMascot.svg(worst && (worst.grade === "D" || worst.grade === "F") ? "uneasy" : "wave", { size: 150 })}</div>
-    <div>
-      <h1>${companies.length} companies saw your browsing across ${sites.length} sites.</h1>
+    <div class="hero-c">${PrivaCMascot.svg(worst && (worst.grade === "D" || worst.grade === "F") ? "uneasy" : "wave", { size: 112 })}</div>
+    <div class="hero-text">
+      <h1>${companies.length} ${companies.length === 1 ? "company" : "companies"} saw your browsing across ${sites.length} ${sites.length === 1 ? "site" : "sites"} this week.</h1>
       <p>${flaggedSites.length
         ? `${flaggedSites.length === 1 ? "One site" : flaggedSites.length + " sites"} also connected to a company based in a listed foreign-adversary country.`
-        : "None of them connected to a company in a listed foreign-adversary country."}
-        Here's who showed up where, and why each site got its grade.</p>
-      <div class="grade-strip">
-        ${Object.entries(counts).map(([g, n]) => `<span class="g grade-${g} ${n ? "" : "none"}"><b>${g}</b>${n} ${n === 1 ? "site" : "sites"}</span>`).join("")}
-      </div>
+        : "None of them connected to a company in a listed foreign-adversary country."}</p>
+    </div>
+    <div class="grade-strip" aria-label="Sites by grade">
+      ${Object.entries(counts).map(([g, n]) => `<button type="button" class="g grade-${g} ${n ? "" : "none"}" data-goto="sites" aria-label="${n} ${n === 1 ? "site" : "sites"} graded ${g}"><b>${g}</b><span>${n}</span></button>`).join("")}
     </div>`;
 
   // ---- Matrix ----
@@ -61,7 +60,13 @@
 
   $("matrix").addEventListener("click", (e) => {
     const b = e.target.closest(".ask-link");
-    if (b && window.PrivaCAsk) window.PrivaCAsk.ask(b.dataset.q);
+    if (!b || !window.PrivaCAsk) return;
+    if (window.PrivaCTabs) window.PrivaCTabs.show("ask");
+    window.PrivaCAsk.ask(b.dataset.q);
+  });
+  $("intro").addEventListener("click", (e) => {
+    const b = e.target.closest("[data-goto]");
+    if (b && window.PrivaCTabs) window.PrivaCTabs.show(b.dataset.goto);
   });
 
   const top = companies[0];
@@ -111,7 +116,7 @@
 
   // ---- Clear data ----
   $("clear").addEventListener("click", async () => {
-    if (!confirm("Delete everything PrivaC has recorded in this browser? This can't be undone.")) return;
+    if (!confirm("Delete everything PrivaC has recorded in this browser? Your settings stay. This can't be undone.")) return;
     await PrivaCData.clearAll();
     const t = document.createElement("div");
     t.className = "toast";

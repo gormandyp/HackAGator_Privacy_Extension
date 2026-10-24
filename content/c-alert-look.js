@@ -20,7 +20,7 @@
     const host = hosts[hosts.length - 1];
     const root = host && host.shadowRoot;
     const wrap = root && root.querySelector(".wrap");
-    if (!wrap) return;
+    if (!wrap || !root.querySelector(".card.alert")) return;   // only the foreign-adversary pop-up (it's off in Settings, or another one is open)
     // Corner: C's feet on the bottom edge, speech card to his left (its arrow already points right, at C).
     wrap.style.left = "auto";
     wrap.style.top = "auto";

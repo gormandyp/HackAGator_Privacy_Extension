@@ -10,7 +10,7 @@ test("the adversary pop-up moves to the bottom-right corner with the uneasy push
   const img = { src: "chrome-extension://x/c-poses/mascot-push-up.svg", alt: "C mascot" };
   const c = { style: {} }, card = { style: {} };
   img.style = {};
-  const host = { shadowRoot: { querySelector: (sel) => ({ ".wrap": wrap, ".c img": img, ".c": c, ".card": card })[sel] || null } };
+  const host = { shadowRoot: { querySelector: (sel) => ({ ".wrap": wrap, ".c img": img, ".c": c, ".card": card, ".card.alert": card })[sel] || null } };
   const calls = [];
   const P = { adversary: (o) => { calls.push(["adversary", o]); return "shown"; }, cookie: () => calls.push(["cookie"]) };
   const ctx = { document: { querySelectorAll: () => [host] }, chrome: { runtime: { getURL: (p) => "chrome-extension://x/" + p } } };
