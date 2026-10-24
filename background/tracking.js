@@ -164,7 +164,11 @@ function mergeSite(data, site) {
     else {
       const old = data.sites[i];
       const trackers = [...old.trackers || []];
-      for (const t of site.trackers) if (!trackers.some(x => x.domain === t.domain)) trackers.push(t);
+      for (const t of site.trackers) {
+        const had = trackers.find(x => x.domain === t.domain);
+        if (!had) trackers.push(t);
+        else if (had.afterAccept && !t.afterAccept) delete had.afterAccept;   // also loads without Accept
+      }
       data.sites[i] = {
         ...old,
         lastVisit: site.lastVisit,
@@ -332,7 +336,8 @@ function handleRequest(details, site) {
   if (isFirstParty(site.domain, hostname, tracker)) return;
 
   if (!site.trackers.some(t => t.domain === tracker.domain)) {
-    site.trackers.push(tracker);
+    // First seen on this visit after you clicked Accept: listed on the grade, but adds no tracker points (shared/data.js).
+    site.trackers.push(site.cookieChoice === "accepted" ? { ...tracker, afterAccept: true } : tracker);
     site.lastVisit = new Date().toISOString();
     rememberTabs();
     saveSite(site);

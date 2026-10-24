@@ -98,11 +98,14 @@
     const byCompany = new Map();
     for (const x of t) {
       const co = x.company || x.domain;
-      const c = byCompany.get(co) || { ad: false };
+      const c = byCompany.get(co) || { ad: false, afterAccept: true };
       c.ad = c.ad || AD_CATEGORIES.includes(x.category) || !!x.broker;
+      c.afterAccept = c.afterAccept && !!x.afterAccept;   // only if every one of its addresses loaded after Accept
       byCompany.set(co, c);
     }
-    const counted = [...byCompany.entries()].filter(([co]) => regular(co));
+    // Companies that loaded only after you clicked Accept are listed, not counted: the grade is about the site,
+    // and your choice already costs the 10 cookie points (repo owner, 2026-10-24).
+    const counted = [...byCompany.entries()].filter(([co, c]) => !c.afterAccept && regular(co));
     const trackerPts = Math.min(40, counted.length * 5);
     parts.push({ label: `${counted.length} outside ${counted.length === 1 ? "company" : "companies"} with trackers here`, points: trackerPts, kind: "observed" });
 
@@ -110,7 +113,11 @@
     const adPts = Math.min(20, adCount * 5);
     parts.push({ label: `${adCount} of them for advertising, data brokering or recording your screen`, points: adPts, kind: "observed" });
 
-    const occasional = [...byCompany.keys()].filter(co => !regular(co)).sort((a, b) => a.localeCompare(b));
+    const unlocked = [...byCompany.entries()].filter(([, c]) => c.afterAccept).map(([co]) => co).sort((a, b) => a.localeCompare(b));
+    if (unlocked.length) {
+      parts.push({ label: `Loaded only after you clicked Accept (listed, 0 points; accepting costs the 10 cookie points): ${unlocked.join(", ")}`, points: 0, kind: "observed" });
+    }
+    const occasional = [...byCompany.entries()].filter(([co, c]) => !c.afterAccept && !regular(co)).map(([co]) => co).sort((a, b) => a.localeCompare(b));
     if (occasional.length) {
       parts.push({ label: `Also seen on fewer than half of your ${visits} visits (0 points): ${occasional.join(", ")}`, points: 0, kind: "observed" });
     }

@@ -250,3 +250,21 @@ test("visits: each page load counts once, and each company once per visit, howev
   assert.strictEqual(site.companyVisits.Hotjar.n, 1);
   assert.strictEqual(site.trackers.length, 3, "the list still keeps every address seen this week");
 });
+
+test("trackers first seen after you click Accept are marked; seen again on a visit without Accept, the mark comes off", async () => {
+  const t = load();
+  t.listeners.nav({ frameId: 0, tabId: 9, url: "https://shop.example/" });
+  t.listeners.req({ tabId: 9, url: "https://stats.g.doubleclick.net/x" });
+  await t.flush();
+  await t.update("shop.example", "accepted");
+  t.listeners.req({ tabId: 9, url: "https://hotjar.com/s.js" });
+  await t.flush();
+  let site = t.store().privacData.sites.find(s => s.domain === "shop.example");
+  assert.ok(!site.trackers.find(x => x.company === "Google").afterAccept);
+  assert.strictEqual(site.trackers.find(x => x.company === "Hotjar").afterAccept, true);
+  t.listeners.nav({ frameId: 0, tabId: 9, url: "https://shop.example/" });   // next visit, no Accept click
+  t.listeners.req({ tabId: 9, url: "https://hotjar.com/s.js" });
+  await t.flush();
+  site = t.store().privacData.sites.find(s => s.domain === "shop.example");
+  assert.ok(!site.trackers.find(x => x.company === "Hotjar").afterAccept);
+});

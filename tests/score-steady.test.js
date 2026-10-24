@@ -74,3 +74,29 @@ test("a foreign-adversary company is flagged even if it showed up only once", ()
   assert.strictEqual(r.flagged.length, 1);
   assert.ok(r.parts.some((p) => p.points === 15 && /Yandex \(Russia\)/.test(p.label)));
 });
+
+// Cookie part (repo owner 2026-10-24, top option): trackers that load only after you click Accept are listed but add
+// no tracker points, so the site's grade is about the site; your choice still costs its 10 cookie points.
+test("companies that loaded only after you clicked Accept are listed, 0 points; Accept itself still costs 10", () => {
+  const base = [t("connect.facebook.net", "Meta"), t("google-analytics.com", "Google", "Analytics")];
+  const extra = [t("criteo.com", "Criteo", "Advertising", "FR"), t("rlcdn.com", "LiveRamp", "Data broker")].map((x) => ({ ...x, afterAccept: true }));
+  const declined = computeScore({ trackers: base, cookieChoice: "declined", policy: {} });
+  const accepted = computeScore({ trackers: [...base, ...extra], cookieChoice: "accepted", policy: {} });
+  assert.strictEqual(accepted.score - declined.score, 10);
+  const line = accepted.parts.find((p) => /after you clicked Accept/.test(p.label));
+  assert.strictEqual(line.points, 0);
+  assert.strictEqual(line.label, "Loaded only after you clicked Accept (listed, 0 points; accepting costs the 10 cookie points): Criteo, LiveRamp");
+});
+
+test("a company that also loaded before Accept (any of its addresses) still counts", () => {
+  const r = computeScore({ trackers: [t("doubleclick.net", "Google"), { ...t("googlesyndication.com", "Google"), afterAccept: true }], cookieChoice: "accepted", policy: {} });
+  assert.strictEqual(r.parts[0].points, 5);
+  assert.ok(!r.parts.some((p) => /after you clicked Accept/.test(p.label)));
+});
+
+test("an after-Accept company is listed once, on the Accept line, not also on the fewer-than-half line", () => {
+  const r = computeScore({ trackers: [t("doubleclick.net", "Google"), { ...t("criteo.com", "Criteo"), afterAccept: true }],
+    visits: 4, companyVisits: { Google: { n: 4 }, Criteo: { n: 1 } }, cookieChoice: "accepted", policy: {} });
+  assert.ok(!r.parts.some((p) => /fewer than half/.test(p.label)));
+  assert.match(r.parts.find((p) => /after you clicked Accept/.test(p.label)).label, /: Criteo$/);
+});
