@@ -8,10 +8,18 @@ const vm = require("node:vm");
 
 const SRC = fs.readFileSync(__dirname + "/../content/cookie-detector.js", "utf8");
 
+// Whether a fake element of this kind ("button", "link" or a form's "submit" button) matches a selector.
+function fits(kind, sel) {
+  if (kind === "link") return /(^|,\s*)a(\[|,|$)/.test(sel);
+  if (kind === "submit") return sel.includes('input[type="submit"]');
+  return true;
+}
+
 // A fake button or link. `banner` is what closest() finds around it (the cookie pop-up).
 function control(label, { kind = "button", banner = null } = {}) {
   return {
     kind, innerText: label, value: "", isConnected: true, clicks: 0, clickListeners: 0,
+    matches: (sel) => fits(kind, sel),
     getAttribute: () => null,
     getBoundingClientRect: () => ({ top: 100, bottom: 140, left: 100, right: 220, width: 120, height: 40 }),
     closest: () => banner,
@@ -62,8 +70,7 @@ function load(controls, { hosts = [], cookie = "" } = {}) {
     documentElement: {},
     querySelectorAll(sel) {
       if (sel === "*") { clock.checks++; return hosts; }
-      const withLinks = /(^|,\s*)a(\[|,|$)/.test(sel);
-      return controls.filter((c) => c.kind === "button" || withLinks);
+      return controls.filter((c) => fits(c.kind, sel));
     }
   };
   const ctx = {
@@ -353,3 +360,22 @@ test("settings-style no-words aren't a one-click Reject: C warns instead of stay
     assert.deepStrictEqual(load(bannerWith(labels).controls).kinds(), ["acceptOnly"], labels.join(" + "));
   }
 });
+
+// Reject shown as a plain link, or as a form's submit button. These count only inside a cookie pop-up.
+for (const kind of ["link", "submit"]) {
+  test(`Reject as a ${kind} inside a cookie pop-up: C offers to decline, and "Protect me" clicks it`, async () => {
+    const { banner, controls } = bannerWith(["Accept all"]);
+    const reject = control("Reject all", { kind, banner });
+    reject.click = () => { reject.clicks++; reject.isConnected = false; };
+    controls.push(reject);
+    const page = load(controls);
+    assert.deepStrictEqual(page.kinds(), ["cookie"]);
+    await page.calls[0][1].onDecline();
+    assert.strictEqual(reject.clicks, 1);
+    assert.strictEqual(controls[0].clicks, 0, "Accept isn't touched");
+  });
+
+  test(`a "Reject all" ${kind} outside any cookie pop-up is left alone`, () => {
+    assert.deepStrictEqual(load([control("Reject all", { kind, banner: null })]).kinds(), []);
+  });
+}

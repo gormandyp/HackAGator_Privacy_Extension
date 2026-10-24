@@ -104,7 +104,7 @@
 
   function findRejectButton() {
     const elements = queryAll(
-      'button, [role="button"], input[type="button"]'
+      'button, [role="button"], input[type="button"], input[type="submit"], a'
     );
     let other = null;
 
@@ -112,6 +112,9 @@
       // Ignore invisible buttons.
       const rect = element.getBoundingClientRect();
       if (!rect.width || !rect.height) continue;
+
+      // Some sites show Reject as a plain link or a form's submit button. Those count only inside a cookie pop-up.
+      if (!element.matches('button, [role="button"], input[type="button"]') && !cookieBannerAround(element)) continue;
 
       const label = (
         element.innerText ||

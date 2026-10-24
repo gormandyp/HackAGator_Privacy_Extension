@@ -15,6 +15,7 @@ function control(label) {
   return {
     innerText: label, value: "", isConnected: true, clicks: 0, scrolled: 0,
     getAttribute: () => null,
+    matches: () => true,   // every fake control here is a button
     getBoundingClientRect: () => ({ top: 100, bottom: 140, left: 100, right: 220, width: 120, height: 40 }),
     closest: () => null,
     click() { this.clicks++; },
