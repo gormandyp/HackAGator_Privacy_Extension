@@ -513,3 +513,21 @@ button.fact-title:hover { text-decoration-color: var(--hair-strong); }
   .detail-cols { grid-template-columns: 1fr; }
   .chat { height: calc(100vh - 150px); }
 }
+
+/* Glass color swatches (Settings > Appearance). Each dot previews its wallpaper's colors. */
+.swatches { display: flex; gap: 8px; }
+.swatch { width: 22px; height: 22px; padding: 0; border-radius: 50%; border: 0; cursor: pointer; position: relative;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .12), 0 1px 2px rgba(0, 0, 0, .12); transition: transform 160ms ease; }
+.swatch:hover { transform: scale(1.08); }
+.swatch[aria-checked="true"] { box-shadow: 0 0 0 2px var(--bg-2), 0 0 0 4px var(--text); }
+.swatch:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--bg-2), 0 0 0 4px var(--focus); }
+.swatch-aurora { background: linear-gradient(135deg, #5b92ff, #8f86ff 45%, #ffa477 75%, #3fcdb6); }
+.swatch-ocean { background: linear-gradient(135deg, #3a8dff, #3fb0ff 50%, #2fd0c8); }
+.swatch-forest { background: linear-gradient(135deg, #3fbf7f, #58c98a 50%, #cfe36b); }
+.swatch-sunset { background: linear-gradient(135deg, #ff8a5b, #ff6f91 50%, #ffd36e); }
+.swatch-rose { background: linear-gradient(135deg, #ff7eb6, #e58cff 50%, #b39bff); }
+.swatch-graphite { background: linear-gradient(135deg, #8f98a8, #c3c7d1); }
+.tint-note { display: none !important; }
+/* Under Clean the wallpaper is hidden, so the colors are dimmed and say why. */
+[data-style="clean"] .tint-row .swatches { opacity: .4; }
+[data-style="clean"] .tint-note { display: block !important; }

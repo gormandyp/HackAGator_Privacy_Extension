@@ -9,6 +9,8 @@
                                                  content/c-events.js)
     toolbar:    "panel" | "window"              (toolbar button: rounded panel on the page, or Chrome's own pop-up window;
                                                  see background/toolbar.js)
+    tint:       "aurora" | "ocean" | "forest" | "sunset" | "rose" | "graphite"
+                                                (the color behind Liquid glass; aurora is the original wallpaper)
   Outside the extension (opening the HTML file directly) settings live in localStorage so the look can be previewed.
 */
 (function () {
@@ -18,11 +20,13 @@
     popups: { cookie: true, acceptOnly: true, adversary: true },
     policyReader: true,
     toolbar: "panel",
-    autoDecline: false
+    autoDecline: false,
+    tint: "aurora"
   };
   const APPEARANCES = ["system", "light", "dark"];
   const STYLES = ["glass", "clean"];
   const TOOLBARS = ["panel", "window"];
+  const TINTS = ["aurora", "ocean", "forest", "sunset", "rose", "graphite"];
 
   // Fill gaps with defaults and drop unknown values, so a bad or old saved copy can't break anything.
   function merge(saved) {
@@ -35,7 +39,8 @@
       popups,
       policyReader: typeof s.policyReader === "boolean" ? s.policyReader : DEFAULTS.policyReader,
       toolbar: TOOLBARS.includes(s.toolbar) ? s.toolbar : DEFAULTS.toolbar,
-      autoDecline: typeof s.autoDecline === "boolean" ? s.autoDecline : DEFAULTS.autoDecline
+      autoDecline: typeof s.autoDecline === "boolean" ? s.autoDecline : DEFAULTS.autoDecline,
+      tint: TINTS.includes(s.tint) ? s.tint : DEFAULTS.tint
     };
   }
 
@@ -67,15 +72,16 @@
     return typeof matchMedia === "function" && matchMedia("(prefers-color-scheme: dark)").matches;
   }
 
-  // Sets <html data-theme="light|dark" data-style="glass|clean">; pages style themselves from those.
+  // Sets <html data-theme="light|dark" data-style="glass|clean" data-tint="aurora|ocean|...">; pages style themselves from those.
   function applyTheme(s, doc) {
     const el = (doc || document).documentElement;
     el.dataset.theme = isDark(s) ? "dark" : "light";
     el.dataset.style = s.style;
+    el.dataset.tint = s.tint;
     // Remember the look so the next page can paint it instantly (shared/theme-boot.js).
-    try { localStorage.setItem("privacLook", JSON.stringify({ theme: el.dataset.theme, style: s.style, appearance: s.appearance })); } catch (e) { /* ignore */ }
+    try { localStorage.setItem("privacLook", JSON.stringify({ theme: el.dataset.theme, style: s.style, tint: s.tint, appearance: s.appearance })); } catch (e) { /* ignore */ }
   }
 
   const root = typeof window !== "undefined" ? window : self;
-  root.PrivaCSettings = { DEFAULTS, merge, load, save, isDark, applyTheme };
+  root.PrivaCSettings = { DEFAULTS, TINTS, merge, load, save, isDark, applyTheme };
 })();

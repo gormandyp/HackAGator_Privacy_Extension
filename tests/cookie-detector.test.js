@@ -66,6 +66,7 @@ function load(controls, { hosts = [], cookie = "" } = {}) {
     chrome: { storage: { local: { get: async () => ({ privacData: { sites: [] } }), set: async (v) => saved.push(v) } } }
   };
   ctx.window = ctx;
+  ctx.top = ctx;   // the top page, not a frame
   ctx.PrivaCPrompt = P;
   vm.runInNewContext(SRC, ctx);
   return { calls, ctx, saved, kinds: () => calls.map((c) => c[0]) };
