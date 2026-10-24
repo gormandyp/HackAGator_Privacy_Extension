@@ -1,5 +1,7 @@
 # PrivaC
 
+> **This is the Ollama-only version (branch `ollama`).** The main download runs C's AI inside Chrome with nothing else to install: [main.zip](https://github.com/gormandyp/HackAGator_Privacy_Extension/archive/refs/heads/main.zip).
+
 A Chrome extension that shows which companies a website connects you to, what it stores in your browser, and grades the site's privacy A to F. **C**, a letter-C character, pops up to decline cookie tracking for you and answers questions like "Who is LiveRamp and should I worry?", using **Gemma 4 running on your own computer**.
 
 Built at Gator Hack V (UF AI Days 2026) for the "Fresh off the frontier" challenge.
@@ -26,8 +28,8 @@ PrivaC downloads whole public lists and matches them on your computer. It never 
 ## Download
 | Version | C's AI runs on | Download |
 |---|---|---|
-| **PrivaC** (main) | Gemma 4 E4B through the Ollama app on your computer | [main.zip](https://github.com/gormandyp/HackAGator_Privacy_Extension/archive/refs/heads/main.zip) · setup: [docs/OLLAMA.md](docs/OLLAMA.md) |
-| **PrivaC (in-browser AI)** | Gemma 4 E2B inside Chrome (WebGPU): nothing else to install | [in-browser-ai.zip](https://github.com/gormandyp/HackAGator_Privacy_Extension/archive/refs/heads/in-browser-ai.zip) · setup: [docs/IN-BROWSER-AI.md](https://github.com/gormandyp/HackAGator_Privacy_Extension/blob/in-browser-ai/docs/IN-BROWSER-AI.md) |
+| **PrivaC** (main, recommended) | Gemma 4 E2B inside Chrome (WebGPU): nothing else to install; Ollama works as a fallback | [main.zip](https://github.com/gormandyp/HackAGator_Privacy_Extension/archive/refs/heads/main.zip) · setup: [docs/IN-BROWSER-AI.md](https://github.com/gormandyp/HackAGator_Privacy_Extension/blob/main/docs/IN-BROWSER-AI.md) |
+| **PrivaC (Ollama)**, this branch | Gemma 4 E4B through the Ollama app on your computer | [ollama.zip](https://github.com/gormandyp/HackAGator_Privacy_Extension/archive/refs/heads/ollama.zip) · setup: [docs/OLLAMA.md](docs/OLLAMA.md) |
 
 Unzip, open `chrome://extensions`, turn on **Developer mode**, click **Load unpacked** and pick the unzipped folder. Load one version at a time.
 
