@@ -9,8 +9,8 @@ PrivaC's main download runs **Gemma 4 E2B inside Chrome**, on your computer's gr
    - If the main PrivaC is also loaded, turn it off first (both would show C's pop-ups).
 3. Click the PrivaC icon, open the dashboard, go to **Ask C**, and click **Download C's brain** (2.0 GB, one time;
    about 1 minute on fast Wi-Fi). Grades and C's pop-ups work while it downloads.
-4. When the download finishes, C loads Gemma right away. The very first time, Chrome sets up the graphics chip
-   (~20 s, the card says "Getting C's brain ready"); after that, answers start in about a second.
+4. When the download finishes, C loads Gemma right away (a few seconds, the card says "Getting C's brain ready"). You can
+   keep browsing meanwhile; after that, answers start in about a second.
 
 **Offline / no download:** put `gemma-4-E2B-it-web.litertlm` (from
 https://huggingface.co/litert-community/gemma-4-E2B-it-litert-lm, Apache 2.0) in a `models/` folder inside the extension
@@ -28,7 +28,7 @@ folder before step 2. PrivaC then uses that file and never goes online for the m
 | Ask C, first words on screen | ~0.8 s | ~2.4 s |
 | Ask C, whole answer | ~2-2.5 s | ~3.7 s |
 | Reading one privacy policy (8 questions, in the background) | ~7.7 s | ~4.7 s |
-| Loading the model | ~1 s (first time ever: ~20 s) | ~4 s |
+| Loading the model | ~1.5 s (first load after Chrome starts: 3-6 s) | ~4 s |
 
 If you ask C while a privacy policy is being read in the background, C answers first (first words ~1 s) and the
 policy reading picks up right after (checked on the Mac with the real model).
@@ -44,6 +44,11 @@ Before the speed work on `perf`, the same Ask C question took 16 s with nothing 
 - `shared/ai.js` (background) sends Ask C questions and policy questions there and streams the words back to Ask C.
   If the brain isn't downloaded yet, is still downloading, can't run here or fails, and Ollama is running, Ollama
   answers instead.
+- No frozen Chrome while Gemma loads: the runtime compiles ~150 small programs for the graphics chip, and Chrome
+  compiles them on the thread that draws every tab. Done the runtime's (blocking) way, that froze all of Chrome for
+  15-20 s after the download (measured: 0 frames drawn). So `shared/brain-core.js` first loads Gemma once with stand-in
+  programs to learn which ones it needs, compiles those the non-blocking way, then loads Gemma for real (measured:
+  Chrome kept drawing at full speed, 3-6 s in all). This happens once per Chrome session.
 - Speed tricks: Gemma reads C's instructions before you ask (when the popup or dashboard opens, and again right after
   each answer),
   Ask C sends a short summary of your browsing (~4,000 tokens) instead of everything, and background policy reading
