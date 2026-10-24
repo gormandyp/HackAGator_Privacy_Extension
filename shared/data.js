@@ -100,9 +100,23 @@
     const [cookiePts, cookieLabel] = COOKIE[site.cookieChoice] || COOKIE.none;
     parts.push({ label: cookieLabel, points: cookiePts, kind: "observed" });
 
-    const flagged = t.filter(x => FOREIGN_ADVERSARIES[x.country]);
-    const flagPts = flagged.length ? 15 : 0;
-    parts.push({ label: flagged.length ? `Link to a company in a listed foreign-adversary country` : "No foreign-adversary links", points: flagPts, kind: "observed" });
+    // Foreign-adversary line (15 points, counted once): a tracker company based in a 15 CFR 7.4 country,
+    // a tracker company on the Pentagon's Section 1260H list, or the site's own company based in a listed country.
+    const flagged = t.filter(x => FOREIGN_ADVERSARIES[x.country] || x.listed);
+    const owner = site.owner && FOREIGN_ADVERSARIES[site.owner.country] ? site.owner : null;
+    const listed = flagged.filter(x => x.listed);
+    let flagLabel = "No foreign-adversary links";
+    if (listed.length) {
+      const names = [...new Set(listed.map(x => x.company))].join(", ");
+      flagLabel = `Link to ${names}, on the Pentagon's Section 1260H list of Chinese military companies (June 2026)`;
+    } else if (flagged.length) {
+      const names = [...new Set(flagged.map(x => `${x.company} (${FOREIGN_ADVERSARIES[x.country]})`))].join(", ");
+      flagLabel = `Link to a company in a listed foreign-adversary country: ${names}`;
+    } else if (owner) {
+      flagLabel = `This site is owned by ${owner.company}, based in ${FOREIGN_ADVERSARIES[owner.country]} (a listed foreign-adversary country)`;
+    }
+    const flagPts = flagged.length || owner ? 15 : 0;
+    parts.push({ label: flagLabel, points: flagPts, kind: "observed" });
 
     const p = site.policy || {};
     let policyPts = 0, policyLabel = "Privacy policy not checked yet";
@@ -124,7 +138,7 @@
     }
 
     const score = Math.min(100, parts.reduce((s, x) => s + x.points, 0));
-    return { score, grade: gradeFor(score), parts, flagged };
+    return { score, grade: gradeFor(score), parts, flagged, ownerFlag: owner };
   }
 
   function gradeFor(score) {
@@ -150,6 +164,7 @@
           const lists = res.privacLists || null;
           const root = typeof window !== "undefined" ? window : self;
           if (lists && root.PrivaCLists) root.PrivaCLists.annotate(res.privacData, lists, null);
+          annotateListed(res.privacData, await flaggedFile());
           const out = enrich(res.privacData);
           out.lists = lists ? { breachesAsOf: lists.hibp && lists.hibp.fetchedAt, brokersAsOf: lists.brokers && lists.brokers.fetchedAt } : null;
           return out;
@@ -157,6 +172,22 @@
       } catch (e) { /* fall through to sample */ }
     }
     return enrich(SAMPLE_DATA);
+  }
+
+  // Section 1260H companies (shared/flagged-companies.json, hand-checked by Max). Marks trackers whose company is listed.
+  let FLAGGED = null;
+  async function flaggedFile() {
+    if (FLAGGED) return FLAGGED;
+    try { FLAGGED = await fetch(chrome.runtime.getURL("shared/flagged-companies.json")).then(r => r.json()); } catch (e) { FLAGGED = null; }
+    return FLAGGED;
+  }
+  function annotateListed(data, file) {
+    const list = (file && file.companies) || [];
+    for (const s of (data && data.sites) || []) for (const t of s.trackers || []) {
+      const hit = list.find(c => c.atlasCompany.toLowerCase() === String(t.company || "").toLowerCase());
+      t.listed = hit ? { list: "Section 1260H", date: file.listDate, contested: /sued|contest/i.test(hit.note || "") } : null;
+    }
+    return data;
   }
 
   function enrich(data) {
@@ -179,5 +210,5 @@
     if (hasChrome()) await chrome.storage.local.remove("privacData");
   }
 
-  window.PrivaCData = { load, currentDomain, clearAll, computeScore, gradeFor, GRADE_WORDS, FOREIGN_ADVERSARIES };
+  window.PrivaCData = { annotateListed, load, currentDomain, clearAll, computeScore, gradeFor, GRADE_WORDS, FOREIGN_ADVERSARIES };
 })();

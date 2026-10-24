@@ -64,3 +64,23 @@ test("grade boundaries", () => {
   assert.strictEqual(gradeFor(80), "D");
   assert.strictEqual(gradeFor(81), "F");
 });
+
+const fs = require("node:fs");
+const flaggedFile = JSON.parse(fs.readFileSync(__dirname + "/../shared/flagged-companies.json", "utf8"));
+
+test("1260H company: names the list and date, 15 points, never doubled with its country", () => {
+  const data = { sites: [{ trackers: [{ domain: "baidu.com", company: "Baidu", category: "Tracking", country: "CN" }], cookieChoice: "declined", policy: {} }] };
+  window.PrivaCData.annotateListed(data, flaggedFile);
+  const r = computeScore(data.sites[0]);
+  const line = r.parts.find(p => /1260H/.test(p.label));
+  assert.match(line.label, /Baidu, on the Pentagon's Section 1260H list of Chinese military companies \(June 2026\)/);
+  assert.strictEqual(r.score, 5 + 15);
+});
+
+test("a site owned by a company in a listed country gets the same single flag", () => {
+  const r = computeScore({ trackers: [], owner: { company: "Yandex", country: "RU" }, cookieChoice: "none", policy: {} });
+  assert.strictEqual(r.score, 15);
+  assert.match(r.parts.find(p => p.points === 15).label, /owned by Yandex, based in Russia/);
+  const both = computeScore({ trackers: [tracker("Analytics", "RU")], owner: { company: "Yandex", country: "RU" }, cookieChoice: "declined", policy: {} });
+  assert.strictEqual(both.score, 5 + 15);
+});

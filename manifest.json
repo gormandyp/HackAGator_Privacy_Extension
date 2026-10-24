@@ -32,8 +32,10 @@
       ],
       "js": [
         "shared/mascot.js",
+        "content/regtrack-line.js",
         "content/c-prompt.js",
-        "content/cookie-detector.js"
+        "content/cookie-detector.js",
+        "content/alerts.js"
       ],
       "run_at": "document_idle"
     }
@@ -44,5 +46,15 @@
   ],
   "background": {
     "service_worker": "background.js"
-  }
+  },
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "shared/regtrack-facts.json"
+      ],
+      "matches": [
+        "<all_urls>"
+      ]
+    }
+  ]
 }

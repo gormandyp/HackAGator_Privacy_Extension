@@ -30,7 +30,7 @@
 
   const n = site.trackers.length;
   const companies = [...new Set(site.trackers.map((t) => t.company))];
-  const flaggedNames = [...new Set(site.flagged.map((t) => `${t.company} (${PrivaCData.FOREIGN_ADVERSARIES[t.country]})`))];
+  const flaggedNames = [...new Set(site.flagged.map((t) => `${t.company} (${[PrivaCData.FOREIGN_ADVERSARIES[t.country], t.listed ? "Pentagon 1260H list, June 2026" : null].filter(Boolean).join("; ")})`))];
 
   $("app").innerHTML = `
     <p class="site-line">You're on <strong>${escapeHtml(site.domain)}</strong></p>
