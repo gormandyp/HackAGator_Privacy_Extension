@@ -61,7 +61,7 @@
           <tbody>
             <tr><td>Each tracker connection to an outside company</td><td>5 each, up to 40</td></tr>
             <tr><td>Each one used for advertising, data brokering or screen recording</td><td>5 each, up to 20</td></tr>
-            <tr><td>Cookies: accepted all, or the banner had no Reject button / declined / no banner</td><td>10 / 0 / 0</td></tr>
+            <tr><td>Cookies: accepted all, banner had no Reject button, or no banner while the site tracks you / declined, or no banner and no tracking</td><td>10 / 0</td></tr>
             <tr><td>Any company based in a listed foreign-adversary country</td><td>15</td></tr>
             <tr><td>Privacy policy: sells / shares / neither / not checked yet</td><td>15 / 8 / 0 / 0</td></tr>
             <tr><td>The site's own data breach (Have I Been Pwned): last 12 months / older</td><td>15 / 5</td></tr>
@@ -89,12 +89,13 @@
   </main>
 
   <footer class="wrap foot">
-    <p><b>Your browsing and your questions to C stay on this computer.</b> PrivaC only downloads public lists (trackers, data breaches, data brokers) and never sends anything about what you visit. It saves site names only, never full web addresses, and deletes history older than 7 days on its own.</p>
-    <p class="sources">Sources: tracker data from <a href="https://github.com/duckduckgo/tracker-radar" target="_blank" rel="noopener">DuckDuckGo Tracker Radar</a> (CC BY-NC-SA 4.0) · breach data from <a href="https://haveibeenpwned.com" target="_blank" rel="noopener">Have I Been Pwned</a> (CC BY 4.0) · data broker list from the <a href="https://cppa.ca.gov/data_broker_registry/" target="_blank" rel="noopener">California Privacy Protection Agency</a> · AI: Gemma 4 running locally with Ollama.</p>
+    <p><b>Your browsing and your questions to C stay on this computer.</b> PrivaC only downloads public lists (trackers, data breaches, data brokers) and never sends anything about what you visit. It saves site names and cookie names only (never full web addresses or what's inside a cookie), and deletes history older than 7 days on its own.</p>
+    <p class="sources">Sources: tracker data from <a href="https://github.com/duckduckgo/tracker-radar" target="_blank" rel="noopener">DuckDuckGo Tracker Radar</a> (CC BY-NC-SA 4.0) · breach data from <a href="https://haveibeenpwned.com" target="_blank" rel="noopener">Have I Been Pwned</a> (CC BY 4.0) · data broker list from the <a href="https://cppa.ca.gov/data_broker_registry/" target="_blank" rel="noopener">California Privacy Protection Agency</a> · cookie purposes from the <a href="https://github.com/jkwakman/Open-Cookie-Database" target="_blank" rel="noopener">Open Cookie Database</a> (Apache 2.0) · AI: Gemma 4 running locally with Ollama.</p>
   </footer>
 
   <script src="../shared/mascot.js"></script>
   <script src="../shared/lists.js"></script>
+  <script src="../shared/cookies.js"></script>
   <script src="../shared/data.js"></script>
   <script src="dashboard.js"></script>
   <script src="ask-c.js"></script>

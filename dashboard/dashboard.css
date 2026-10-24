@@ -209,6 +209,7 @@
   --src-regtrack: #e1f3ee; --src-regtrack-ink: #18624e;
   --src-policy: #eceef1;   --src-policy-ink: #4a5672;
   --src-gov: #fbe7e4;      --src-gov-ink: #8f2a1c;
+  --src-cookie: #f6eedd;   --src-cookie-ink: #6d4a12;
 }
 .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
@@ -264,6 +265,7 @@
 .src-regtrack { background: var(--src-regtrack); color: var(--src-regtrack-ink); }
 .src-policy { background: var(--src-policy); color: var(--src-policy-ink); }
 .src-gov { background: var(--src-gov); color: var(--src-gov-ink); }
+.src-cookie { background: var(--src-cookie); color: var(--src-cookie-ink); }
 
 .sample-tag { margin-top: 8px !important; font-size: 11.5px; color: var(--ink-3); font-style: italic; }
 

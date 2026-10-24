@@ -15,7 +15,7 @@ Everyday internet users, students included, who worry their data is collected an
 - Code computes an **exposure score 0-100** from fixed rules (v3, Oct 23 9:45 PM: only things PrivaC actually saw or found on record add points; unknown = 0):
   - Trackers: 5 points each, up to 40. Tracker list = shared/atlas.json (DuckDuckGo Tracker Radar). Requests to the site's own company don't count.
   - Ad, data-broker or session-recording trackers: 5 points each, up to 20.
-  - Cookies: accepted all 10, banner with no Reject button 10, declined 0, no banner seen 0.
+  - Cookies: accepted all 10, banner with no Reject button 10, no banner while trackers or tracking cookies are present 10 (you were never asked), declined 0, no banner and no tracking 0.
   - Foreign-adversary-country company present: 15.
   - Privacy policy: sells 15, shares 8, neither 0, not checked yet 0.
   - The site's own data breach (Have I Been Pwned): added in the last 12 months 15, older 5.

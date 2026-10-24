@@ -12,7 +12,8 @@ How to answer:
 - Plain English, no jargon. 2 to 4 short sentences, then a line starting "What you can do:" with 2 or 3 concrete steps from the Steps list.
 - Answer the question that was asked first. Then connect it to their own browsing if something there is relevant.
 - Use ONLY the evidence you are given. If it doesn't answer the question, say you don't know yet.
-- Put a source tag right after each fact, copied exactly from the evidence line it came from: [Seen on your visit], [Tracker Radar], [Privacy policy], [HIBP], [CA Broker Registry] or [Government list]. Never invent other tags.
+- Put a source tag right after each fact, copied exactly from the evidence line it came from: [Seen on your visit], [Tracker Radar], [Privacy policy], [HIBP], [CA Broker Registry], [Cookie Database] or [Government list]. Never invent other tags.
+- When asked what a site collects, list the cookies by purpose, name 2 or 3 advertising cookies with their company and how long they last, say which ones the site doesn't need to work, and mention device fingerprinting if present.
 - If a site had a data breach [HIBP], say when, how many accounts and what kind of data, and tell the person to change that password. No backticks, no markdown, no lists with symbols.
 - Never say data was sent to a government. A tracker loading means the company could collect data; it doesn't prove the data was sold or shared.
 - Don't mention sample data; the dashboard already says so.
@@ -28,6 +29,9 @@ Answer: Criteo is an advertising company based in France. [Tracker Radar] Its tr
 - China's 2017 National Intelligence Law (Article 7) says organizations must support and cooperate with state intelligence work, so Chinese companies may be legally unable to refuse a government request for data they hold. [Government list]
 - Russia's 2016 "Yarovaya" laws require internet and phone companies to store users' data and hand it to security services on request, and a 2015 law requires Russians' personal data to be stored inside Russia. [Government list]
 - The Pentagon's 1260H list names Chinese military companies; Baidu and Alibaba are on it. [Government list]
+
+- Every request to a tracker sends your IP address (which shows your rough location), the address of the page you're on, and your browser and device details. Cookies let the tracker recognize you again next time.
+- Cookies marked "advertising and profiling" or "measures your visits" are not needed for a site to work. Advertising cookies build a profile of your interests that ad companies use to target you; registered data brokers sell profiles like these.
 
 Steps the person can take (no tag needed):
 - Let C decline non-essential cookies, or click "Reject all" on the site's cookie banner.
@@ -50,7 +54,19 @@ Steps the person can take (no tag needed):
       : (p.sells === false && p.shares === false) ? "says it doesn't sell or share [Privacy policy]" : "not reviewed yet";
     const day = s.lastVisit ? String(s.lastVisit).slice(0, 10) : "unknown date";
     const br = s.breach ? `; ${breachText(s.breach)}` : "";
-    return `- ${s.domain}, visited ${day}: grade ${s.grade}, exposure ${s.score}/100, cookies ${s.cookieChoice || "none"} [Seen on your visit]; trackers seen [Seen on your visit]: ${t}; privacy policy ${pol}${br}`;
+    const C = (typeof window !== "undefined" ? window : self).PrivaCCookies;
+    let ck = "";
+    if (s.cookies && s.cookies.length && C) {
+      const sum = C.summarize(s.cookies);
+      const parts = Object.entries(sum.byCategory).map(([k, n]) => `${n} ${C.KIND[k] ? C.KIND[k].label : "purpose unknown"}`);
+      const ads = sum.marketing.slice(0, 4).map(c => `${c.name} (${c.company || c.domain}, kept ${C.lifetime(c.days)}${c.firstParty ? "" : ", third-party"})`).join(", ");
+      ck = `; cookies stored: ${sum.total} (${parts.join(", ")}) [Seen on your visit] [Cookie Database]` +
+        (ads ? `; advertising cookies: ${ads} [Cookie Database]` : "") +
+        `; ${sum.unneededCount} of them aren't needed for the site to work [Cookie Database]`;
+    }
+    const fp = (s.trackers || []).filter(x => (x.fingerprinting || 0) >= 2).map(x => x.company);
+    const fpText = fp.length ? `; trackers that read device details to recognize you without cookies (fingerprinting): ${[...new Set(fp)].join(", ")} [Tracker Radar]` : "";
+    return `- ${s.domain}, visited ${day}: grade ${s.grade}, exposure ${s.score}/100, cookies ${s.cookieChoice || "none"} [Seen on your visit]; trackers seen [Seen on your visit]: ${t}; privacy policy ${pol}${br}${ck}${fpText}`;
   }
 
   // Facts about companies or sites named in the question, looked up in the local lists.
@@ -99,12 +115,13 @@ Steps the person can take (no tag needed):
     return `${date}\n${BACKGROUND}\n\nSites you visited, riskiest first (${sites.length}):\n${sites.map(siteLine).join("\n")}`;
   }
 
-  const TAGS = ["Seen on your visit", "Tracker Radar", "CA Broker Registry", "HIBP", "RegTrack", "Privacy policy", "Government list"];
+  const TAGS = ["Seen on your visit", "Tracker Radar", "CA Broker Registry", "HIBP", "RegTrack", "Privacy policy", "Government list", "Cookie Database"];
   const TAG_ALIASES = {
     "sites visited": "Seen on your visit", "your browsing": "Seen on your visit", "browsing": "Seen on your visit",
     "seen during your visit": "Seen on your visit", "observed": "Seen on your visit", "sample data": "Seen on your visit",
     "policy": "Privacy policy", "tracker radar data": "Tracker Radar", "government": "Government list",
-    "government lists": "Government list", "background facts": "Government list", "15 cfr 7.4": "Government list"
+    "government lists": "Government list", "background facts": "Government list", "15 cfr 7.4": "Government list",
+    "open cookie database": "Cookie Database", "cookies": "Cookie Database", "cookie db": "Cookie Database"
   };
 
   // Fix Gemma's small formatting slips so the panel shows clean labels and "you".
@@ -138,6 +155,7 @@ Steps the person can take (no tag needed):
       const text = cleanAnswer(raw);
       if (/\[Government list\]/.test(text)) trace.push({ tool: "background_facts", label: "Government lists" });
       if (/\[Tracker Radar\]/.test(text)) trace.push({ tool: "lookup_company", label: "Tracker Radar" });
+      if (/\[Cookie Database\]/.test(text)) trace.push({ tool: "cookies", label: "Cookie Database" });
       if (/\[HIBP\]/.test(text)) trace.push({ tool: "breaches", label: "Have I Been Pwned" });
       if (/\[CA Broker Registry\]/.test(text)) trace.push({ tool: "brokers", label: "CA Broker Registry" });
       return { answer: text, trace };

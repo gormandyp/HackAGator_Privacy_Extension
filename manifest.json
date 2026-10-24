@@ -22,7 +22,8 @@
     "activeTab",
     "webRequest",
     "webNavigation",
-    "alarms"
+    "alarms",
+    "cookies"
   ],
   "content_scripts": [
     {

@@ -10,6 +10,7 @@
         domain: "dailynews.example",
         lastVisit: "2026-10-23T14:02:00Z",
         cookieChoice: "declined" | "accepted" | "no-reject" | "none",   // "none" = no banner seen; "no-reject" = banner had no way to say no
+        cookies: [ { name, domain, firstParty, category, company, purpose, days } ],  // names only, never values (shared/cookies.js)
         breach: { name, breachDate, addedDate, pwnCount } | null,      // the site's own most recent breach (Have I Been Pwned)
         policy: { sells: true|false|null, shares: true|false|null, source: "url or null" },
         trackers: [
@@ -86,12 +87,15 @@
     const adPts = Math.min(20, adCount * 5);
     parts.push({ label: `${adCount} used for advertising, data brokering or recording your screen`, points: adPts, kind: "observed" });
 
-    // Only what PrivaC actually saw costs points. No banner on the page = nothing to judge = 0.
+    // Cookies: points come off when you weren't given a real way to say no.
+    // No banner is only fine when the site doesn't track you (nothing to refuse).
+    const trackingCookies = (site.cookies || []).filter(c => c.category === "Marketing" || c.category === "Analytics").length;
+    const tracksYou = t.length > 0 || trackingCookies > 0;
     const COOKIE = {
       accepted:    [10, "All cookies accepted"],
       "no-reject": [10, "Cookie banner had no Reject button"],
       declined:    [0,  "Non-essential cookies declined"],
-      none:        [0,  "No cookie banner seen"]
+      none:        tracksYou ? [10, "Tracks you with no cookie banner: you were never asked"] : [0, "No cookie banner, and nothing tracking you"]
     };
     const [cookiePts, cookieLabel] = COOKIE[site.cookieChoice] || COOKIE.none;
     parts.push({ label: cookieLabel, points: cookiePts, kind: "observed" });

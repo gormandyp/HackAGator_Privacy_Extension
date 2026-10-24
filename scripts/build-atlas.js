@@ -68,8 +68,8 @@ for (const f of fs.readdirSync(dir)) {
   // Uncategorized but behaves like a tracker (fingerprinting or sets cookies) and has a known owner.
   if (!hit && !(j.categories || []).length && owner && ((j.fingerprinting || 0) >= 1 || (j.cookies || 0) > 0)) hit = [null, "Tracking"];
   if (!hit) continue;
-  // [company, category, country, prevalence %]
-  domains[j.domain] = [owner || j.domain, hit[1], country(owner), Math.round((j.prevalence || 0) * 10000) / 100];
+  // [company, category, country, prevalence %, fingerprinting 0-3]
+  domains[j.domain] = [owner || j.domain, hit[1], country(owner), Math.round((j.prevalence || 0) * 10000) / 100, j.fingerprinting || 0];
   if (owner) owners.add(owner);
 }
 
@@ -84,7 +84,7 @@ for (const f of fs.readdirSync(path.join(src, "entities"))) {
 const out = {
   builtAt: new Date().toISOString().slice(0, 10),
   source: "DuckDuckGo Tracker Radar (US crawl), CC BY-NC-SA 4.0, https://github.com/duckduckgo/tracker-radar",
-  fields: ["company", "category", "country", "prevalencePercent"],
+  fields: ["company", "category", "country", "prevalencePercent", "fingerprinting (0 none - 3 heavy: reads device details to recognize you without cookies)"],
   domains,
   entities
 };

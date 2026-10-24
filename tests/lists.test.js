@@ -40,7 +40,7 @@ test("annotated sites score the breach and count broker trackers", () => {
   L.annotate(data, lists, atlas);
   const r = window.PrivaCData.computeScore(data.sites[0], Date.parse("2026-10-23"));
   assert.strictEqual(data.sites[0].trackers[0].broker, "LiveRamp Holdings, Inc.");
-  assert.strictEqual(r.score, 5 + 5 + 15); // tracker + broker + recent breach
+  assert.strictEqual(r.score, 5 + 5 + 10 + 15); // tracker + broker + tracked with no banner + recent breach
 });
 
 test("Ask C looks up companies and breached sites named in the question", () => {
@@ -61,4 +61,30 @@ test("refresh downloads both lists once a day and keeps the old copy if a downlo
   const down = async () => { throw new Error("offline"); };
   await L.refresh({ fetch: down, storage, now: Date.parse("2026-10-25T10:00:00Z") });
   assert.ok(store.privacLists.hibp.byDomain["wired.com"]);
+});
+
+require("../shared/cookies.js");
+const cookieDb = JSON.parse(fs.readFileSync(__dirname + "/../shared/cookie-db.json", "utf8"));
+
+test("cookies: names are classified, values are never kept", () => {
+  const now = Date.parse("2026-10-23");
+  const c = window.PrivaCCookies.describe({ name: "_fbp", value: "fb.1.secret", domain: ".cnn.com", expirationDate: now / 1000 + 90 * 86400 }, "cnn.com", cookieDb, now);
+  assert.deepStrictEqual(Object.keys(c).sort(), ["category", "company", "days", "domain", "firstParty", "name", "purpose"]);
+  assert.strictEqual(c.category, "Marketing");
+  assert.strictEqual(c.company, "Facebook");
+  assert.strictEqual(c.days, 90);
+  assert.ok(!JSON.stringify(c).includes("secret"));
+});
+
+test("Ask C context explains what a site collects", () => {
+  const C = window.PrivaCCookies;
+  const site = { domain: "cnn.com", score: 50, grade: "C", cookieChoice: "no-reject", trackers: [{ company: "Google", category: "Advertising", country: "US", fingerprinting: 3 }],
+    cookies: [C.describe({ name: "_fbp", domain: ".cnn.com", expirationDate: Date.now() / 1000 + 9e6 }, "cnn.com", cookieDb),
+              C.describe({ name: "_ga", domain: ".cnn.com", session: true }, "cnn.com", cookieDb),
+              C.describe({ name: "__cf_bm", domain: ".cnn.com", session: true }, "cnn.com", cookieDb)] };
+  const ctx = window.PrivaCAskC.buildContext({ sites: [site] }, "2026-10-23");
+  assert.match(ctx, /cookies stored: 3 \(1 advertising and profiling, 1 measures your visits, 1 needed for the site to work\)/);
+  assert.match(ctx, /advertising cookies: _fbp \(Facebook, kept \d+ months\)/);
+  assert.match(ctx, /2 of them aren't needed for the site to work \[Cookie Database\]/);
+  assert.match(ctx, /fingerprinting\): Google \[Tracker Radar\]/);
 });

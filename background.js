@@ -2,7 +2,7 @@
 // For now: answers "Ask C" questions from the dashboard using Gemma via Ollama.
 // Also loads background/tracking.js, which records each tab's trackers into privacData.
 self.window = self; // shared/*.js attach themselves to window
-importScripts("shared/lists.js", "shared/data.js", "shared/gemma.js", "shared/askc.js", "background/tracking.js");
+importScripts("shared/lists.js", "shared/cookies.js", "shared/data.js", "shared/gemma.js", "shared/askc.js", "background/tracking.js");
 
 // Download the public breach and data-broker lists: at startup and once a day.
 // Whole files only; nothing about your browsing is sent (see shared/lists.js).

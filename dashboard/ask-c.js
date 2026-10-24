@@ -27,7 +27,8 @@
     "HIBP": "hibp",
     "RegTrack": "regtrack",
     "Privacy policy": "policy",
-    "Government list": "gov"
+    "Government list": "gov",
+    "Cookie Database": "cookie"
   };
 
   // What each tool is called in the "C checked" line.
@@ -42,7 +43,8 @@
   const SUGGESTED = [
     "Who is LiveRamp and should I worry?",
     "Which data brokers have seen me?",
-    "Why did flightdeals get an F?"
+    "Why did flightdeals get an F?",
+    "What is this site collecting about me?"
   ];
 
   // ---------- Sample answers (used only when the real AI isn't connected) ----------

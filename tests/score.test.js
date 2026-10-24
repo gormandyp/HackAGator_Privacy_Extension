@@ -25,7 +25,14 @@ test("foreign-adversary country adds 15 and is flagged", () => {
   assert.strictEqual(r.score, 5 + 15);
 });
 
-test("rubric v3: no banner and an unchecked policy add nothing (fresh Google tab = A)", () => {
+test("no banner with trackers = never asked = 10; no banner and nothing tracking = 0", () => {
+  const tracked = computeScore({ trackers: [tracker("Analytics")], cookieChoice: "none", policy: {} });
+  assert.strictEqual(tracked.score, 5 + 10);
+  const cookieOnly = computeScore({ trackers: [], cookies: [{ name: "_fbp", category: "Marketing" }], cookieChoice: "none", policy: {} });
+  assert.strictEqual(cookieOnly.score, 10);
+});
+
+test("rubric v3: no banner, no tracking and an unchecked policy add nothing", () => {
   const r = computeScore({ trackers: [] , cookieChoice: "none", policy: { sells: null, shares: null } });
   assert.strictEqual(r.score, 0);
   assert.strictEqual(r.grade, "A");
@@ -37,7 +44,7 @@ test("a banner with no reject option costs as much as accepting all", () => {
 });
 
 test("session recording counts with advertising", () => {
-  const r = computeScore({ trackers: [tracker("Session recording")], cookieChoice: "none", policy: {} });
+  const r = computeScore({ trackers: [tracker("Session recording")], cookieChoice: "declined", policy: {} });
   assert.strictEqual(r.score, 10);
 });
 

@@ -21,11 +21,14 @@ const TRACKERS = [
 
 const tabSites = new Map(); // tabId -> site being visited (rebuilt as you browse)
 
-let ATLAS = null;
+let ATLAS = null, COOKIE_DB = null;
 function setAtlas(a) { ATLAS = a; }
+function setCookieDb(d) { COOKIE_DB = d; }
 if (typeof chrome !== "undefined" && chrome.runtime && chrome.runtime.getURL) {
   fetch(chrome.runtime.getURL("shared/atlas.json")).then(r => r.json()).then(setAtlas)
     .catch(e => console.warn("PrivaC: atlas.json didn't load, using the short fallback list", e));
+  fetch(chrome.runtime.getURL("shared/cookie-db.json")).then(r => r.json()).then(setCookieDb)
+    .catch(e => console.warn("PrivaC: cookie-db.json didn't load", e));
 }
 
 // "a.b.example.com" -> ["a.b.example.com", "b.example.com", "example.com"]
@@ -40,7 +43,7 @@ function matchingTracker(hostname) {
   if (ATLAS) {
     for (const d of suffixes(hostname)) {
       const hit = ATLAS.domains[d];
-      if (hit) return { domain: d, company: hit[0], category: hit[1], country: hit[2] };
+      if (hit) return { domain: d, company: hit[0], category: hit[1], country: hit[2], fingerprinting: hit[4] || 0 };
     }
     return null;
   }
@@ -104,12 +107,51 @@ function saveSite(site) {
         lastVisit: site.lastVisit,
         trackers,
         cookieChoice: old.cookieChoice && old.cookieChoice !== "none" ? old.cookieChoice : site.cookieChoice,
+        cookies: old.cookies || site.cookies,
         policy: old.policy && old.policy.source ? old.policy : site.policy
       };
     }
     await chrome.storage.local.set({ privacData: data });
   }).catch(e => console.warn("PrivaC: could not save site", e));
   return saveChain;
+}
+
+// Cookie inventory: list the cookies the site and its trackers keep in this browser.
+// Only name, owner domain and lifetime are kept; values are dropped right here and never stored.
+async function inventoryCookies(domain) {
+  if (!(chrome.cookies && chrome.cookies.getAll) || typeof PrivaCCookies === "undefined") return;
+  const site = [...tabSites.values()].find(s => s.domain === domain);
+  const roots = siteRoots(domain);
+  const lookIn = new Set([roots[roots.length - 1] || domain, ...((site && site.trackers) || []).map(t => t.domain)]);
+  const found = new Map();
+  for (const d of lookIn) {
+    let list = [];
+    try { list = await chrome.cookies.getAll({ domain: d }); } catch (e) { continue; }
+    for (const c of list) {
+      const item = PrivaCCookies.describe(c, domain, COOKIE_DB);
+      found.set(item.name + "@" + item.domain, item);
+    }
+  }
+  const cookies = [...found.values()].slice(0, 80);
+  saveChain = saveChain.then(async () => {
+    const res = await chrome.storage.local.get("privacData");
+    const s = res.privacData && Array.isArray(res.privacData.sites) && res.privacData.sites.find(x => x.domain === domain);
+    if (!s) return;
+    s.cookies = cookies;
+    await chrome.storage.local.set({ privacData: res.privacData });
+  }).catch(e => console.warn("PrivaC: could not save cookies", e));
+  return saveChain;
+}
+
+if (chrome.webNavigation.onCompleted) {
+  chrome.webNavigation.onCompleted.addListener(details => {
+    if (details.frameId !== 0) return;
+    const domain = cleanDomain(details.url);
+    if (!domain) return;
+    // Trackers set cookies a few seconds after the page loads, so look twice.
+    setTimeout(() => inventoryCookies(domain), 4000);
+    setTimeout(() => inventoryCookies(domain), 15000);
+  });
 }
 
 // Cookie choices reported by content/cookie-detector.js.
