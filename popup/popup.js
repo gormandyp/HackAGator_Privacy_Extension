@@ -13,11 +13,16 @@
   $("open-dashboard-top").addEventListener("click", () => openDashboard());
 
   const data = await PrivaCData.load();
-  if (data.sample) $("sample-note").hidden = false;
-
   // ?site=domain lets you preview any site's popup outside Chrome (handy for demos).
-  const domain = new URLSearchParams(location.search).get("site") || (await PrivaCData.currentDomain());
-  let site = domain ? data.sites.find((s) => s.domain === domain) : data.sites[0];
+  const preview = new URLSearchParams(location.search).get("site");
+  const inExtension = typeof chrome !== "undefined" && chrome.runtime && chrome.runtime.id;
+  // Inside the real extension, never show a sample site as if it were the page you're on.
+  const useSample = data.sample && (!inExtension || preview);
+  if (useSample) $("sample-note").hidden = false;
+  const sites = data.sample && !useSample ? [] : data.sites;
+
+  const domain = preview || (await PrivaCData.currentDomain());
+  let site = domain ? sites.find((s) => s.domain === domain) : sites[0];
 
   if (!site) {
     $("app").innerHTML = `
@@ -62,7 +67,7 @@
       <ul class="reasons">
         ${site.parts.map((p) => `
           <li>
-            <span>${escapeHtml(p.label)}<span class="src">${p.kind === "observed" ? "Observed on this visit" : p.kind === "breach" ? "Have I Been Pwned" : "Disclosed in privacy policy"}</span></span>
+            <span>${escapeHtml(p.label)}<span class="src">${p.kind === "observed" ? "Seen on your visits in the last 7 days" : p.kind === "breach" ? "Have I Been Pwned" : "Disclosed in privacy policy"}</span></span>
             <span class="pts ${p.points ? "" : "zero"}">+${p.points}</span>
           </li>`).join("")}
       </ul>
@@ -77,7 +82,7 @@
             <span class="dom">${escapeHtml(t.domain)}</span>
             <span class="chip">${escapeHtml(t.category)}</span>
           </li>`).join("")}
-      </ul>` : `<p class="honesty">No outside companies were contacted on this page.</p>`}
+      </ul>` : `<p class="honesty">No outside companies showed up on your visits here this week.</p>`}
     </section>
 
     <p class="honesty">These are connections your browser made. They show who could see your visit, not proof that your data was sold.</p>
@@ -98,9 +103,9 @@
     const who = `${companyCount} outside ${companyCount === 1 ? "company" : "companies"}`;
     let first;
     if (s.grade === "A") first = companyCount ? `Looking good. Only ${who} showed up here.` : "Looking good. No outside companies showed up here.";
-    else if (s.grade === "B") first = `Not bad. ${who[0].toUpperCase() + who.slice(1)} saw this visit.`;
-    else if (s.grade === "C") first = `Heads up: ${who} saw this visit.`;
-    else first = `Yikes. ${who[0].toUpperCase() + who.slice(1)} saw this visit.`;
+    else if (s.grade === "B") first = `Not bad. ${who[0].toUpperCase() + who.slice(1)} saw your visits here this week.`;
+    else if (s.grade === "C") first = `Heads up: ${who} saw your visits here this week.`;
+    else first = `Yikes. ${who[0].toUpperCase() + who.slice(1)} saw your visits here this week.`;
 
     const second = s.cookieChoice === "declined" ? " You declined the extra cookies, nice."
       : s.cookieChoice === "accepted" ? " You accepted all cookies here. Clearing this site's cookies would lower your score."

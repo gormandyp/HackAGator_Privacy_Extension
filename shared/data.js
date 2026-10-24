@@ -260,6 +260,11 @@
       try {
         const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
         if (tab && tab.url) return new URL(tab.url).hostname.replace(/^www\./, "");
+        // Chrome can hide the address; the background knows which site that tab is on.
+        if (tab && tab.id != null && chrome.runtime && chrome.runtime.sendMessage) {
+          const r = await chrome.runtime.sendMessage({ type: "privac-tab-site", tabId: tab.id });
+          if (r && r.domain) return r.domain;
+        }
       } catch (e) { /* ignore */ }
     }
     return null;

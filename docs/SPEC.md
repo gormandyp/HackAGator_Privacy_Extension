@@ -57,7 +57,7 @@ An **exposure score 0-100** (higher = more exposed), computed by code from fixed
 Tracing data after collection, mobile and other browsers, deletion requests, training models, accounts, the Chrome Web Store, GLiNER2-PII, an update server (long-term idea only).
 
 ## Honesty rules (judges will check)
-- Keep labels separate: **Observed during your visit**, **Disclosed in policy**, **Public record** (breaches, broker registry, government lists), **Unknown downstream use**.
+- Keep labels separate: **Seen on your visits in the last 7 days** (observed; a site's record combines its visits for 7 days), **Disclosed in policy**, **Public record** (breaches, broker registry, government lists), **Unknown downstream use**.
 - Every alert names its source and date.
 - A tracker loading means a company *could* collect data; it doesn't prove data was sold.
 - Credit sources (licenses require it): Tracker Radar (CC BY-NC-SA 4.0), Have I Been Pwned (CC BY 4.0), Open Cookie Database (Apache 2.0), CPPA registry.

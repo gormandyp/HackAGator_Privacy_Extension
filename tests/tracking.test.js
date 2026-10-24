@@ -5,7 +5,7 @@ const fs = require("node:fs");
 const vm = require("node:vm");
 
 // Load background/tracking.js with a fake Chrome so we can drive it.
-function load() {
+function load(openTabs = []) {
   let store = {}, writes = 0;
   const listeners = {};
   const on = (name) => ({ addListener: (fn) => { listeners[name] = fn; } });
@@ -16,7 +16,8 @@ function load() {
     } },
     webNavigation: { onCommitted: on("nav") },
     webRequest: { onBeforeRequest: on("req"), onResponseStarted: on("resp") },
-    tabs: { onRemoved: on("closed") }
+    tabs: { onRemoved: on("closed"), query: async () => openTabs },
+    runtime: { onMessage: on("msg") }
   };
   const ctx = { chrome, console, URL, Promise, setTimeout };
   ctx.window = ctx;   // shared/data.js (country web addresses, F1) loads first in the real extension too
@@ -186,5 +187,25 @@ test("speed: a burst of trackers on one page is saved in a couple of writes, not
   await t.flush();
   assert.ok(t.writes() - before <= 2, `wrote ${t.writes() - before} times`);
   assert.strictEqual(t.store().privacData.sites.find(s => s.domain === "busy.example").trackers.length, 8);
+});
+
+test("pages already open when PrivaC starts (just reloaded) are recorded, not missed", async () => {
+  const t = load([{ id: 21, url: "https://www.google.com/search?q=x" }, { id: 22, url: "chrome://newtab/" }, { id: 23, url: undefined }]);
+  await t.flush();
+  await new Promise(r => setTimeout(r, 10));
+  await t.flush();
+  assert.deepStrictEqual(t.store().privacData.sites.map(s => s.domain), ["google.com"]);
+  t.listeners.req({ tabId: 21, type: "script", url: "https://mc.yandex.ru/watch" });   // later requests on that tab count
+  await t.flush();
+  assert.strictEqual(t.store().privacData.sites[0].trackers.length, 1);
+});
+
+test("the popup can ask which site a tab is on (when Chrome hides the tab's address)", async () => {
+  const t = load();
+  t.listeners.nav({ frameId: 0, tabId: 31, url: "https://www.google.com/" });
+  await t.flush();
+  let answer;
+  t.listeners.msg({ type: "privac-tab-site", tabId: 31 }, {}, (a) => { answer = a; });
+  assert.strictEqual(answer.domain, "google.com");
 });
 

@@ -245,10 +245,11 @@ function isBackgroundPage(details) {
 // Start a fresh record when a tab navigates to a new website.
 chrome.webNavigation.onCommitted.addListener(details => {
   if (details.frameId !== 0 || isBackgroundPage(details)) return;
-
   const domain = cleanDomain(details.url);
-  if (!domain) return;
+  if (domain) startSite(details.tabId, domain);
+});
 
+function startSite(tabId, domain) {
   const site = {
     domain,
     lastVisit: new Date().toISOString(),
@@ -256,15 +257,38 @@ chrome.webNavigation.onCommitted.addListener(details => {
     policy: { sells: null, shares: null, source: null },
     trackers: []
   };
-  site.server = serverFor(details.tabId, domain);
-  tabSites.set(details.tabId, site);
+  site.server = serverFor(tabId, domain);
+  tabSites.set(tabId, site);
   rememberTabs();
   atlasReady.then(() => {
     site.owner = ownerOf(domain);
     saveSite(site);
-    if (typeof PrivaCAlerts !== "undefined") PrivaCAlerts.check(details.tabId, site);
+    if (typeof PrivaCAlerts !== "undefined") PrivaCAlerts.check(tabId, site);
   });
-});
+  return site;
+}
+
+// Pages already open when PrivaC starts (right after the extension is reloaded or updated) never send
+// onCommitted, so they were missed and the popup fell back to sample data. Record them now; anything
+// they load from here on counts. (Tabs PrivaC already knew about are left as they are.)
+if (chrome.tabs && chrome.tabs.query) {
+  Promise.all([atlasReady, tabsReady]).then(() => chrome.tabs.query({})).then(tabs => {
+    for (const tab of tabs || []) {
+      const domain = tab.url && cleanDomain(tab.url);
+      const known = tabSites.get(tab.id);
+      if (domain && !(known && known.domain === domain)) startSite(tab.id, domain);
+    }
+  }).catch(() => {});
+}
+
+// The popup asks which site a tab is on (Chrome can hide a tab's address from the popup).
+if (chrome.runtime && chrome.runtime.onMessage) {
+  chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+    if (!msg || msg.type !== "privac-tab-site") return;
+    const site = tabSites.get(msg.tabId);
+    sendResponse({ domain: site ? site.domain : null });
+  });
+}
 
 function isPreload(details) {
   return details.type === "main_frame" || details.type === "other";

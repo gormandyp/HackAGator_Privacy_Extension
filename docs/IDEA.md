@@ -41,7 +41,7 @@ Supporting (older, so NOT the theme answer): DuckDuckGo Tracker Radar (domain to
 
 ## Rules we already agreed on
 - The score is a rules-based "privacy exposure score" computed by ordinary code. AI explains it; AI does not compute it.
-- Keep three labels separate: "Observed during your visit", "Disclosed in policy", "Unknown downstream use". Missing data shows as "unknown", never as safe.
+- Keep three labels separate: "Seen on your visits in the last 7 days", "Disclosed in policy", "Unknown downstream use". Missing data shows as "unknown", never as safe.
   - **Clarified 2026-10-23 (repo owner):** unknown things add 0 points to the score, but the screen still says "not checked yet" or "unknown", never "safe".
 - Foreign-adversary alerts must name the list and its date, e.g. "This page loaded a service from Baidu, which the U.S. Defense Department lists as a Chinese military company (June 2026)". Never "this site sends your data to China".
 - Domain mappings to listed companies are a hand-checked JSON file (10-20 entries for the demo). No live fuzzy matching. **Status:** the file (shared/flagged-companies.json) is not made yet (PLAN R2); today the flag uses company headquarters countries hand-mapped in scripts/build-atlas.js.
