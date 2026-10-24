@@ -16,6 +16,7 @@ How to answer:
 - Answer the question that was asked first. Then connect it to their own browsing if something there is relevant.
 - Use ONLY the evidence you are given. If it doesn't answer the question, say you don't know yet.
 - Put a source tag right after each fact, copied exactly from the evidence line it came from: [Seen on your visit], [Tracker Radar], [Privacy policy], [HIBP], [CA Broker Registry], [Cookie Database], [RegTrack], [State Media Monitor] or [Government list]. Never invent other tags.
+- Write button and menu names in quotes ("Reject all"), never in square brackets: square brackets are only for the source tags above.
 - When asked what a site collects, list the cookies by purpose, name 2 or 3 advertising cookies with their company and how long they last, say which ones the site doesn't need to work, and mention device fingerprinting if present.
 - If a site had a data breach [HIBP], say when, how many accounts and what kind of data, and tell the person to change that password. No backticks, no markdown, no lists with symbols.
 - When cookies or cookie banners come up, you may quote one RegTrack fact. RegTrack only compared doing nothing with clicking accept-all, so never say rejecting removes a number of trackers.
@@ -86,6 +87,9 @@ Steps the person can take (no tag needed):
     if (p.sells === true) main = `says it sells personal info${quote("sells")} [Privacy policy]`;
     else if (p.shares === true) main = `says it shares with partners${p.checkedAt ? " for advertising" : ""}${quote("shares")} [Privacy policy]`;
     else if (p.sells === false && p.shares === false) main = `says it doesn't sell or share${quote("sells")} [Privacy policy]`;
+    // The reader answers each question on its own, so one "no" with the other unknown is common: keep the quoted "no".
+    else if (p.sells === false) main = `says it doesn't sell personal info${quote("sells")}; it doesn't say clearly whether it shares [Privacy policy]`;
+    else if (p.shares === false) main = `says it doesn't share with partners${quote("shares")}; it doesn't say clearly whether it sells [Privacy policy]`;
     else if (p.checkedAt) main = `read on ${String(p.checkedAt).slice(0, 10)}, no clear answer about selling or sharing [Privacy policy]`;
     else return "not reviewed yet";
     const more = POLICY_FACTS.filter(([f]) => p[f] === true || p[f] === false)
@@ -95,6 +99,15 @@ Steps the person can take (no tag needed):
 
   // F2: the site itself is a state-run outlet (shared/state-media.json, via background/tracking.js).
   const COUNTRY_NAMES = { CN: "China", RU: "Russia", IR: "Iran", CU: "Cuba", KP: "North Korea", VE: "Venezuela" };
+  // Every other code (US, FR, GB...) by its English name, so Gemma never answers "based in RU" (docs/ASKC-FIXES.md Fix 4).
+  let REGIONS = null;
+  try { REGIONS = new Intl.DisplayNames(["en"], { type: "region" }); } catch (e) { /* very old browser: codes stay */ }
+  function countryName(c) {
+    if (!c) return c;
+    if (COUNTRY_NAMES[c]) return COUNTRY_NAMES[c];
+    if (c === "HK") return "Hong Kong (China)";
+    try { return (REGIONS && REGIONS.of(c)) || c; } catch (e) { return c; }
+  }
   function stateMediaText(owner) {
     const sm = owner && owner.stateMedia;
     if (!sm) return "";
@@ -109,13 +122,13 @@ Steps the person can take (no tag needed):
     const count = new Map();
     for (const x of s.trackers || []) {
       const listed = listedCompany(x.company, extra);
-      const text = `${x.company} (${x.category}, based in ${x.country || "unknown country"}) [Tracker Radar]` +
+      const text = `${x.company} (${x.category}, based in ${x.country ? countryName(x.country) : "unknown country"}) [Tracker Radar]` +
         (listed ? listedText(listed) : "") +
         (x.broker ? `, registered California data broker [CA Broker Registry]` : "");
       count.set(text, (count.get(text) || 0) + 1);
     }
     // Long lists are cut to the ones that matter most (foreign-adversary or 1260H links, brokers, advertising first).
-    const rank = (text) => (/1260H|based in (CN|HK|RU|IR|CU|KP|VE)\)/.test(text) ? 0
+    const rank = (text) => (/1260H|based in (China|Hong Kong \(China\)|Russia|Iran|Cuba|North Korea|Venezuela)\)/.test(text) ? 0
       : /data broker|\((High-risk|Malware),/i.test(text) ? 1 : /\((Advertising|Data broker|Session recording),/.test(text) ? 2 : 3);
     const entries = [...count].map(([text, n], i) => ({ text: n > 1 ? `${text} (${n} tracker addresses)` : text, co: text.slice(0, text.indexOf(" (")), r: rank(text), i }));
     const kept = entries.length > TRACKERS_SHOWN ? [...entries].sort((a, b) => a.r - b.r || a.i - b.i).slice(0, TRACKERS_SHOWN).sort((a, b) => a.i - b.i) : entries;
@@ -187,7 +200,7 @@ Steps the person can take (no tag needed):
         if (facts.length >= 6 || !has(co)) continue;
         seen.add(L.norm(co));
         const cat = Object.entries(x.cats).sort((a, b) => b[1] - a[1])[0][0];
-        facts.push(`- ${co} runs ${x.n} tracker domain${x.n > 1 ? "s" : ""} (mostly ${cat}), the biggest on about ${x.prev}% of popular websites${x.ctry ? `; based in ${x.ctry}` : ""} [Tracker Radar]`);
+        facts.push(`- ${co} runs ${x.n} tracker domain${x.n > 1 ? "s" : ""} (mostly ${cat}), the biggest on about ${x.prev}% of popular websites${x.ctry ? `; based in ${countryName(x.ctry)}` : ""} [Tracker Radar]`);
         const b = L.brokerFor(co, x.top, lists, atlas.entities && atlas.entities[co]);
         if (b) facts.push(`- ${co} is registered as a data broker in California (as "${b.name}") [CA Broker Registry]`);
       }
@@ -260,7 +273,6 @@ Steps the person can take (no tag needed):
 
   const yearOf = (b) => String(b.breachDate || b.addedDate || "").slice(0, 4);
   const ADVERSARY = new Set(["CN", "HK", "RU", "IR", "CU", "KP", "VE"]);   // 15 CFR 7.4 (same list as shared/data.js)
-  const countryName = (c) => COUNTRY_NAMES[c] || (c === "HK" ? "Hong Kong (China)" : c);
   const more = (list, max) => (list.length > max ? `; and ${list.length - max} more` : "");
 
   // Totals and cross-site lists over every site, so questions like "which data brokers have seen me?" or
@@ -308,7 +320,7 @@ Steps the person can take (no tag needed):
     lines.push(`Your browsing with PrivaC on, last 7 days [Seen on your visit]: ${sites.length} sites; grades ${Object.entries(grades).map(([g, n]) => `${n} ${g}`).join(", ")}; ` +
       `cookie banners: ${choices.declined} declined, ${choices.accepted} accepted, ${choices["no-reject"]} had no Reject button, ${choices.none} with no banner seen.`);
     const top = [...byCo].sort((a, b) => b[1].sites.size - a[1].sites.size).slice(0, 10);
-    if (top.length) lines.push(`Companies seen on the most sites [Seen on your visit] [Tracker Radar]: ${top.map(([co, x]) => `${co} (${x.category}, ${x.country || "unknown country"}) on ${x.sites.size} of ${sites.length} sites`).join("; ")}.`);
+    if (top.length) lines.push(`Companies seen on the most sites [Seen on your visit] [Tracker Radar]: ${top.map(([co, x]) => `${co} (${x.category}, ${x.country ? countryName(x.country) : "unknown country"}) on ${x.sites.size} of ${sites.length} sites`).join("; ")}.`);
     if (brokers.size) {
       const list = [...brokers].map(([name, b]) => `${b.company} (registered as "${name}") on ${b.sites.length} site${b.sites.length > 1 ? "s" : ""}: ${b.sites.slice(0, 4).join(", ")}${b.sites.length > 4 ? "..." : ""}`);
       lines.push(`Registered California data brokers seen [CA Broker Registry] [Seen on your visit]: ${list.slice(0, LIST_MAX).join("; ")}${more(list, LIST_MAX)}.`);
@@ -370,7 +382,7 @@ Steps the person can take (no tag needed):
   // every answer. Questions about C itself and requests that have nothing to do with privacy get C's own
   // answer without asking Gemma, which otherwise talks like a general chatbot ("I can write a poem").
   const WANTS_STEPS = /\b(should (i|we)|worr\w*|safe\w*|unsafe|danger\w*|risk\w*|protect\w*|stop|avoid|block\w*|remov\w*|delet\w*|opt[- ]?out|prevent\w*|what (can|should) i do|how (do|can|should) i|hack\w*|breach\w*|leak\w*|pwn\w*|scam\w*)\b/i;
-  const ABOUT_C = /^\s*(?:(?:what|how)\s+(?:else\s+)?(?:can|could|do)\s+you\s+(?:do|help)\b|what\s+(?:can|could)\s+you\s+help(?:\s+me)?\s+with\b|(?:who|what)\s+are\s+you\b|what\s+(?:can|should)\s+i\s+ask\b|how\s+do(?:es)?\s+(?:you|ask c|privac)\s+work\b|help\s*[?!.]*\s*$)/i;
+  const ABOUT_C = /^\s*(?:(?:what|how)\s+(?:else\s+)?(?:can|could|do)\s+you\s+(?:do|help)\b|what\s+(?:can|could)\s+you\s+help(?:\s+me)?\s+with\b|(?:who|what)\s+are\s+you\b|what\s+(?:can|should)\s+i\s+ask\b|how\s+do(?:es)?\s+(?:you|ask c|privac)\s+work\b|help)\s*(?:you|for\s+me|here|exactly|me\s+with)?\s*[?!.]*\s*$/i;   // the whole question, so "What can you do about X?" goes to Gemma
   const OFF_TOPIC_THING = /\b(poems?|poetry|haikus?|songs?|lyrics|stor(?:y|ies)|essays?|jokes?|riddles?|recipes?|homework|code|python|javascript|programs?)\b/i;
   const OFF_TOPIC_ASK = /\b(write|compose|make|generate|tell|give|create|sing)\b/i;
   const PRIVACY_WORDS = /privacy|data|cookie|track|site|broker|breach|grade|polic|\.[a-z]{2,}\b/i;
@@ -388,7 +400,7 @@ Steps the person can take (no tag needed):
   // "Why did planetfitness.com get a B?" (team doc, 2026-10-24: C said "I don't know yet"). Answered from the score
   // itself, the same lines as the popup's "Why it got a B", so the answer is always right and instant.
   const GRADE_WORDS_Q = /\b(grade[sd]?|grading|scored?|scoring|rate[ds]?|rating)\b/i;
-  const GRADE_LETTER = /\b(?:get|gets|got|getting|has|have|had|is|was|earn|earned|receive|received|a|an)\s+(?:an?\s+)?["']?([A-F])["']?(?=[\s?.!,]|$)/;
+  const GRADE_LETTER = /\b(?:get|gets|got|getting|has|have|had|is|was|earn|earned|receive|received|a|an)\s+(?:an?\s+)?["']?([A-Fa-f])["']?(?=[\s?.!,]|$)/;   // "get a d" too: people type in lowercase
   const GRADE_RANGES = "A is 0-20, B is 21-40, C is 41-60, D is 61-80, F is 81-100";
   const article = (g) => (/^[AEF]/.test(g) ? "an" : "a");
   function gradeAnswer(q, sites) {
@@ -399,7 +411,7 @@ Steps the person can take (no tag needed):
       return domain ? `I haven't seen ${domain.replace(/^www\./, "")} with PrivaC on in the last 7 days, so it has no grade yet. ` +
         "Open it with PrivaC on, then ask me again. [Seen on your visit]" : null;
     }
-    const asked = (q.match(GRADE_LETTER) || [])[1];
+    const asked = ((q.match(GRADE_LETTER) || [])[1] || "").toUpperCase() || undefined;
     const parts = named.map(s => [s, scoreParts(s)]);
     if (parts.some(([, r]) => !r)) return null;
     return parts.map(([s, r]) => {
@@ -450,11 +462,28 @@ Steps the person can take (no tag needed):
     "open cookie database": "Cookie Database", "cookies": "Cookie Database", "cookie db": "Cookie Database"
   };
 
+  // The verb after "the user", changed to go with "you": has -> have, watches -> watch, carries -> carry.
+  // Words that aren't third-person verbs (can, will, should, not...) don't end in s, so they stay as they are.
+  const YOU_VERBS = { is: "are", was: "were", has: "have", does: "do", isn: "aren", wasn: "weren", hasn: "haven", doesn: "don" };
+  function youVerb(v) {
+    const w = v.toLowerCase();
+    if (YOU_VERBS[w]) return YOU_VERBS[w];
+    if (/(?:sses|shes|ches|xes|zes|oes)$/.test(w)) return v.slice(0, -2);
+    if (/[^aeiou]ies$/.test(w)) return v.slice(0, -3) + "y";
+    if (w.length > 3 && /[^su]s$/.test(w)) return v.slice(0, -1);
+    return v;
+  }
+
   // Fix Gemma's small formatting slips so the panel shows clean labels and "you".
   function cleanAnswer(text) {
     let t = String(text || "").replace(/`/g, "").replace(/\*\*/g, "");
     t = t.replace(/^(please )?note:? (that )?(this|the data provided) is (a )?sample[^.]*\.\s*/i, "");
-    t = t.replace(/\bthe user's\b/gi, "your").replace(/\bthe user\b/gi, "you");
+    t = t.replace(/\bthe user's\b/gi, "your");
+    // "the user has" -> "you have", not "you has" (docs/ASKC-FIXES.md Fix 2).
+    // Only when "the user" starts a sentence or clause (it's the subject); "data about the user goes" stays "about you goes".
+    t = t.replace(/(^|[.!?]\s+|\n\s*|\b(?:what|that|who|which|when|where|if|because|so|and|but|while|unless|whether)\s+)the user((?:\s+(?:also|always|often|still|never|just|already|usually|really|probably|only|then))?)\s+([a-z]+)\b/gi,
+      (m, pre, adv, v) => `${pre}you${adv} ${youVerb(v)}`);
+    t = t.replace(/\bthe user\b/gi, "you");
     t = t.replace(/(^|[.!?]\s+)(you|your)\b/g, (m, pre, w) => pre + w[0].toUpperCase() + w.slice(1));
     t = t.replace(/\[([^\]]{1,40})\]/g, (m, name) => {
       const n = name.trim();

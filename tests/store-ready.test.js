@@ -45,6 +45,13 @@ test("a privacy policy with the Limited Use statement is in the repo", () => {
   for (const thing of ["haveibeenpwned.com", "cppa.ca.gov", "huggingface.co", "localhost:11434"]) assert.ok(p.includes(thing), `names ${thing}`);   // same policy on every branch
 });
 
+// docs/STORE.md section 6, fix 6: the tracker list is built in, not downloaded, and policy pages are fetched too.
+test("the dashboard's privacy note matches PRIVACY.md: built-in tracker list, downloaded lists, policy pages", () => {
+  const note = read("dashboard/dashboard.html").match(/<p><b>Your browsing and your questions to C stay on this computer\.<\/b>[^]*?<\/p>/)[0];
+  assert.doesNotMatch(note, /downloads public lists \(trackers/);
+  for (const words of [/built in/i, /data breaches/, /data brokers/, /privacy polic/i, /without your cookies/, /7 days/, /90 days/]) assert.match(note, words);
+});
+
 test("on first install PrivaC opens the welcome page that says what it records", () => {
   assert.match(read("background.js"), /reason === "install"[\s\S]{0,200}welcome\/welcome\.html/);
   const w = read("welcome/welcome.html");

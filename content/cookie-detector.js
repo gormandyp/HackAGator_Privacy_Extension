@@ -345,24 +345,10 @@
       console.log("PrivaC: cookie rejection verified!");
     }
 
-    // Only record a confirmed rejection in the privacy score.
+    // Only record a confirmed rejection in the privacy score. The background saves it (background/tracking.js
+    // updateCookieChoice), since only the background writes PrivaC's data.
     if (verification === "confirmed") {
-      try {
-        const domain = location.hostname.replace(/^www\./, "");
-        const result = await chrome.storage.local.get("privacData");
-        const data = result.privacData;
-
-        if (data && Array.isArray(data.sites)) {
-          const site = data.sites.find(s => s.domain === domain);
-
-          if (site) {
-            site.cookieChoice = "declined";
-            await chrome.storage.local.set({ privacData: data });
-          }
-        }
-      } catch (e) {
-        console.warn("PrivaC: Could not save cookie choice", e);
-      }
+      tell({ type: "cookieChoice", domain: location.hostname.replace(/^www\./, ""), choice: "declined" });
     }
 
     return verification;

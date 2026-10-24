@@ -4,7 +4,7 @@
 // Also loads background/tracking.js, which records each tab's trackers into privacData.
 // background/toolbar.js decides what the toolbar button opens (the rounded panel on a website, or Chrome's pop-up).
 self.window = self; // shared/*.js attach themselves to window
-importScripts("shared/settings.js", "shared/lists.js", "shared/cookies.js", "shared/data.js", "shared/gemma.js", "shared/ai.js", "shared/askc.js", "shared/policy.js", "shared/state-media.js", "shared/ipgeo.js", "shared/stats.js", "background/tracking.js", "background/alerts.js", "background/policy-reader.js", "background/stats.js", "background/toolbar.js", "background/frames.js", "background/clear-site.js");
+importScripts("background/senders.js", "shared/settings.js", "shared/lists.js", "shared/cookies.js", "shared/data.js", "shared/gemma.js", "shared/ai.js", "shared/askc.js", "shared/policy.js", "shared/state-media.js", "shared/ipgeo.js", "shared/stats.js", "background/tracking.js", "background/alerts.js", "background/policy-reader.js", "background/stats.js", "background/toolbar.js", "background/frames.js", "background/clear-site.js");
 
 // Download the public breach and data-broker lists: at startup and once a day.
 // Whole files only; nothing about your browsing is sent (see shared/lists.js).
@@ -37,7 +37,7 @@ function warmGemma(force) {
 
 // Streaming Ask C (dashboard/ask-c.js): the answer appears word by word instead of all at the end.
 chrome.runtime.onConnect.addListener(port => {
-  if (port.name !== "privac-ask") return;
+  if (port.name !== "privac-ask" || !fromPrivaCPage(port.sender)) return;
   let open = true;
   const hangUp = new AbortController();   // the Ask C tab closed or gave up: stop Gemma so it's free again
   port.onDisconnect.addListener(() => { open = false; hangUp.abort(); });
@@ -52,6 +52,12 @@ chrome.runtime.onConnect.addListener(port => {
 });
 
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+  if (!fromPrivaC(sender)) return;
+  if (msg && msg.type === "cookieChoice") {   // from content/c-events.js and content/cookie-detector.js
+    updateCookieChoice(msg.domain, msg.choice);
+    return;
+  }
+  if (!fromPrivaCPage(sender)) return;      // everything below reads your data or controls C: PrivaC's own pages only
   if (msg && msg.type === "askC") {
     PrivaCAskC.answer(msg.question, askDeps(null, null, msg.history))
       .then(sendResponse)
@@ -66,8 +72,5 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (msg && msg.type === "refreshLists") {
     PrivaCLists.refresh({ force: true }).then(l => sendResponse({ ok: true, breaches: Object.keys((l.hibp || {}).byDomain || {}).length, brokers: ((l.brokers || {}).list || []).length }));
     return true;
-  }
-  if (msg && msg.type === "cookieChoice") {
-    updateCookieChoice(msg.domain, msg.choice);
   }
 });

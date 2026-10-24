@@ -6,12 +6,39 @@
 (function () {
   const RECHECK_MS = 7 * 86400000;      // read each site's policy at most once a week
   const MAX_HTML = 2000000;             // ignore pages over ~2 MB
+  const KEEP_PAGE_MS = 86400000;        // a page Gemma couldn't read yet is kept (in memory only) for a day
+  const KEEP_PAGES = 5;
 
   let MAP = null;
   const mapReady = fetch(chrome.runtime.getURL("shared/knowledge-map.json")).then((r) => r.json())
     .then((m) => { MAP = m; }).catch((e) => console.warn("PrivaC: knowledge-map.json didn't load; policy reader off", e));
 
   const inFlight = new Set();
+  const unread = new Map();             // domain -> { html, url, at }: fetched, but C's AI wasn't ready
+
+  // The address the policy request ended up at must still be the same site, and never this computer or a
+  // home-network address (a site's "Privacy" link can forward the request anywhere).
+  function sameSite(url, domain) {
+    try {
+      const u = new URL(url);
+      if (u.protocol !== "http:" && u.protocol !== "https:") return false;
+      const host = u.hostname.replace(/^www\./, "");
+      if (host === "localhost" || /^[\d.]+$/.test(host) || host.includes(":") || host.startsWith("[")) return false;
+      const root = domain.split(".").slice(-2).join(".");
+      return host === root || host.endsWith("." + root);
+    } catch (e) { return false; }
+  }
+
+  async function fetchPolicy(domain, url) {
+    const kept = unread.get(domain);
+    if (kept && kept.url === url && Date.now() - kept.at < KEEP_PAGE_MS) return kept.html;
+    const page = await fetch(url, { credentials: "omit", cache: "no-store", redirect: "follow" });
+    if (!page.ok) return null;
+    if (page.redirected && !sameSite(page.url, domain)) return null;   // forwarded to another site: not read
+    const type = (page.headers && page.headers.get("content-type")) || "";
+    if (!/html|text\/plain/i.test(type)) return null;     // PDFs and the like are skipped
+    return (await page.text()).slice(0, MAX_HTML);
+  }
   let queue = Promise.resolve();        // one policy at a time, so Gemma isn't flooded
   let ownChain = Promise.resolve();
 
@@ -47,19 +74,23 @@
     if (!url) return;
 
     inFlight.add(domain);
+    let html = null;
     try {
-      const page = await fetch(url, { credentials: "omit", cache: "no-store", redirect: "follow" });
-      if (!page.ok) return;
-      const type = (page.headers && page.headers.get("content-type")) || "";
-      if (!/html|text\/plain/i.test(type)) return;           // PDFs and the like are skipped
-      const html = (await page.text()).slice(0, MAX_HTML);
+      html = await fetchPolicy(domain, url);
+      if (!html) return;
       // "low": Ask C questions go first; a policy read pauses while C is answering someone.
       // In-browser AI version: shared/ai.js picks Gemma in the browser (or Ollama); tests load only gemma.js.
       const AI = typeof PrivaCAI !== "undefined" ? PrivaCAI : PrivaCGemma;
       const policy = await PrivaCPolicy.readPolicy({ html, url }, MAP, (q, o) => AI.ask(q, { ...o, priority: "low" }));
+      unread.delete(domain);
       await save(domain, policy);
     } catch (e) {
       // Gemma off, network error, or not a policy page: save nothing, so the next visit tries again.
+      // A page that did arrive is kept in memory for a day, so the retry doesn't fetch it again.
+      if (html) {
+        unread.set(domain, { html, url, at: Date.now() });
+        while (unread.size > KEEP_PAGES) unread.delete(unread.keys().next().value);
+      }
       console.warn(`PrivaC: couldn't read the privacy policy for ${domain}`, e && e.message);
     } finally {
       inFlight.delete(domain);

@@ -52,6 +52,7 @@ function load(controls, { hosts = [], cookie = "" } = {}) {
     isCelebrating: () => false
   };
   const saved = [];
+  const sent = [];           // messages to the background
   const later = new Map();   // the detector's own timers over 200 ms, run by clock.tick()
   const clock = { now: 0, nextId: 1, checks: 0 };
   clock.tick = (ms) => {
@@ -91,13 +92,14 @@ function load(controls, { hosts = [], cookie = "" } = {}) {
     },
     clearTimeout(id) { later.delete(id); },
     atob: (s) => Buffer.from(s, "base64").toString("binary"),
-    chrome: { storage: { local: { get: async () => ({ privacData: { sites: [] } }), set: async (v) => saved.push(v) } } }
+    chrome: { storage: { local: { get: async () => ({ privacData: { sites: [] } }), set: async (v) => saved.push(v) } },
+              runtime: { sendMessage: async (m) => { sent.push(m); } } }
   };
   ctx.window = ctx;
   ctx.top = ctx;   // the top page, not a frame
   ctx.PrivaCPrompt = P;
   vm.runInNewContext(SRC, ctx);
-  return { calls, ctx, saved, clock, kinds: () => calls.map((c) => c[0]) };
+  return { calls, ctx, saved, sent, clock, kinds: () => calls.map((c) => c[0]) };
 }
 
 // Each new Reject label: C offers to decline, on a banner with only that button and Accept.
@@ -179,7 +181,7 @@ async function declineWith(cookie, sites = []) {
   const reject = controls[1];
   reject.click = () => { reject.isConnected = false; page.ctx.document.cookie = cookie; };
   const result = await page.calls.find((c) => c[0] === "cookie")[1].onDecline();
-  return { result, saved: page.saved };
+  return { result, saved: page.saved, sent: page.sent };
 }
 
 for (const [tool, record] of Object.entries(RECORDS)) {
@@ -197,12 +199,14 @@ test("no consent record PrivaC knows: C keeps the honest \"couldn't verify\"", a
   assert.strictEqual((await declineWith("cookies_policy=not-json")).result, "unverified");
 });
 
+// The background saves it (only the background writes privacData; docs/STORE.md section 6, fix 4).
 test("a confirmed decline saves only the choice, never the cookie's contents", async () => {
-  const { result, saved } = await declineWith(RECORDS.CookieYes.declined, [{ domain: "shop.example" }]);
+  const { result, saved, sent } = await declineWith(RECORDS.CookieYes.declined, [{ domain: "shop.example" }]);
   assert.strictEqual(result, "confirmed");
-  assert.strictEqual(saved.length, 1);
-  assert.strictEqual(saved[0].privacData.sites[0].cookieChoice, "declined");
-  assert.ok(!/consentid|dGVzdA|cookieyes/.test(JSON.stringify(saved)), "no cookie names or values stored");
+  assert.strictEqual(saved.length, 0, "the detector doesn't write PrivaC's data itself");
+  const choices = JSON.parse(JSON.stringify(sent.filter((m) => m.type === "cookieChoice")));
+  assert.deepStrictEqual(choices, [{ type: "cookieChoice", domain: "shop.example", choice: "declined" }]);
+  assert.ok(!/consentid|dGVzdA|cookieyes/.test(JSON.stringify(sent)), "no cookie names or values sent");
 });
 
 test("Zara: with a \"Do not sell or share\" link and a Reject button, 5 checks click the link once and add one Reject listener", () => {

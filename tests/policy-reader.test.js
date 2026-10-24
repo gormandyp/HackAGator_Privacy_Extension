@@ -93,3 +93,46 @@ test("a non-HTML policy (e.g. PDF) is skipped", async () => {
   await r.idle();
   assert.strictEqual(asked, 0);
 });
+
+// docs/STORE.md section 6, fix 1: a site's "Privacy" link can forward the request somewhere else.
+test("a policy link that forwards to another website or to a home-network address is not read", async () => {
+  for (const finalUrl of ["https://tracker.net/privacy", "http://192.168.1.1/", "http://localhost:8080/x", "http://10.0.0.5/privacy", "http://[::1]/"]) {
+    let asked = 0;
+    const r = load({
+      sites: [{ domain: "news.example", trackers: [] }],
+      ask: async () => { asked++; return noSellAsk(); },
+      fetchFn: async () => ({ ok: true, redirected: true, url: finalUrl, headers: { get: () => "text/html" }, text: async () => POLICY_HTML })
+    });
+    r.send({ type: "privac-policy-links", domain: "news.example", links });
+    await r.idle();
+    assert.strictEqual(asked, 0, finalUrl);
+    assert.strictEqual(r.store().privacData.sites[0].policy, undefined, finalUrl);
+  }
+});
+
+test("a policy link that forwards within the same site is still read", async () => {
+  const r = load({
+    sites: [{ domain: "news.example", trackers: [] }],
+    ask: noSellAsk,
+    fetchFn: async () => ({ ok: true, redirected: true, url: "https://www.news.example/legal/privacy-policy", headers: { get: () => "text/html" }, text: async () => POLICY_HTML })
+  });
+  r.send({ type: "privac-policy-links", domain: "news.example", links });
+  await r.idle();
+  assert.strictEqual(r.store().privacData.sites[0].policy.sells, false);
+});
+
+// Fix 2: while C's AI isn't set up, a failed read used to fetch the policy page again on every visit.
+test("if Gemma is off, the next visit asks Gemma again without fetching the policy page again", async () => {
+  let fail = true;
+  const ask = async () => { if (fail) throw new Error("offline"); return noSellAsk(); };
+  const r = load({ sites: [{ domain: "news.example", trackers: [] }], ask });
+  for (let i = 0; i < 3; i++) {
+    r.send({ type: "privac-policy-links", domain: "news.example", links });
+    await r.idle();
+  }
+  fail = false;
+  r.send({ type: "privac-policy-links", domain: "news.example", links });
+  await r.idle();
+  assert.strictEqual(r.fetched.filter((f) => f.url === "https://news.example/privacy").length, 1);
+  assert.strictEqual(r.store().privacData.sites[0].policy.sells, false);
+});

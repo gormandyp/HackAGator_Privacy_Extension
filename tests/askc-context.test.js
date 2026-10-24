@@ -38,7 +38,7 @@ test("sites where a company you asked about was seen are shown in full", () => {
   const sites = Array.from({ length: 60 }, (_, i) => site(i));
   sites.push({ ...site(98), domain: "lowrisk.example", grade: "A", score: 10, trackers: [T("LiveRamp", "Data broker", "US", { broker: "LiveRamp Holdings, Inc." })] });
   const ctx = buildContext({ sites }, "2026-10-24", [], null, "Who is LiveRamp and should I worry?");
-  assert.match(ctx, /- lowrisk\.example, visited [^\n]*LiveRamp \(Data broker, based in US\) \[Tracker Radar\]/);
+  assert.match(ctx, /- lowrisk\.example, visited [^\n]*LiveRamp \(Data broker, based in United States\) \[Tracker Radar\]/);
 });
 
 test("brokers, breaches and foreign-adversary links are summarized from every site", () => {
@@ -50,7 +50,7 @@ test("brokers, breaches and foreign-adversary links are summarized from every si
   assert.match(ctx, /data brokers[^\n]*\[CA Broker Registry\][^\n]*LiveRamp[^\n]*broker\.example/i);
   assert.match(ctx, /data breach[^\n]*\[HIBP\][^\n]*hacked\.example \(Hacked, 2025, 5\.0 million accounts: email addresses\)/i);
   assert.match(ctx, /foreign-adversary[^\n]*watched\.example: Yandex \(Russia\)/i);
-  assert.match(ctx, /Companies seen on the most sites[^\n]*Company\d+ \(Advertising, US\) on \d+ of 63 sites/);
+  assert.match(ctx, /Companies seen on the most sites[^\n]*Company\d+ \(Advertising, United States\) on \d+ of 63 sites/);
 });
 
 test("Ask C hands the question to the evidence builder", async () => {
@@ -66,8 +66,8 @@ test("a site with many trackers keeps its foreign-adversary and broker links in 
   const many = Array.from({ length: 30 }, (_, k) => T(`Analytics${k}`, "Analytics"));
   many.push(T("Baidu", "Analytics", "CN"), T("LiveRamp", "Data broker", "US", { broker: "LiveRamp Holdings, Inc." }));
   const ctx = buildContext({ sites: [{ ...site(1), trackers: many }] }, "2026-10-24", [], { flagged: require("../shared/flagged-companies.json") });
-  assert.match(ctx, /Baidu \(Analytics, based in CN\) \[Tracker Radar\], on the Pentagon's Section 1260H list/);
-  assert.match(ctx, /LiveRamp \(Data broker, based in US\) \[Tracker Radar\], registered California data broker/);
+  assert.match(ctx, /Baidu \(Analytics, based in China\) \[Tracker Radar\], on the Pentagon's Section 1260H list/);
+  assert.match(ctx, /LiveRamp \(Data broker, based in United States\) \[Tracker Radar\], registered California data broker/);
   assert.match(ctx, /and \d+ more tracker companies/);
 });
 
