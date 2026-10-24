@@ -145,6 +145,27 @@ function saveSite(site) {
   return saveChain;
 }
 
+// Delete history older than RETENTION_DAYS without waiting for the next visit: when the background
+// script starts (Chrome opens, or it wakes up) and once a day.
+function pruneOldSites() {
+  saveChain = saveChain.then(async () => {
+    const res = await chrome.storage.local.get("privacData");
+    const data = res.privacData;
+    if (!data || !Array.isArray(data.sites)) return;
+    const kept = data.sites.filter(s => isFresh(s));
+    if (kept.length === data.sites.length) return;
+    data.sites = kept;
+    await chrome.storage.local.set({ privacData: data });
+  }).catch(e => console.warn("PrivaC: could not delete old history", e));
+  return saveChain;
+}
+pruneOldSites();
+if (chrome.runtime && chrome.runtime.onStartup) chrome.runtime.onStartup.addListener(pruneOldSites);
+if (chrome.alarms) {
+  chrome.alarms.create("privac-prune", { periodInMinutes: 24 * 60 });
+  chrome.alarms.onAlarm.addListener(a => { if (a && a.name === "privac-prune") pruneOldSites(); });
+}
+
 function mergeSite(data, site) {
     const i = data.sites.findIndex(s => s.domain === site.domain);
     if (i === -1) { data.sites.push(site); }
@@ -286,7 +307,7 @@ if (chrome.tabs && chrome.tabs.query) {
 // navigation event: so the website the tab showed before is never passed off as the current one.
 if (chrome.runtime && chrome.runtime.onMessage) {
   chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
-    if (!msg || msg.type !== "privac-tab-site") return;
+    if (!msg || msg.type !== "privac-tab-site" || !fromPrivaCPage(sender)) return;   // PrivaC's popup only
     const known = tabSites.get(msg.tabId);
     const recorded = { domain: known ? known.domain : null };
     if (!chrome.webNavigation.getFrame) { sendResponse(recorded); return; }
