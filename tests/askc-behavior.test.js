@@ -97,3 +97,29 @@ test("memory is small: only the last 3 turns, each cut short", () => {
 test("no history: no memory section", () => {
   assert.ok(!/Earlier in this conversation/.test(buildContext(data, "2026-10-24", [], null, "Hi")));
 });
+
+// Max (team doc, Oct 24): Ask C wrote a big paragraph, then cut half of it away when the answer finished. The
+// "What you can do" part was shown while C was writing and removed at the end. Now it never shows while writing.
+async function streamed(question, pieces) {
+  const shown = [];
+  const r = await answer(question, { load: async () => data, onToken: (piece, text) => shown.push(text),
+    ask: async (q, o) => { for (const p of pieces) o.onToken("", p); return pieces[pieces.length - 1]; } });
+  return { shown, final: r.answer };
+}
+
+test("while C is writing a plain answer, the \"What you can do\" part never appears, so nothing vanishes at the end", async () => {
+  const { shown, final } = await streamed("Who is Criteo?", ["Criteo is an ad company.", "Criteo is an ad company.\n\nWhat", "Criteo is an ad company.\n\nWhat you can", STEPS]);
+  for (const t of shown) assert.ok(!/What( you)?( can)?\s*$|What you can do/.test(t), JSON.stringify(t));
+  assert.strictEqual(shown[shown.length - 1].trim(), "Criteo is an ad company. [Tracker Radar]");
+  assert.strictEqual(final, "Criteo is an ad company. [Tracker Radar]", "what was shown is what stays");
+});
+
+test("while C is writing advice, the steps show as they come", async () => {
+  const { shown } = await streamed("Should I worry about Criteo?", [STEPS]);
+  assert.match(shown[0], /What you can do: decline/);
+});
+
+test("the background hands Ask C the word-by-word callback, so askc.js can hide the steps while writing", () => {
+  const bg = require("node:fs").readFileSync(__dirname + "/../background.js", "utf8");
+  assert.match(bg, /function askDeps\(onToken, signal, history\) \{[^}]*history, onToken,\s*ask: PrivaC(Gemma|AI)\.ask \};/);
+});
