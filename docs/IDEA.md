@@ -6,6 +6,7 @@ _Last reviewed 2026-10-24 (Sat, ~4 PM ET). Ideas stay as the team wrote them; **
 - In person: Newell Hall, UF. Top 10 finalists present live Mon Oct 26 (Reitz Union, 10:15-11:15 AM).
 - Team: 2-5 people, every member registered. Students only.
 - Prizes: 1st $2,000 / 2nd $1,000 / 3rd $500. Tracks: Best Beginner Hack, Best Design, Best AI Hack, Best Social Impact. Sponsor challenges + MLH prizes exist (details not on page). One project can win several.
+  - **Correction 2026-10-24:** the prize pages now list no tracks. Sponsor prizes: Best Use of Gemma (MLH), Best Open Source Project (MLH, public repo with a clear open-source license), Best Use of the Twinly API, Vobile Prize. Rules: team members from at least two UF departments; all code written during the hacking period; at least one member at the Monday 10:15 AM finals in person to win. Finalists are picked on impact, technicality, design, novelty and presentation.
 - Sponsors: Vobile, Data Science & Informatics, MLH, Twinly. No sponsor APIs listed.
 - Submit: title + description, **public GitHub repo**, **demo video <=3 min (or slides)**, team roster, tracks/challenges to be considered for. WIP demo is OK.
 
