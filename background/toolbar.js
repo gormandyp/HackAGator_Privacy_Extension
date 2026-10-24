@@ -51,9 +51,19 @@
     chrome.webNavigation.onCommitted.addListener((d) => { if (d.frameId === 0) forget(d.tabId); });
   }
 
-  // The panel couldn't load PrivaC's page on that website.
-  chrome.runtime.onMessage.addListener((msg, sender) => {
+  chrome.runtime.onMessage.addListener((msg, sender, reply) => {
+    // The panel couldn't load PrivaC's page on that website.
     if (msg && msg.type === "privac-panel-failed" && sender && sender.tab) openWindow(sender.tab);
+    // The grade box on the page was clicked (content/grade-chip.js): open PrivaC like the toolbar button does.
+    if (msg && msg.type === "privac-open-panel" && sender && sender.tab) click(sender.tab);
+    // The grade box asks for its site's grade: the same numbers the popup shows (never the sample data).
+    if (msg && msg.type === "privac-site-grade" && sender && sender.tab) {
+      PrivaCData.load().then((d) => {
+        const s = !d.sample && (d.sites || []).find((x) => x.domain === msg.domain);
+        reply(s ? { grade: s.grade, score: s.score } : null);
+      }).catch(() => reply(null));
+      return true;   // answers after loading
+    }
   });
 
   // Settings switched back to the rounded panel: tabs that were using Chrome's window try the panel again.
