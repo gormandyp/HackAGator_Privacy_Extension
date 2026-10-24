@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>C on cookie pop-ups · PrivaC</title>
+  <!-- PrivaC test page: C on many kinds of cookie pop-ups (built by preview/c-variations.js). -->
+  <style>
+    body { margin: 0; }
+    .pv-index { background: #f5f6f8; color: #16233f; font: 15px/1.5 -apple-system, BlinkMacSystemFont, "Helvetica Neue", system-ui, sans-serif; }
+    .pv-index main { max-width: 860px; margin: 0 auto; padding: 40px 24px 60px; }
+    .pv-index h1 { font-size: 28px; letter-spacing: -0.02em; margin: 0 0 8px; }
+    .pv-lead { color: #4e586d; margin: 0 0 24px; }
+    .pv-list { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 12px; counter-reset: pv; }
+    .pv-list li { counter-increment: pv; }
+    .pv-list a { display: block; height: 100%; box-sizing: border-box; padding: 14px 16px 16px; border-radius: 16px; background: #fff; color: inherit; text-decoration: none;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, .05), 0 0 0 1px rgba(22, 35, 63, .06); transition: transform 160ms, box-shadow 160ms; }
+    .pv-list a:hover { transform: translateY(-2px); box-shadow: 0 8px 22px -10px rgba(0, 0, 0, .3), 0 0 0 1px rgba(22, 35, 63, .08); }
+    .pv-list b { display: block; font-size: 15px; margin-bottom: 4px; }
+    .pv-list b::before { content: counter(pv) ". "; color: #fa4616; }
+    .pv-list span { display: block; color: #4e586d; font-size: 13px; }
+    .pv-foot { color: #848ea2; font-size: 13px; margin-top: 24px; }
+    .pv-note { position: fixed; left: 16px; top: 50%; transform: translateY(-50%); z-index: 40; width: 250px; box-sizing: border-box;
+      padding: 14px 16px; border-radius: 16px; background: rgba(255, 255, 255, .94); color: #16233f; box-shadow: 0 10px 30px -10px rgba(0, 0, 0, .4);
+      font: 13px/1.45 -apple-system, BlinkMacSystemFont, "Helvetica Neue", system-ui, sans-serif; }
+    .pv-note h2 { font-size: 15px; margin: 2px 0 6px; }
+    .pv-note p { margin: 0 0 8px; }
+    .pv-kicker { color: #fa4616; font-weight: 700; font-size: 11.5px; text-transform: uppercase; letter-spacing: .04em; }
+    .pv-note nav { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 8px; }
+    .pv-note nav a { padding: 4px 9px; border-radius: 999px; background: #eef1f6; color: #16233f; text-decoration: none; font-weight: 600; font-size: 12px; }
+    .pv-note nav a:hover { background: #dfe4ee; }
+    .pv-keys { color: #848ea2; font-size: 11.5px; margin: 0; }
+  </style>
+</head>
+<body>
+  <!-- The pop-up first, then C's scripts in the same order PrivaC adds them to websites (manifest.json),
+       without the parts that count clicks for the dashboard. -->
+  <script src="c-variations.js"></script>
+  <script src="../shared/mascot.js"></script>
+  <script src="../content/c-prompt.js"></script>
+  <script src="../content/c-reaction-look.js"></script>
+  <script src="../content/c-placement.js"></script>
+  <script src="../content/cookie-detector.js"></script>
+</body>
+</html>
