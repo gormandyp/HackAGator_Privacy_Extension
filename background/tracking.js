@@ -122,13 +122,30 @@ function isFresh(site, now = Date.now()) {
 
 // Save one site into privacData, keeping other sites (history) and anything
 // another part of PrivaC already learned (cookie choice, policy answers).
+// Speed: sites waiting to be saved are written together, so a page that loads 30 trackers at once
+// costs one storage read + write instead of 30.
 let saveChain = Promise.resolve();
+const unsaved = new Set();
+let saveQueued = false;
 function saveSite(site) {
+  unsaved.add(site);
+  if (saveQueued) return saveChain;
+  saveQueued = true;
   saveChain = saveChain.then(async () => {
+    saveQueued = false;
+    const batch = [...unsaved];
+    unsaved.clear();
     const res = await chrome.storage.local.get("privacData");
     const data = (res.privacData && Array.isArray(res.privacData.sites)) ? res.privacData : { sites: [] };
     data.sample = false;
     data.sites = data.sites.filter(s => isFresh(s));   // auto-delete old history
+    for (const site of batch) mergeSite(data, site);
+    await chrome.storage.local.set({ privacData: data });
+  }).catch(e => { saveQueued = false; console.warn("PrivaC: could not save site", e); });
+  return saveChain;
+}
+
+function mergeSite(data, site) {
     const i = data.sites.findIndex(s => s.domain === site.domain);
     if (i === -1) { data.sites.push(site); }
     else {
@@ -148,9 +165,6 @@ function saveSite(site) {
         policy: old.policy && old.policy.source ? old.policy : site.policy
       };
     }
-    await chrome.storage.local.set({ privacData: data });
-  }).catch(e => console.warn("PrivaC: could not save site", e));
-  return saveChain;
 }
 
 // Cookie inventory: list the cookies the site and its trackers keep in this browser.

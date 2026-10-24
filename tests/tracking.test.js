@@ -6,13 +6,13 @@ const vm = require("node:vm");
 
 // Load background/tracking.js with a fake Chrome so we can drive it.
 function load() {
-  let store = {};
+  let store = {}, writes = 0;
   const listeners = {};
   const on = (name) => ({ addListener: (fn) => { listeners[name] = fn; } });
   const chrome = {
     storage: { local: {
       get: async (k) => ({ [k]: store[k] && JSON.parse(JSON.stringify(store[k])) }),
-      set: async (o) => { Object.assign(store, JSON.parse(JSON.stringify(o))); }
+      set: async (o) => { writes++; Object.assign(store, JSON.parse(JSON.stringify(o))); }
     } },
     webNavigation: { onCommitted: on("nav") },
     webRequest: { onBeforeRequest: on("req"), onResponseStarted: on("resp") },
@@ -23,7 +23,7 @@ function load() {
   vm.runInNewContext(fs.readFileSync(__dirname + "/../shared/data.js", "utf8"), ctx);
   vm.runInNewContext(fs.readFileSync(__dirname + "/../shared/ipgeo.js", "utf8"), ctx);   // server location (F3)
   vm.runInNewContext(fs.readFileSync(__dirname + "/../background/tracking.js", "utf8") + "\n;this.flush = async () => { await atlasReady; await tabsReady; for (let i = 0; i < 5; i++) await new Promise(r => setTimeout(r, 0)); await saveChain; }; this.setAtlas = setAtlas; this.update = updateCookieChoice; this.ownerOf = ownerOf;", ctx);
-  return { listeners, store: () => store, setStore: (s) => { store = s; }, flush: () => ctx.flush(), setAtlas: ctx.setAtlas, update: (d, c) => ctx.update(d, c), ownerOf: (d) => ctx.ownerOf(d), ip: ctx.PrivaCIP, parseRir: (t) => require("../scripts/build-ip-countries.js").parse([t]) };
+  return { writes: () => writes, listeners, store: () => store, setStore: (s) => { store = s; }, flush: () => ctx.flush(), setAtlas: ctx.setAtlas, update: (d, c) => ctx.update(d, c), ownerOf: (d) => ctx.ownerOf(d), ip: ctx.PrivaCIP, parseRir: (t) => require("../scripts/build-ip-countries.js").parse([t]) };
 }
 
 test("records known trackers per site and keeps earlier sites", async () => {
@@ -174,3 +174,16 @@ test("F3: the page's own server and outside servers in a listed country are reco
   assert.deepStrictEqual(tass.foreignServers, [{ host: "other.example", country: "IR" }]);
   assert.strictEqual(sites.find(s => s.domain === "cnn.com").server, null);
 });
+
+test("speed: a burst of trackers on one page is saved in a couple of writes, not one per tracker", async () => {
+  const t = load();
+  t.listeners.nav({ frameId: 0, tabId: 11, url: "https://busy.example/" });
+  await t.flush();
+  const before = t.writes();
+  for (const d of ["doubleclick.net", "google-analytics.com", "connect.facebook.net", "amazon-adsystem.com", "criteo.com", "scorecardresearch.com", "hotjar.com", "rlcdn.com"])
+    t.listeners.req({ tabId: 11, type: "script", url: "https://" + d + "/x.js" });
+  await t.flush();
+  assert.ok(t.writes() - before <= 2, `wrote ${t.writes() - before} times`);
+  assert.strictEqual(t.store().privacData.sites.find(s => s.domain === "busy.example").trackers.length, 8);
+});
+
