@@ -96,13 +96,23 @@ Steps the person can take (no tag needed):
     return `; the site itself is state-run media: ${owner.company} (${COUNTRY_NAMES[owner.country] || owner.country}), classified ${kind} by State Media Monitor (${String(sm.updated || "").slice(0, 4) || "2026"}) [State Media Monitor]`;
   }
 
+  const TRACKERS_SHOWN = 12;   // tracker companies listed per site in full detail
+
   function siteLine(s, extra) {
-    const t = (s.trackers || []).map(x => {
+    // The same company often loads several tracker addresses on one page: say it once, with how many.
+    const count = new Map();
+    for (const x of s.trackers || []) {
       const listed = listedCompany(x.company, extra);
-      return `${x.company} (${x.category}, based in ${x.country || "unknown country"}) [Tracker Radar]` +
+      const text = `${x.company} (${x.category}, based in ${x.country || "unknown country"}) [Tracker Radar]` +
         (listed ? listedText(listed) : "") +
         (x.broker ? `, registered California data broker [CA Broker Registry]` : "");
-    }).join("; ") || "none";
+      count.set(text, (count.get(text) || 0) + 1);
+    }
+    // Long lists are cut to the ones that matter most (foreign-adversary or 1260H links, brokers, advertising first).
+    const rank = (text) => (/1260H|based in (CN|HK|RU|IR|CU|KP|VE)\)/.test(text) ? 0 : /data broker/i.test(text) ? 1 : /\((Advertising|Data broker|Session recording),/.test(text) ? 2 : 3);
+    const entries = [...count].map(([text, n], i) => ({ text: n > 1 ? `${text} (${n} tracker addresses)` : text, r: rank(text), i }));
+    const kept = entries.length > TRACKERS_SHOWN ? [...entries].sort((a, b) => a.r - b.r || a.i - b.i).slice(0, TRACKERS_SHOWN).sort((a, b) => a.i - b.i) : entries;
+    const t = kept.map(e => e.text).join("; ") + (entries.length > kept.length ? `; and ${entries.length - kept.length} more tracker companies` : "") || "none";
     const p = s.policy || {};
     const pol = policyText(p);
     const day = s.lastVisit ? String(s.lastVisit).slice(0, 10) : "unknown date";
@@ -171,14 +181,122 @@ Steps the person can take (no tag needed):
     return facts;
   }
 
+  // ---------- Speed: a short, question-focused summary instead of every site in full ----------
+  // A week of browsing written out in full was ~40,000 words: Gemma took a long time to read it (and its
+  // context cut part of it off). Now Gemma gets totals and cross-site lists covering EVERY site, full details
+  // only for the few sites that matter to the question, and one short line for the next riskiest ones.
+  const DETAIL_SITES = 4;     // full detail lines (trackers, cookies, policy, breach)
+  const SHORT_SITES = 10;     // then one short line each
+  const LIST_MAX = 15;        // entries per cross-site list (brokers, breaches, foreign-adversary links)
+  const COMMON_WORDS = new Set(["the", "and", "you", "your", "who", "why", "how", "what", "was", "are", "can", "did", "does", "has",
+    "get", "got", "see", "use", "new", "web", "app", "all", "any", "not", "now", "our", "out", "way", "site", "sites", "news", "mail", "shop", "store", "home", "help"]);
+
+  function siteName(domain) {   // "news.bbc.co.uk" -> "bbc", "flightdeals.example" -> "flightdeals"
+    const p = String(domain || "").toLowerCase().split(".");
+    if (p.length < 2) return p[0] || "";
+    const sld = p.length >= 3 && p[p.length - 1].length === 2 && /^(co|com|org|net|ac|gov|edu)$/.test(p[p.length - 2]);
+    return p[p.length - (sld ? 3 : 2)] || "";
+  }
+
+  // Sites the question names ("cnn.com", "edition.cnn.com", or just "flightdeals"), then sites where a company
+  // the question names was seen. Both lists keep the riskiest-first order of `sites`.
+  function focusSites(sites, question) {
+    if (!question) return [];
+    const q = String(question).toLowerCase();
+    const tokens = new Set((q.match(/[a-z0-9-]+(?:\.[a-z0-9-]+)*/g) || []).map(t => t.replace(/^www\./, "")));
+    const named = sites.filter(s => {
+      const d = String(s.domain || "").toLowerCase();
+      if (!d) return false;
+      if (tokens.has(d) || [...tokens].some(t => t.endsWith("." + d))) return true;
+      const name = siteName(d);
+      return name.length >= 3 && !COMMON_WORDS.has(name) && tokens.has(name);
+    });
+    const L = (typeof window !== "undefined" ? window : self).PrivaCLists;
+    let byCompany = [];
+    if (L) {
+      const nq = " " + L.norm(question) + " ";
+      const asked = new Set();
+      for (const s of sites) for (const t of s.trackers || []) {
+        const n = t.company && L.norm(t.company);
+        if (n && n.length >= 4 && nq.includes(" " + n + " ")) asked.add(t.company);
+      }
+      if (asked.size) byCompany = sites.filter(s => (s.trackers || []).some(t => asked.has(t.company)));
+    }
+    return [...new Set([...named, ...byCompany])];
+  }
+
+  const yearOf = (b) => String(b.breachDate || b.addedDate || "").slice(0, 4);
+  const countryName = (c) => COUNTRY_NAMES[c] || (c === "HK" ? "Hong Kong (China)" : c);
+  const more = (list, max) => (list.length > max ? `; and ${list.length - max} more` : "");
+
+  // Totals and cross-site lists over every site, so questions like "which data brokers have seen me?"
+  // are answered from all of your browsing, not only the sites shown in full.
+  function overview(sites, extra) {
+    const grades = { A: 0, B: 0, C: 0, D: 0, F: 0 };
+    const choices = { declined: 0, accepted: 0, "no-reject": 0, none: 0 };
+    const byCo = new Map(), brokers = new Map(), breached = [], flagged = [];
+    for (const s of sites) {
+      if (grades[s.grade] !== undefined) grades[s.grade]++;
+      choices[s.cookieChoice in choices ? s.cookieChoice : "none"]++;
+      const why = new Map();
+      for (const t of s.trackers || []) {
+        if (!t.company) continue;
+        let x = byCo.get(t.company);
+        if (!x) byCo.set(t.company, (x = { sites: new Set(), category: t.category, country: t.country }));
+        x.sites.add(s.domain);
+        if (t.broker) {
+          let b = brokers.get(t.broker);
+          if (!b) brokers.set(t.broker, (b = { company: t.company, sites: [] }));
+          if (!b.sites.includes(s.domain)) b.sites.push(s.domain);
+        }
+        const listed = t.listed || listedCompany(t.company, extra);
+        const inCountry = COUNTRY_NAMES[t.country] || t.country === "HK";
+        if (inCountry || listed) why.set(t.company, `${t.company} (${[inCountry ? countryName(t.country) : null, listed ? "Section 1260H list" : null].filter(Boolean).join("; ")})`);
+      }
+      for (const t of s.flagged || []) if (t.company && !why.has(t.company)) why.set(t.company, `${t.company} (${countryName(t.country)})`);
+      if (s.owner && (COUNTRY_NAMES[s.owner.country] || s.owner.country === "HK")) why.set("owner", `the site belongs to ${s.owner.company} (${countryName(s.owner.country)}${s.owner.stateMedia ? ", state-run media" : ""})`);
+      if (s.addressFlag) why.set("address", `web address ends in ${s.addressFlag.ending} (${countryName(s.addressFlag.country)})`);
+      if (s.serverFlag) why.set("server", `server registered in ${countryName(s.serverFlag.country)}`);
+      if (why.size) flagged.push(`${s.domain}: ${[...why.values()].join(", ")}`);
+      if (s.breach) breached.push(`${s.domain} (${s.breach.name}, ${yearOf(s.breach)})`);
+    }
+    const lines = [];
+    lines.push(`Your browsing with PrivaC on, last 7 days [Seen on your visit]: ${sites.length} sites; grades ${Object.entries(grades).map(([g, n]) => `${n} ${g}`).join(", ")}; ` +
+      `cookie banners: ${choices.declined} declined, ${choices.accepted} accepted, ${choices["no-reject"]} had no Reject button, ${choices.none} showed none.`);
+    const top = [...byCo].sort((a, b) => b[1].sites.size - a[1].sites.size).slice(0, 10);
+    if (top.length) lines.push(`Companies seen on the most sites [Seen on your visit] [Tracker Radar]: ${top.map(([co, x]) => `${co} (${x.category}, ${x.country || "unknown country"}) on ${x.sites.size} of ${sites.length} sites`).join("; ")}.`);
+    if (brokers.size) {
+      const list = [...brokers].map(([name, b]) => `${b.company} (registered as "${name}") on ${b.sites.length} site${b.sites.length > 1 ? "s" : ""}: ${b.sites.slice(0, 4).join(", ")}${b.sites.length > 4 ? "..." : ""}`);
+      lines.push(`Registered California data brokers seen [CA Broker Registry] [Seen on your visit]: ${list.slice(0, LIST_MAX).join("; ")}${more(list, LIST_MAX)}.`);
+    } else lines.push("No registered California data brokers seen [CA Broker Registry].");
+    if (flagged.length) lines.push(`Foreign-adversary links seen [Seen on your visit] [Government list]: ${flagged.slice(0, LIST_MAX).join("; ")}${more(flagged, LIST_MAX)}.`);
+    if (breached.length) lines.push(`Sites you visited with a known data breach [HIBP]: ${breached.slice(0, LIST_MAX).join("; ")}${more(breached, LIST_MAX)}.`);
+    return lines.join("\n");
+  }
+
+  function shortLine(s) {
+    const cos = [...new Set((s.trackers || []).map(t => t.company).filter(Boolean))];
+    return `- ${s.domain}: grade ${s.grade}, exposure ${s.score}/100, ${cos.length} tracker compan${cos.length === 1 ? "y" : "ies"}${cos.length ? ` (${cos.slice(0, 4).join(", ")}${cos.length > 4 ? "..." : ""})` : ""} [Seen on your visit]`;
+  }
+
   // extra = { flagged, regtrack }: the checked fact files (optional; context still builds without them).
-  function buildContext(data, today, facts, extra) {
+  // question (optional): sites it names, and sites where companies it names were seen, are shown in full.
+  function buildContext(data, today, facts, extra, question) {
     const sites = [...((data && data.sites) || [])].sort((a, b) => (b.score || 0) - (a.score || 0));
-    const date = `Today is ${today || new Date().toISOString().slice(0, 10)}.` +
-      (facts && facts.length ? `\n\nFacts about what you asked:\n${facts.join("\n")}` : "");
-    const bg = BACKGROUND + regtrackLines(extra);
+    // Unchanging background first, then everything about this question: Ollama can reuse the start of the last prompt.
+    const date = `Today is ${today || new Date().toISOString().slice(0, 10)}.`;
+    const bg = BACKGROUND + regtrackLines(extra) + (facts && facts.length ? `\n\nFacts about what you asked:\n${facts.join("\n")}` : "");
     if (!sites.length) return `${date}\n${bg}\n\nThe person hasn't visited any sites with PrivaC on yet.`;
-    return `${date}\n${bg}\n\nSites you visited, riskiest first (${sites.length}):\n${sites.map(s => siteLine(s, extra)).join("\n")}`;
+    const detail = [...new Set([...focusSites(sites, question), ...sites])].slice(0, DETAIL_SITES)
+      .sort((a, b) => (b.score || 0) - (a.score || 0));
+    const shown = new Set(detail);
+    const rest = sites.filter(s => !shown.has(s));
+    const short = rest.slice(0, SHORT_SITES);
+    const left = rest.length - short.length;
+    return `${date}\n${bg}\n\n${overview(sites, extra)}\n\n` +
+      `Sites you visited, riskiest first (${sites.length}${sites.length > detail.length ? `; full details for ${detail.length}` : ""}):\n${detail.map(s => siteLine(s, extra)).join("\n")}` +
+      (short.length ? `\n\nNext riskiest sites:\n${short.map(shortLine).join("\n")}` : "") +
+      (left > 0 ? `\n(and ${left} more sites with lower exposure)` : "");
   }
 
   // In the extension, load the checked fact files once. Tests pass them in through deps.facts instead.
@@ -226,7 +344,7 @@ Steps the person can take (no tag needed):
     const extra = deps.facts ? await deps.facts() : FACT_FILES;
     const trace = [{ tool: "get_site_report", label: "Your browsing" }];
     try {
-      const raw = await deps.ask(q, { system: SYSTEM_PROMPT, context: buildContext(data, null, facts, extra), options: { temperature: 0.2 } });
+      const raw = await deps.ask(q, { system: SYSTEM_PROMPT, context: buildContext(data, null, facts, extra, q), options: { temperature: 0.2 } });
       const text = cleanAnswer(raw);
       if (/\[Government list\]/.test(text)) trace.push({ tool: "background_facts", label: "Government lists" });
       if (/\[Tracker Radar\]/.test(text)) trace.push({ tool: "lookup_company", label: "Tracker Radar" });
