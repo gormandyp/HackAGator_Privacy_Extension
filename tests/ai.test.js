@@ -189,3 +189,14 @@ test("if the brain page restarts mid-answer, C says so plainly, or Ollama answer
   await assert.rejects(load({ brain, ollamaUp: false }).AI.ask("Hi", {}), /restarted/);
   assert.strictEqual(await load({ brain, ollamaUp: true }).AI.ask("Hi", {}), "from Ollama");
 });
+
+// Backtest 2026-10-24: asking the same question twice gave two different answers (random sampling). Ask C sends a
+// fixed seed; it reaches C's brain, and the warm-up readies a conversation with that same seed.
+test("Ask C's fixed seed reaches C's brain, and the warm-up uses the same one", async () => {
+  const { AI, sent } = load({ brain: readyBrain({ state: "downloaded" }) });
+  await AI.warm("You are C.");
+  await AI.ask("Who is Criteo?", { system: "You are C.", context: "E", options: { temperature: 0.2, seed: 7 } });
+  const warm = sent.find((m) => m.cmd === "warm"), gen = sent.find((m) => m.cmd === "generate");
+  assert.strictEqual(gen.seed, 7);
+  assert.strictEqual(warm.seed, gen.seed);
+});

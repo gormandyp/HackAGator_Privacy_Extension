@@ -17,6 +17,7 @@
   const ANSWER_TIMEOUT_MS = 120000;     // includes loading Gemma the first time (shader set-up can take ~20 s)
   const MAX_TOKENS = 600;
   const TEMPERATURE = 0.2;              // Ask C's (shared/askc.js); the warm-up readies a conversation just like it
+  const SEED = 7;                       // Ask C's fixed seed (shared/askc.js), so the same question gets the same answer
   const OLLAMA_CHECK_MS = 30000;
 
   let seq = 0;
@@ -96,12 +97,13 @@
     const id = `q${++seq}-${Date.now()}`;
     const user = opts.context ? `Evidence:\n${opts.context}\n\nQuestion: ${question}` : question;
     const temperature = opts.options && typeof opts.options.temperature === "number" ? opts.options.temperature : TEMPERATURE;
+    const seed = opts.options && typeof opts.options.seed === "number" ? opts.options.seed : undefined;
     pending.set(id, { onToken: opts.onToken, text: "" });
     if (job) lowRunning.set(id, job);
     let timer, onAbort;
     try {
       const res = await Promise.race([
-        brain({ cmd: "generate", id, system: opts.system || "", user, json: !!opts.json, temperature, maxTokens: MAX_TOKENS, stream: !!opts.onToken }),
+        brain({ cmd: "generate", id, system: opts.system || "", user, json: !!opts.json, temperature, seed, maxTokens: MAX_TOKENS, stream: !!opts.onToken }),
         new Promise((_, reject) => { timer = setTimeout(() => reject(Object.assign(new Error("C took too long to answer. Try again in a moment."), { code: "TIMEOUT" })), ANSWER_TIMEOUT_MS); }),
         new Promise((_, reject) => {   // whoever asked hung up (e.g. the Ask C tab closed): stop Gemma
           if (!opts.signal) return;
@@ -175,7 +177,7 @@
     try {
       if ((await use()) === "ollama") return root.PrivaCGemma.warm();
       const s = await brain({ cmd: "status" });
-      if (s && (s.state === "downloaded" || s.state === "ready")) await brain({ cmd: "warm", system, temperature: TEMPERATURE, maxTokens: MAX_TOKENS });
+      if (s && (s.state === "downloaded" || s.state === "ready")) await brain({ cmd: "warm", system, temperature: TEMPERATURE, seed: SEED, maxTokens: MAX_TOKENS });
       else if (await ollamaUp()) root.PrivaCGemma.warm();
     } catch (e) { /* warming is only a head start */ }
   }

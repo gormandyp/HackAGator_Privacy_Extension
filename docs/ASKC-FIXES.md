@@ -84,6 +84,57 @@ isn't a known tag. Deleting made-up tags is on purpose (`tests/askc.test.js`, "[
 
 ---
 
+## Fix 7 (seen live 2026-10-24 7 PM): "Was linkedin.com hacked?" said C had no information (branch `askc-breach`)
+**Seen live:** C answered "I do not have information about a hack on linkedin.com. However, I can tell you about past data
+breaches involving LinkedIn [HIBP]", showing a "Have I Been Pwned" check mark. The follow-up "Okay yes tell me about past data
+breaches involving linked in" got "Earlier in this conversation, I told you about past data breaches" and the same cookie tips.
+**Causes:** (1) Gemma only saw a site's newest breach (LinkedIn's 2021 scraped data) and dropped the 2012 hack (164.6 million
+emails and passwords); (2) breaches were found only by web address or breach name, so "Was LinkedIn hacked?", "linked in" and
+follow-ups found nothing; (3) any [HIBP] tag Gemma wrote showed the check mark, even with no breach evidence.
+**Fix:** "Was X hacked / breached / leaked?" is answered straight from the Have I Been Pwned list, like grade questions: every
+breach on record (date, accounts, what was exposed), then breach steps (change the password, two-step sign-in, phishing).
+Sites are found by web address, name, or two words run together ("linked in"); a "yes, tell me about its breaches" follow-up
+uses the last question's site. A web address with no record says so ("doesn't prove it was never breached"), never "safe".
+Other questions about a company get its whole breach record in the evidence. A source tag with no evidence behind it is removed,
+so its check mark doesn't show. Gemma's rules: scraped or leaked data counts as a breach, and a "yes" to an offer gets the thing
+offered. `shared/lists.js` keeps what each earlier breach exposed (shows after the next daily list refresh or an extension reload).
+**Part 2 (seen live 7:10 PM, "Was google hacked?"):** Google has no breach on record and the question had no web address, so it
+went to Gemma, which answered "I do not have information... I stick to your privacy and suggest a privacy question instead" and listed
+every step. Now anything PrivaC knows gets the honest "no breach on record" answer from the list: a web address, a site you visited
+("was tass hacked") or a tracker company ("Google", "Amazon" for "Amazon.com", "Criteo"), plus what PrivaC did see ("Google's trackers
+were on 5 of your 6 sites this week, which is about tracking, not a breach") and password steps. "What about google?" right after a
+breach question counts as one. Gemma only gets what PrivaC knows nothing about ("Was my bank hacked?"); its rules no longer contain the
+sentence it parroted, say hacks/breaches/security are always on topic, and ask for only the 2 or 3 steps that fit. Checked against the
+real tracker list (~1,900 companies): everyday words ("my crypto exchange", "my router", "the store", "my digital wallet") don't match a company.
+**Tests:** `tests/askc-breach.test.js` (10 tests); generic questions ("What is a data breach?", "Was my email in a breach?") and
+the app's own breach questions still go to Gemma, also checked with breached sites named "data", "site", "cookie" and "email".
+
+## Backtest, 2026-10-24 ~11:45 PM UTC (repo owner: "C gives different answers to similar prompts, repeats itself, and says less than it knows")
+About 150 wordings of 19 everyday questions, plus follow-ups, through the real `shared/askc.js` with a recording stand-in for Gemma
+(the real tracker list, a realistic week of browsing, Have I Been Pwned and broker lists). Root causes found and fixed, each with a test in
+`tests/askc-backtest.test.js` (on every branch):
+1. **Random sampling.** Gemma picked words with a random seed, so the same question twice gave two answers. Now a fixed seed (`SEED` in
+   askc.js and shared/ai.js; LiteRT-LM and Ollama both take it). Similar questions can still differ in wording, never in facts.
+2. **Three different company matchers** (facts, sites shown in full, breach answers). "Who is Amazon?" found no facts while "Was Amazon hacked?"
+   did; "Who is Meta?" found nothing (Tracker Radar says Facebook). Now one `companiesIn()`, with Meta/Instagram/WhatsApp, YouTube/Alphabet,
+   TikTok, LinkedIn, Yahoo and Amazon mapped to the tracker company (the fact line says who owns whom).
+3. **Everyday-word company names.** "Did any site I visit get hacked?" was answered about a tracker company named VISIT; "How can I make it
+   better?" pulled in Better Commerce Group. Everyday names (VISIT, Next, Impact, About You...) and first words count only written with
+   their capital, and not as the first word.
+4. **Grade questions** went to the instant breakdown only when they started with why/how: "explain cnn.com's grade", "cnn grade?",
+   "What grade did cnn.com get?" and "why is cnn so bad" went to Gemma. Now a visited site plus a grade word (or "why ... so bad") is enough.
+5. **"Why does CNN have a bad grade?"** said "not an A": the "a" in "have a bad" was read as the letter. A lowercase "a" is the letter only at
+   the end or before "grade".
+6. **Grade follow-ups** ("and espn?", "what about wired.com?") went to Gemma; now they get that site's breakdown too.
+7. **"Did any site I visited get hacked?"** (6 wordings, 3 different paths): now one answer listing your visited sites in Have I Been Pwned,
+   every breach with date, accounts and what was exposed.
+8. **Follow-ups lost the facts**: "Does it fingerprint me?" after "Who is Criteo?" had no Criteo facts (facts came only from the new
+   question). A follow-up that names nothing now keeps the last question's facts.
+9. **Repeats.** Repeated sentences in one answer, "Earlier I told you..." instead of an answer, and the last answer's steps copied into
+   the next: the first two are removed in `cleanAnswer`, and C's memory no longer includes earlier "What you can do" lines.
+Also added: a "Who tracked me the most this week?" example in the prompt (counts sites, uses [Seen on your visit]); "what are you able
+to do" gets C's intro. Still needs the real-Gemma check on the Mac: wording quality can only be judged with Gemma itself.
+
 ## Also seen live (add to PLAN R13's list of bad answers; no code fix yet)
 - "Who tracked me the most this week?" got one sentence, "Google tracked you the most. [Tracker Radar]", with no count of sites,
   and labeled [Tracker Radar] instead of [Seen on your visit]. The evidence already has "on N of M sites" in the "Companies seen
@@ -100,11 +151,13 @@ Reload PrivaC, open Ask C, and ask each of these. Write down the answer and whic
 Also note any answer that's wrong, too long, missing source tags, or that says "the user" or "you are currently visiting";
 those go in PLAN R13's list of bad answers.
 
-## Status
-- [ ] Fix 1: about-C questions (confirmed live)
-- [ ] Fix 2: grammar after "the user"
-- [ ] Fix 3: doesn't-sell policy
-- [ ] Fix 4: country names (confirmed live)
-- [ ] Fix 5: lowercase grade letters (confirmed live)
-- [ ] Fix 6: brackets rule in the prompt
+## Status (2026-10-24 ~6:40 PM: all six done by Max's Claude on branch `askc-fixes`, 492 tests pass; waiting for the repo owner's review)
+- [x] Fix 1: about-C questions (confirmed live), branch `askc-fixes`
+- [x] Fix 2: grammar after "the user", branch `askc-fixes` (verb changes only where "the user" is the subject)
+- [x] Fix 3: doesn't-sell policy, branch `askc-fixes`
+- [x] Fix 4: country names (confirmed live), branch `askc-fixes` (5 test expectations: codes changed to names)
+- [x] Fix 5: lowercase grade letters (confirmed live), branch `askc-fixes`
+- [x] Fix 6: brackets rule in the prompt, branch `askc-fixes`
+- [x] Fix 7: breach questions (LinkedIn, then Google and any known company or site), branch `askc-breach` (built on `askc-fixes`, so merging it brings fixes 1-6 too)
+- [x] Backtest root causes 1-9 (above), on every branch
 - [ ] Real-Gemma check on the Mac

@@ -11,8 +11,8 @@
     status                 -> current status (below)
     download               -> starts the one-time download (progress arrives as status messages); answers at once
     cancel-download        -> stops a download (back to "none", nothing kept)
-    warm { system, temperature, maxTokens } -> loads Gemma into GPU memory and readies a conversation like that
-    generate { id, system, user, json, temperature, maxTokens, stream } -> { text } (or { error, code })
+    warm { system, temperature, seed, maxTokens } -> loads Gemma into GPU memory and readies a conversation like that
+    generate { id, system, user, json, temperature, seed, maxTokens, stream } -> { text } (or { error, code })
                               codes: NOT_READY, DOWNLOADING, UNSUPPORTED, CANCELLED, FAILED
     cancel { id }          -> stops that generation (it answers { error, code: "CANCELLED" })
     unload                 -> frees the graphics memory now (keeps the download)
@@ -281,9 +281,10 @@
     function settingsFor(req) {
       const greedy = req.json || !req.temperature;
       const samplerParams = greedy ? { type: d.lm.SamplerType.GREEDY }
-        : { type: d.lm.SamplerType.TOP_P, k: 40, p: 0.95, temperature: req.temperature };
+        : { type: d.lm.SamplerType.TOP_P, k: 40, p: 0.95, temperature: req.temperature,
+            ...(typeof req.seed === "number" ? { seed: req.seed } : {}) };   // a fixed seed: the same question, the same answer
       return {
-        key: `${greedy ? "g" : req.temperature}|${req.maxTokens || 600}|${req.system || ""}`,
+        key: `${greedy ? "g" : `${req.temperature}/${req.seed}`}|${req.maxTokens || 600}|${req.system || ""}`,
         config: {
           preface: { messages: req.system ? [{ role: "system", content: req.system }] : [], extra_context: { enable_thinking: false } },
           sessionConfig: { samplerParams, maxOutputTokens: req.maxTokens || 600 },

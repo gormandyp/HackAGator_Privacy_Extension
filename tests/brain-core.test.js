@@ -432,3 +432,12 @@ test("the runtime's routine start-up lines aren't reported as extension errors; 
   assert.strictEqual(logLevel("E1024 20:31:56.416999 2378752 gpu.cc:9] Device lost"), "error");
   assert.strictEqual(logLevel("Aborted(OOM)"), "error");
 });
+
+test("a seed makes Ask C's sampling repeatable, and is part of the prepared conversation's settings", async () => {
+  const caches = fakeCaches(); caches.store.set(MODEL.url, MODEL.bytes);
+  const { brain, lm } = brainWith({ caches });
+  await brain.handle({ cmd: "generate", id: "s1", system: "You are C.", user: "Who is Criteo?", temperature: 0.2, seed: 7 });
+  const p = lm.calls.convs[0].cfg.sessionConfig.samplerParams;
+  assert.strictEqual(p.type, lm.SamplerType.TOP_P);
+  assert.strictEqual(p.seed, 7);
+});
