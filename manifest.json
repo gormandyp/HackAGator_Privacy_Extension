@@ -41,7 +41,8 @@
         "content/cookie-detector.js",
         "content/alerts.js",
         "content/policy-link.js",
-        "content/panel.js"
+        "content/panel.js",
+        "content/grade-chip.js"
       ],
       "run_at": "document_idle"
     },
