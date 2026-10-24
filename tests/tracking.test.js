@@ -260,3 +260,42 @@ test("a script inside a website can't ask which site another tab is on", async (
   assert.strictEqual(answered, false);
   assert.notStrictEqual(keep, true);
 });
+
+// Steadier grades (repo owner, 2026-10-24): each page load is one visit; each company is counted once per visit.
+test("visits: each page load counts once, and each company once per visit, however many addresses or requests", async () => {
+  const t = load();
+  t.listeners.nav({ frameId: 0, tabId: 7, url: "https://news.example/" });
+  t.listeners.req({ tabId: 7, url: "https://stats.g.doubleclick.net/x" });
+  t.listeners.req({ tabId: 7, url: "https://www.google-analytics.com/g" });
+  t.listeners.req({ tabId: 7, url: "https://stats.g.doubleclick.net/y" });
+  await t.flush();
+  t.listeners.nav({ frameId: 0, tabId: 7, url: "https://news.example/" });   // reload
+  t.listeners.req({ tabId: 7, url: "https://stats.g.doubleclick.net/x" });
+  t.listeners.req({ tabId: 7, url: "https://hotjar.com/s.js" });
+  await t.flush();
+  t.listeners.nav({ frameId: 0, tabId: 8, url: "https://news.example/b" });  // another tab, same site
+  await t.flush();
+  const site = t.store().privacData.sites.find(s => s.domain === "news.example");
+  assert.strictEqual(site.visits, 3);
+  assert.strictEqual(site.companyVisits.Google.n, 2);
+  assert.strictEqual(site.companyVisits.Hotjar.n, 1);
+  assert.strictEqual(site.trackers.length, 3, "the list still keeps every address seen this week");
+});
+
+test("trackers first seen after you click Accept are marked; seen again on a visit without Accept, the mark comes off", async () => {
+  const t = load();
+  t.listeners.nav({ frameId: 0, tabId: 9, url: "https://shop.example/" });
+  t.listeners.req({ tabId: 9, url: "https://stats.g.doubleclick.net/x" });
+  await t.flush();
+  await t.update("shop.example", "accepted");
+  t.listeners.req({ tabId: 9, url: "https://hotjar.com/s.js" });
+  await t.flush();
+  let site = t.store().privacData.sites.find(s => s.domain === "shop.example");
+  assert.ok(!site.trackers.find(x => x.company === "Google").afterAccept);
+  assert.strictEqual(site.trackers.find(x => x.company === "Hotjar").afterAccept, true);
+  t.listeners.nav({ frameId: 0, tabId: 9, url: "https://shop.example/" });   // next visit, no Accept click
+  t.listeners.req({ tabId: 9, url: "https://hotjar.com/s.js" });
+  await t.flush();
+  site = t.store().privacData.sites.find(s => s.domain === "shop.example");
+  assert.ok(!site.trackers.find(x => x.company === "Hotjar").afterAccept);
+});

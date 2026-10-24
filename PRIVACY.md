@@ -14,6 +14,7 @@ PrivaC needs to see the websites you visit to do its one job: telling you who tr
 |---|---|---|
 | Names of websites you visit (for example `cnn.com`), never full web addresses | To grade each site and show who followed you across sites | Until 7 days after your last visit to that site. It is deleted automatically when Chrome starts, once a day, and whenever PrivaC saves a visit, so this holds even if you don't browse. |
 | Which tracking companies and outside servers each site contacted, the company that owns the site when it is known, and the country of a server when it is in one of the countries on the U.S. foreign-adversary list. Never the server's IP address. | To list trackers and flag companies or servers in countries on U.S. government lists | Same as the site |
+| How many times you opened each site, and on how many of those visits each tracking company showed up (counts only) | So a company that showed up only once in a while doesn't change the grade | Same as the site |
 | Names, owners and lifetimes of cookies (never their contents) | To show what each site stores in your browser | Same as the site |
 | Your cookie-banner choice on each site (declined, accepted, no Reject button) | To grade how the site asked for consent | Same as the site |
 | Short answers about each site's privacy policy (for example "says it sells data"), the exact sentence that backs each answer, and the address of that policy page (without anything after a `?`) | Part of the grade, and so you can check the quote yourself | Same as the site |

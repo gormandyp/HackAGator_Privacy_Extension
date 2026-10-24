@@ -20,7 +20,9 @@
     if (((store && store.privacSettings) || {}).gradeChip === false) return null;
     if (((store && store.privacChipSeen) || {})[domain] === today) return null;
     if (!site || !WORDS[site.grade]) return null;
-    return { domain, grade: site.grade, score: site.score, word: WORDS[site.grade] };
+    const chip = { domain, grade: site.grade, score: site.score, word: WORDS[site.grade] };
+    if (site.range && site.range.max > site.score) chip.max = site.range.max;   // part of the grade is still unknown
+    return chip;
   }
 
   // The "shown today" list with this site added and days older than a week dropped.
@@ -122,8 +124,9 @@
     later();
   }
 
+  const lineFor = (chip) => `PrivaC · ${chip.domain} · ${chip.score} of 100${chip.max ? `, could be up to ${chip.max}` : ""}`;
   const showGrade = (chip) => show({ badge: chip.grade, color: COLORS[chip.grade], title: chip.word,
-    line: `PrivaC · ${chip.domain} · ${chip.score} of 100`, label: `PrivaC grade ${chip.grade} for ${chip.domain}: ${chip.word}. Open PrivaC.` });
+    line: lineFor(chip), label: `PrivaC grade ${chip.grade} for ${chip.domain}: ${chip.word}. Open PrivaC.` });
 
   // After a cookie choice: waits for C's own answer ("Nice!") to finish first, then explains. Once per page.
   const explained = new Set();
@@ -160,7 +163,7 @@
     } catch (e) { /* PrivaC was reloaded or storage isn't there: no box */ }
   }
 
-  window.PrivaCGradeChip = { pick, remember, meaning, explain };
+  window.PrivaCGradeChip = { pick, remember, meaning, explain, lineFor };
   const start = () => setTimeout(run, DELAY);
   if (document.readyState === "complete") start(); else window.addEventListener("load", start, { once: true });
 })();

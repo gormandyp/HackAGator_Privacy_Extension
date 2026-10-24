@@ -60,7 +60,7 @@
     if (msg && msg.type === "privac-site-grade" && sender && sender.tab) {
       PrivaCData.load().then((d) => {
         const s = !d.sample && (d.sites || []).find((x) => x.domain === msg.domain);
-        reply(s ? { grade: s.grade, score: s.score } : null);
+        reply(s ? { grade: s.grade, score: s.score, range: s.range } : null);
       }).catch(() => reply(null));
       return true;   // answers after loading
     }
