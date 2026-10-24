@@ -9,7 +9,7 @@ What's left is the account, the upload and the forms below; every answer is writ
 - [ ] **Register** at https://chrome.google.com/webstore/devconsole: accept the developer agreement and pay the one-time registration fee (US$5 when this was written; the sign-up page shows the current amount). Google may ask you to turn on 2-Step Verification for the account.
 - [ ] **Contact email.** The Store shows a developer email on the listing and Google must be able to reach it. Use a team address you'll keep (it can't be moved to another account later). PRIVACY.md and TERMS.md point people to GitHub issues, which works without an email.
 - [ ] **Privacy policy URL.** The Store needs a public web page, not a file in a zip. Easiest: merge this branch into main and use https://github.com/gormandyp/HackAGator_Privacy_Extension/blob/main/PRIVACY.md (the repo must stay public). Cleaner: turn on GitHub Pages for the repo and use that address. The welcome page already links to the GitHub address.
-- [ ] **Pick a license for the code** (there is no LICENSE file yet, so by default nobody may reuse it). `shared/atlas.json` comes from Tracker Radar and must stay under CC BY-NC-SA 4.0 whatever you pick for the code.
+- [x] **License for the code:** MIT (LICENSE, added 2026-10-24). `shared/atlas.json` comes from Tracker Radar and stays under CC BY-NC-SA 4.0.
 - [ ] **Trader or non-trader:** a free student project with no business behind it is a **non-trader**.
 - [ ] **Wait until after the hackathon (Sun 4 PM).** Review can take days to weeks for an extension that runs on every site, and nothing here is needed for judging.
 - [ ] **Retake screenshots with real browsing** (optional but better): the ones in `store/` use the dashboard's sample data and show a "Sample data" badge.
