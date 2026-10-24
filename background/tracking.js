@@ -173,6 +173,13 @@ chrome.webRequest.onBeforeRequest.addListener(
   { urls: ["<all_urls>"] }
 );
 
+// "Clear my PrivaC data" removes privacData: forget the open tabs too, so nothing comes back.
+if (chrome.storage.onChanged) {
+  chrome.storage.onChanged.addListener((changes, area) => {
+    if (area === "local" && changes.privacData && !changes.privacData.newValue) tabSites.clear();
+  });
+}
+
 // Clean up closed tabs.
 chrome.tabs.onRemoved.addListener(tabId => {
   tabSites.delete(tabId);
