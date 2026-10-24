@@ -107,7 +107,12 @@ h1, h2, h3 { font-family: var(--font-display); color: var(--text); font-weight: 
 :root[data-tint="rose"][data-theme="dark"] .backdrop { background: url("wallpapers/rose-dark.svg") center / cover no-repeat, var(--bg-1); }
 :root[data-tint="graphite"] .backdrop { background: url("wallpapers/graphite-light.svg") center / cover no-repeat, var(--bg-1); }
 :root[data-tint="graphite"][data-theme="dark"] .backdrop { background: url("wallpapers/graphite-dark.svg") center / cover no-repeat, var(--bg-1); }
-.backdrop { transition: background 300ms ease; }
+/* Two colors per tint (the swatch's ends) wash the glass where there's no wallpaper: the rounded panel over a website. */
+:root[data-tint="ocean"] { --tint-a: #3a8dff; --tint-b: #2fd0c8; }
+:root[data-tint="forest"] { --tint-a: #3fbf7f; --tint-b: #cfe36b; }
+:root[data-tint="sunset"] { --tint-a: #ff8a5b; --tint-b: #ff6f91; }
+:root[data-tint="rose"] { --tint-a: #ff7eb6; --tint-b: #b39bff; }
+:root[data-tint="graphite"] { --tint-a: #8f98a8; --tint-b: #c3c7d1; }
 /* A whisper of grain so large gradients don't band; it also gives the glass something to diffuse. */
 .backdrop::after {
   content: ""; position: absolute; inset: 0; opacity: .04; mix-blend-mode: multiply;

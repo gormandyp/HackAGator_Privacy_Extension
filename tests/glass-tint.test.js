@@ -56,3 +56,27 @@ test("the Settings sheet offers one swatch per tint, in the same order", () => {
 test("theme-boot paints the saved tint before the page draws", () => {
   assert.match(read("shared/theme-boot.js"), /dataset\.tint\s*=\s*look\.tint/);
 });
+
+// The toolbar's rounded panel over a website has no wallpaper (the website shows through), so the glass color
+// used to change nothing there. Now each tint gives two colors that wash the panel's glass.
+test("each extra tint has two wash colors, and the rounded panel over a website uses them", () => {
+  const css = read("shared/ui.css");
+  for (const t of TINTS.filter((t) => t !== "aurora")) {
+    assert.match(css, new RegExp(`:root\\[data-tint="${t}"\\] \\{ --tint-a: #[0-9a-f]{6}; --tint-b: #[0-9a-f]{6}; \\}`), t);
+  }
+  assert.doesNotMatch(css, /\[data-tint="aurora"\] \{ --tint-a/, "aurora keeps the panel exactly as before");
+  const popup = read("popup/popup.css");
+  const rule = popup.match(/:root\.in-panel\[data-style="glass"\]\[data-tint\]:not\(\[data-tint="aurora"\]\) body \{[^}]*\}/);
+  assert.ok(rule, "panel wash rule");
+  assert.match(rule[0], /var\(--tint-a\)/);
+  assert.match(rule[0], /var\(--tint-b\)/);
+});
+
+test("the swatches show the same colors the panel uses", () => {
+  const css = read("shared/ui.css"), dash = read("dashboard/dashboard.css");
+  for (const t of TINTS.filter((t) => t !== "aurora")) {
+    const [, a, b] = css.match(new RegExp(`:root\\[data-tint="${t}"\\] \\{ --tint-a: (#[0-9a-f]{6}); --tint-b: (#[0-9a-f]{6}); \\}`)) || [];
+    const swatch = (dash.match(new RegExp(`\\.swatch-${t} \\{[^}]*\\}`)) || [""])[0];
+    assert.ok(a && swatch.includes(a) && swatch.includes(b), t);
+  }
+});
