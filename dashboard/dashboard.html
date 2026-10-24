@@ -55,7 +55,7 @@
         <p>Pick a site to see what raised or lowered its grade. Each site combines your visits from the last 7 days.</p>
       </div>
       <div class="split">
-        <div class="site-index glass" id="sites" role="listbox" aria-label="Your sites"></div>
+        <div class="site-index glass"><div class="site-list" id="sites" role="listbox" aria-label="Your sites"></div></div>
         <article class="site-detail glass" id="site-detail" aria-live="polite"></article>
       </div>
     </section>
@@ -206,6 +206,7 @@
   <!-- Settings -->
   <div class="sheet-scrim" id="settings-scrim" hidden></div>
   <aside class="sheet glass" data-liquid="sheet" id="settings" role="dialog" aria-modal="true" aria-labelledby="settings-title" hidden>
+    <div class="sheet-body">
     <div class="sheet-head">
       <h2 id="settings-title">Settings</h2>
       <button class="icon-btn" id="close-settings" aria-label="Close settings">
@@ -275,6 +276,7 @@
       <button class="row destructive" id="clear" type="button">Clear my PrivaC data</button>
     </div>
     <p class="group-note">Site history is deleted after 7 days on its own. Daily totals (numbers only) are kept for 90 days. Settings stay.</p>
+    </div>
   </aside>
 
   <div class="chart-tip" id="chart-tip" role="tooltip" hidden></div>
