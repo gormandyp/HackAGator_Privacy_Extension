@@ -47,6 +47,10 @@
   let promptedFor = null;
   let timer = null;
 
+  // Buttons already handled on this page: the "Do not sell or share" link is clicked once, and the
+  // Reject button gets one click listener (Zara alternated between them and re-clicked the link).
+  const handled = new WeakSet();
+
   function findRejectButton() {
     const elements = document.querySelectorAll(
       'button, [role="button"], input[type="button"]'
@@ -252,7 +256,8 @@
 
     const optOutButton = findPrivacyOptOutButton();
 
-    if (optOutButton && optOutButton !== promptedFor) {
+    if (optOutButton && !handled.has(optOutButton)) {
+        handled.add(optOutButton);
         promptedFor = optOutButton;
 
         const banner = optOutButton.closest(
@@ -315,13 +320,16 @@
     }
 
     // React when the user clicks the website's own reject button.
-    button.addEventListener("click", (event) => {
-      if (!event.isTrusted) return;
+    if (!handled.has(button)) {
+      handled.add(button);
+      button.addEventListener("click", (event) => {
+        if (!event.isTrusted) return;
 
-      if (window.PrivaCPrompt) {
-        PrivaCPrompt.ignored();
-      }
-    }, { once: true });
+        if (window.PrivaCPrompt) {
+          PrivaCPrompt.ignored();
+        }
+      }, { once: true });
+    }
 
 
     PrivaCPrompt.cookie({

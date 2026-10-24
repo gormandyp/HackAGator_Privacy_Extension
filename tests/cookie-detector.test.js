@@ -169,3 +169,13 @@ test("a confirmed decline saves only the choice, never the cookie's contents", a
   assert.strictEqual(saved[0].privacData.sites[0].cookieChoice, "declined");
   assert.ok(!/consentid|dGVzdA|cookieyes/.test(JSON.stringify(saved)), "no cookie names or values stored");
 });
+
+test("Zara: with a \"Do not sell or share\" link and a Reject button, 5 checks click the link once and add one Reject listener", () => {
+  const { controls } = bannerWith(["Do not sell or share my personal information", "Reject all", "Accept all"]);
+  const page = load(controls);
+  for (let i = 0; i < 4; i++) page.ctx.window.PrivaCCookieCheck();
+  const [optOut, reject] = controls;
+  assert.strictEqual(optOut.clicks, 1, "the opt-out link is clicked once per page");
+  assert.strictEqual(reject.clickListeners, 1, "one 'you clicked Reject yourself' listener");
+  assert.strictEqual(page.kinds().filter((k) => k === "cookie").length, 1, "C asks about Reject once");
+});
