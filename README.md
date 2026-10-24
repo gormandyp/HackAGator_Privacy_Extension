@@ -58,6 +58,9 @@ Without installing anything, you can open `dashboard/dashboard.html` or `popup/p
 ## Data sources and credits
 Tracker data: [DuckDuckGo Tracker Radar](https://github.com/duckduckgo/tracker-radar) (CC BY-NC-SA 4.0). Breach data: [Have I Been Pwned](https://haveibeenpwned.com) (CC BY 4.0). Cookie purposes: [Open Cookie Database](https://github.com/jkwakman/Open-Cookie-Database) (Apache 2.0). Data brokers: [California Privacy Protection Agency](https://cppa.ca.gov/data_broker_registry/). Details: [docs/DATA.md](docs/DATA.md).
 
+## License
+PrivaC's own code is open source under the [MIT](LICENSE) license. The data files keep their own licenses (listed at the end of [LICENSE](LICENSE)); Tracker Radar's is non-commercial.
+
 ## Team
 Josh Davis, Max Glassman, Matthew Finkelstein, Justin Smilowitz, and the repo owner (gormandyp). Teamwork rules: [docs/TEAM.md](docs/TEAM.md).
 
@@ -106,7 +109,7 @@ Return `false` from `onDecline` if you couldn't find the reject button; C will t
 
 ## Before the demo
 
-- Make sure Ollama is running and `OLLAMA_ORIGINS` is set (it resets when the Mac restarts).
+- Make sure C's brain is downloaded and ready (Dashboard > Ask C). Ollama is only needed for the `ollama` branch: then check it's running and `OLLAMA_ORIGINS` is set (it resets when the Mac restarts). Full checklist: [docs/DEMO.md](docs/DEMO.md).
 - The foreign-adversary list in `shared/data.js` follows 15 CFR § 7.4 (China including Hong Kong, Cuba, Iran, North Korea, Russia, Venezuela). Double-check the current version of the regulation.
 - Fonts (Bricolage Grotesque and Figtree) load from Google Fonts. Without internet, the pages fall back to the system font and still work.
 - Tracker data from DuckDuckGo Tracker Radar has a non-commercial license; fine for a hackathon, worth mentioning if judges ask about turning PrivaC into a product.
