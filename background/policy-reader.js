@@ -52,7 +52,9 @@
       if (!/html|text\/plain/i.test(type)) return;           // PDFs and the like are skipped
       const html = (await page.text()).slice(0, MAX_HTML);
       // "low": Ask C questions go first; a policy read pauses while C is answering someone.
-      const policy = await PrivaCPolicy.readPolicy({ html, url }, MAP, (q, o) => PrivaCGemma.ask(q, { ...o, priority: "low" }));
+      // In-browser AI version: shared/ai.js picks Gemma in the browser (or Ollama); tests load only gemma.js.
+      const AI = typeof PrivaCAI !== "undefined" ? PrivaCAI : PrivaCGemma;
+      const policy = await PrivaCPolicy.readPolicy({ html, url }, MAP, (q, o) => AI.ask(q, { ...o, priority: "low" }));
       await save(domain, policy);
     } catch (e) {
       // Gemma off, network error, or not a policy page: save nothing, so the next visit tries again.
