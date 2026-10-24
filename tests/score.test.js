@@ -14,7 +14,7 @@ test("no trackers, declined cookies, clean policy = exposure 0, grade A", () => 
 });
 
 test("tracker points cap at 40, ad points cap at 20", () => {
-  const many = Array.from({ length: 12 }, () => tracker("Advertising"));
+  const many = Array.from({ length: 12 }, (_, i) => ({ ...tracker("Advertising"), domain: `x${i}.com`, company: `X${i}` }));
   const r = computeScore({ trackers: many, cookieChoice: "declined", policy: { sells: false, shares: false } });
   assert.strictEqual(r.score, 60);
 });

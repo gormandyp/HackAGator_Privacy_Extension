@@ -403,6 +403,14 @@ Steps the person can take (no tag needed):
   const GRADE_LETTER = /\b(?:get|gets|got|getting|has|have|had|is|was|earn|earned|receive|received|a|an)\s+(?:an?\s+)?["']?([A-Fa-f])["']?(?=[\s?.!,]|$)/;   // "get a d" too: people type in lowercase
   const GRADE_RANGES = "A is 0-20, B is 21-40, C is 41-60, D is 61-80, F is 81-100";
   const article = (g) => (/^[AEF]/.test(g) ? "an" : "a");
+  // Fully / Partly checked, with how high the score could go (the popup says the same, shared/site-summary.js).
+  function checkedLine(r) {
+    const D = (typeof window !== "undefined" ? window : self).PrivaCData;
+    if (!r.unknowns || !r.unknowns.length || !r.range) return "Fully checked: every line of the grade has an answer. What companies do with data on their own servers is still unknown. [Seen on your visit]";
+    const worst = D.gradeFor(r.range.max);
+    const g = worst === r.grade ? `still ${article(worst)} ${worst}` : `${article(worst)} ${worst}`;
+    return `Partly checked: ${r.unknowns.join(", and ")}, so this could be as high as ${r.range.max} out of 100 (${g}). [${PART_TAG.disclosed}]`;
+  }
   function gradeAnswer(q, sites) {
     if (!/\b(why|how)\b/i.test(q) || !(GRADE_WORDS_Q.test(q) || GRADE_LETTER.test(q))) return null;
     const named = namedSites(sites, q).slice(0, 3);
@@ -421,7 +429,7 @@ Steps the person can take (no tag needed):
       const body = r.counted.length
         ? "What added points:\n" + r.counted.map(p => `- ${p.label} (+${p.points}) [${PART_TAG[p.kind] || PART_TAG.observed}]`).join("\n")
         : "Nothing added points: no trackers or tracking cookies were counted, and no data breach or foreign-adversary link is on record. [Seen on your visit]";
-      return `${head}\n${body}`;
+      return `${head}\n${body}\n${checkedLine(r)}`;
     }).join("\n\n");
   }
 

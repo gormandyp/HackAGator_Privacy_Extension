@@ -63,7 +63,7 @@ test("policy says it sells: resolved, whatever it says about sharing", () => {
 });
 
 test("the range's worst end is capped at 100, like the score", () => {
-  const many = Array.from({ length: 12 }, (_, i) => ({ ...ad, domain: `ad${i}.example`, country: i ? "US" : "CN" }));
+  const many = Array.from({ length: 12 }, (_, i) => ({ ...ad, domain: `ad${i}.example`, company: `Ad Co ${i}`, country: i ? "US" : "CN" }));
   const r = computeScore({ trackers: many, cookieChoice: "accepted", policy: {}, breach: { name: "X", breachDate: "2026-06-01", addedDate: "2026-07-01" } }, Date.parse("2026-10-24"));
   assert.strictEqual(r.score, 100);
   assert.deepStrictEqual(r.range, { min: 100, max: 100 });
