@@ -94,3 +94,18 @@ test("an existing label (\"Reject all\") still works, and C opens once for the s
   page.ctx.window.PrivaCCookieCheck();
   assert.deepStrictEqual(page.kinds(), ["cookie"]);
 });
+
+// Accept-only banners: no one-click Reject, so C warns "Beware!". A settings button isn't a one-click Reject.
+for (const [labels, site] of [
+  [["Continue and accept", "Cookie settings"], "Argos"],
+  [["Continue and Accept", "Manage preferences"], "Sainsbury's"],
+  [["Accept cookies", "Choose Cookies"], "Trainline"]
+]) {
+  test(`${site} (${labels.join(" + ")}): C warns that the site may still track you`, () => {
+    assert.deepStrictEqual(load(bannerWith(labels).controls).kinds(), ["acceptOnly"]);
+  });
+}
+
+test("a banner with Continue and accept plus a real Reject gets the decline offer, not the warning", () => {
+  assert.deepStrictEqual(load(bannerWith(["Continue and accept", "Reject all"]).controls).kinds(), ["cookie"]);
+});

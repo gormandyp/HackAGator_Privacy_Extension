@@ -12,7 +12,8 @@
         /^agree(?: and continue)?$/i,
         /^i agree$/i,
         /^got it$/i,
-        /^ok(?:ay)?$/i
+        /^ok(?:ay)?$/i,
+        /^continue and accept$/i               // Argos, Sainsbury's
     ];
 
   const REJECT_LABELS = [
@@ -117,7 +118,9 @@
                 ""
             ).trim();
 
-            return /reject|decline|deny|refuse|necessary|essential|preferences|settings|customize|manage|options/i.test(label);
+            // Only a one-click way to say no counts. A settings or "Choose cookies" button still makes you
+            // do the work yourself (Argos, Trainline), so C keeps the "Beware!" warning.
+            return /reject|decline|deny|refuse|necessary|essential/i.test(label);
             });
 
             if (!hasAlternative) return { banner, button };
