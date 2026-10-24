@@ -82,7 +82,7 @@
     const trackerPts = Math.min(40, t.length * 5);
     parts.push({ label: `${t.length} tracker ${t.length === 1 ? "connection" : "connections"} to outside companies`, points: trackerPts, kind: "observed" });
 
-    const adCount = t.filter(x => AD_CATEGORIES.includes(x.category)).length;
+    const adCount = t.filter(x => AD_CATEGORIES.includes(x.category) || x.broker).length;
     const adPts = Math.min(20, adCount * 5);
     parts.push({ label: `${adCount} used for advertising, data brokering or recording your screen`, points: adPts, kind: "observed" });
 
@@ -140,9 +140,15 @@
   async function load() {
     if (hasChrome()) {
       try {
-        const res = await chrome.storage.local.get("privacData");
+        const res = await chrome.storage.local.get(["privacData", "privacLists"]);
         if (res && res.privacData && res.privacData.sites && res.privacData.sites.length) {
-          return enrich(res.privacData);
+          // Add breach (HIBP) and data-broker (CA registry) facts from the downloaded public lists.
+          const lists = res.privacLists || null;
+          const root = typeof window !== "undefined" ? window : self;
+          if (lists && root.PrivaCLists) root.PrivaCLists.annotate(res.privacData, lists, null);
+          const out = enrich(res.privacData);
+          out.lists = lists ? { breachesAsOf: lists.hibp && lists.hibp.fetchedAt, brokersAsOf: lists.brokers && lists.brokers.fetchedAt } : null;
+          return out;
         }
       } catch (e) { /* fall through to sample */ }
     }

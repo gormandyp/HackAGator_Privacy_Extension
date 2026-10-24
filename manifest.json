@@ -21,7 +21,8 @@
     "storage",
     "activeTab",
     "webRequest",
-    "webNavigation"
+    "webNavigation",
+    "alarms"
   ],
   "content_scripts": [
     {
