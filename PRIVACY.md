@@ -61,7 +61,7 @@ The use of information received from Chrome APIs by PrivaC adheres to the [Chrom
 
 ## Deleting your data
 
-- **Settings › Clear my PrivaC data** deletes your site history and daily totals right away, and forgets the sites in your open tabs. Your settings stay.
+- **Settings › Clear my PrivaC data** deletes your site history, daily totals and the grade box's list of sites right away, and forgets the sites in your open tabs. Your settings stay.
 - **Delete download** on the Ask C card deletes C's 2 GB AI model (main version).
 - Closing Chrome deletes the open-tab and already-warned lists.
 - Removing the extension in `chrome://extensions` deletes all of it.
