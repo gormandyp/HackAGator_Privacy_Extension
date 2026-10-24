@@ -6,7 +6,7 @@ Update your row every time you push. Keep it to one line per column.
 |---|---|---|---|---|---|
 | Repo owner (gormandyp) | core + integrator | main | R4 adversary alert, demo prep | - | UI mockups |
 | Josh Davis | data | data | Away | - | Check DATA.md |
-| Max Glassman | ask-c | max-askc (merged Sat) | Done: 1260H + RegTrack facts, adaptive suggestions, "Ask C why" | - | R3 policy questions (knowledge-map.json) |
+| Max Glassman | ask-c | max-policy-questions | R3 questions done: shared/knowledge-map.json (8 policy questions, CCPA definitions, 5 code checks) | - | R3 reader logic (shared/policy.js) if repo owner agrees |
 | Matthew Finkelstein | ui | ui | C pop-ups and poses (max/mascot-poses held until he's done) | - | R5 unsafe-site warning |
 | Justin Smilowitz | demo | demo | Video + Devpost with Matthew and Max | - | Steps 14-16 |
 

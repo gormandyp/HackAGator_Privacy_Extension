@@ -1,0 +1,242 @@
+{
+  "version": 1,
+  "writtenBy": "Max Glassman (ask-c), with Claude",
+  "checkedOn": "2026-10-24",
+  "purpose": "Every check PrivaC runs on a site. 'code' checks are measured by the extension; 'gemma' checks are answered by Gemma from the site's privacy policy, on this computer. The dashboard shows these as 'What C checked'.",
+
+  "answerFormat": {
+    "shape": { "answer": "yes | no | unknown", "quote": "the exact sentence from the policy, or empty" },
+    "rule": "Gemma answers each question with yes, no or unknown and copies the exact sentence it relied on. The reader code checks that the quote really appears in the policy text (ignoring spacing and capital letters). If it doesn't, or there is no quote, the answer becomes unknown. Unknown never counts as safe.",
+    "forGemma": [
+      "Answer only from the policy text you are given. Do not use what you know about the company.",
+      "Copy the sentence word for word. Do not shorten or reword it.",
+      "If the policy is vague or doesn't address the question, answer unknown.",
+      "If the policy says it sells or shares only some categories, or only with some partners, that is still yes.",
+      "A policy that says 'we do not sell' but describes giving data to advertising partners for targeted ads is yes for 'shares', not a contradiction to resolve."
+    ]
+  },
+
+  "legalNotes": {
+    "why": "California's privacy law (CCPA, as amended by CPRA) gives 'sell' and 'share' exact meanings, and many U.S. privacy policies use those words in that sense. Using the same meanings keeps C's answers precise.",
+    "sell": "Cal. Civ. Code § 1798.140(ad): giving a consumer's personal information to a third party 'for monetary or other valuable consideration'.",
+    "share": "Cal. Civ. Code § 1798.140(ah): giving personal information to a third party 'for cross-context behavioral advertising, whether or not for monetary or other valuable consideration'.",
+    "crossContextAds": "Cal. Civ. Code § 1798.140(k): targeting ads using personal information from your activity across other businesses' websites, apps or services.",
+    "sensitive": "Cal. Civ. Code § 1798.140(ae): includes ID numbers, account log-ins and card numbers, precise geolocation, racial or ethnic origin, religion, union membership, message contents, genetic data, biometrics used to identify you, health, and sex life or sexual orientation.",
+    "preciseLocation": "Cal. Civ. Code § 1798.140(w): device data used to locate you within a circle of 1,850 feet radius.",
+    "optOutLink": "11 CCR § 7013: a business that sells or shares must offer a 'Do Not Sell or Share My Personal Information' link (or an allowed alternative) in the header or footer of its homepage.",
+    "careful": "C reports what a policy says. It never says a site broke the law; the law applies only to some businesses and has exceptions."
+  },
+
+  "checks": [
+    {
+      "id": "trackers",
+      "label": "Outside companies contacted",
+      "question": "Which outside companies did this page contact while you were on it?",
+      "evidence": "Observed during your visit",
+      "answeredBy": "code",
+      "how": "Network requests matched to shared/atlas.json (DuckDuckGo Tracker Radar).",
+      "maxPoints": 40,
+      "pointsRule": "5 per tracker company, up to 40."
+    },
+    {
+      "id": "ad_trackers",
+      "label": "Advertising, data brokers, screen recording",
+      "question": "How many of those companies do advertising, data brokering or screen recording?",
+      "evidence": "Observed during your visit",
+      "answeredBy": "code",
+      "how": "Tracker category from Tracker Radar; data brokers from the California Data Broker Registry.",
+      "maxPoints": 20,
+      "pointsRule": "5 each, up to 20."
+    },
+    {
+      "id": "cookie_choice",
+      "label": "Your cookie choice",
+      "question": "Were you given a real way to say no to tracking cookies, and what happened?",
+      "evidence": "Observed during your visit",
+      "answeredBy": "code",
+      "how": "content/cookie-detector.js and the cookie reader (names and lifetimes only, never contents).",
+      "maxPoints": 10,
+      "pointsRule": "Accepted all, no Reject button, or tracked with no banner: 10. Declined, or nothing tracking you: 0."
+    },
+    {
+      "id": "foreign_adversary",
+      "label": "Foreign-adversary link",
+      "question": "Did the page load a service from a company in a listed foreign-adversary country or on the Pentagon's 1260H list, or is the site owned by one?",
+      "evidence": "Public record",
+      "answeredBy": "code",
+      "how": "Tracker seen on your visit, matched to 15 CFR 7.4 (countries) and shared/flagged-companies.json (1260H, June 8, 2026).",
+      "maxPoints": 15,
+      "pointsRule": "15, counted once."
+    },
+    {
+      "id": "breach",
+      "label": "Data breaches",
+      "question": "Has this site had a data breach on record?",
+      "evidence": "Public record",
+      "answeredBy": "code",
+      "how": "Have I Been Pwned breach list, downloaded whole each day.",
+      "maxPoints": 15,
+      "pointsRule": "Added in the last 12 months: 15. Older: 5."
+    },
+
+    {
+      "id": "sells",
+      "label": "Sells personal info",
+      "question": "Does this policy say the company sells personal information, meaning it gives it to another company for money or something else of value?",
+      "evidence": "Disclosed in policy",
+      "answeredBy": "gemma",
+      "policyField": "sells",
+      "scored": true,
+      "points": { "yes": 15, "no": 0, "unknown": 0 },
+      "findWords": ["sell", "sale", "sold", "Do Not Sell", "valuable consideration", "in exchange for"],
+      "yesIf": "It says it sells, or has sold in the past 12 months, any category of personal information, or gives personal information to others for money or other benefit. A 'Do Not Sell' link offered because it sells also counts.",
+      "noIf": "It clearly says it does not sell personal information (for example 'We do not sell your personal information').",
+      "unknownIf": "It doesn't mention selling, or only says it 'may' disclose information without saying whether it sells.",
+      "says": {
+        "yes": "This site's privacy policy says it sells personal information.",
+        "no": "This site's privacy policy says it doesn't sell personal information.",
+        "unknown": "I couldn't find a clear answer about selling in this site's privacy policy."
+      }
+    },
+    {
+      "id": "shares",
+      "label": "Shares for targeted ads",
+      "question": "Does this policy say the company shares personal information with other companies for targeted advertising, or with advertising and marketing partners?",
+      "evidence": "Disclosed in policy",
+      "answeredBy": "gemma",
+      "policyField": "shares",
+      "scored": true,
+      "points": { "yes": 8, "no": 0, "unknown": 0 },
+      "findWords": ["share", "cross-context behavioral advertising", "targeted advertising", "interest-based", "advertising partners", "marketing partners", "Do Not Share"],
+      "yesIf": "It says it shares or discloses personal information with third parties for targeted, interest-based or cross-context behavioral advertising, or with advertising or marketing partners, or offers a 'Do Not Share' option because it does.",
+      "noIf": "It clearly says it does not share personal information for targeted or cross-context behavioral advertising.",
+      "unknownIf": "It only mentions service providers or vendors that work on the company's behalf (hosting, payments, customer support). That alone is not sharing for ads, so answer unknown unless advertising partners are also mentioned.",
+      "says": {
+        "yes": "This site's privacy policy says it shares personal information with other companies for advertising.",
+        "no": "This site's privacy policy says it doesn't share personal information for targeted advertising.",
+        "unknown": "I couldn't find a clear answer about sharing for advertising in this site's privacy policy."
+      }
+    },
+    {
+      "id": "opt_out",
+      "label": "Way to opt out",
+      "question": "Does this policy tell you how to opt out of the sale or sharing of your personal information?",
+      "evidence": "Disclosed in policy",
+      "answeredBy": "gemma",
+      "policyField": "optOut",
+      "scored": false,
+      "points": { "yes": 0, "no": 0, "unknown": 0 },
+      "findWords": ["opt out", "opt-out", "Do Not Sell or Share", "Your Privacy Choices", "unsubscribe from", "object to"],
+      "yesIf": "It describes a way to opt out: a 'Do Not Sell or Share My Personal Information' or 'Your Privacy Choices' link, a form, an email address or a settings page.",
+      "noIf": "It says it sells or shares but gives no way to opt out, or says opting out isn't possible.",
+      "unknownIf": "It doesn't address opting out of sale or sharing. Opting out of marketing emails alone doesn't count.",
+      "says": {
+        "yes": "The policy explains how to opt out of the sale or sharing of your information.",
+        "no": "The policy doesn't give you a way to opt out of the sale or sharing of your information.",
+        "unknown": "I couldn't find opt-out instructions in this site's privacy policy."
+      }
+    },
+    {
+      "id": "gpc",
+      "label": "Honors Global Privacy Control",
+      "question": "Does this policy say the site honors Global Privacy Control or other browser opt-out signals?",
+      "evidence": "Disclosed in policy",
+      "answeredBy": "gemma",
+      "policyField": "gpc",
+      "scored": false,
+      "points": { "yes": 0, "no": 0, "unknown": 0 },
+      "findWords": ["Global Privacy Control", "GPC", "opt-out preference signal", "browser signal", "Do Not Track"],
+      "yesIf": "It says it treats Global Privacy Control or an opt-out preference signal as a request to opt out.",
+      "noIf": "It says it does not respond to browser signals such as Global Privacy Control. A statement only about 'Do Not Track' is not enough.",
+      "unknownIf": "It doesn't mention Global Privacy Control or opt-out preference signals.",
+      "says": {
+        "yes": "The policy says the site honors Global Privacy Control, a browser setting that opts you out automatically.",
+        "no": "The policy says the site ignores browser opt-out signals like Global Privacy Control.",
+        "unknown": "I couldn't find anything about Global Privacy Control in this site's privacy policy."
+      }
+    },
+    {
+      "id": "retention",
+      "label": "How long it keeps data",
+      "question": "Does this policy give a specific time limit for how long the company keeps your personal information?",
+      "evidence": "Disclosed in policy",
+      "answeredBy": "gemma",
+      "policyField": "retention",
+      "scored": false,
+      "points": { "yes": 0, "no": 0, "unknown": 0 },
+      "findWords": ["retain", "retention", "keep your", "store your", "delete", "months", "years"],
+      "yesIf": "It gives a concrete period for at least one main kind of data (for example '24 months' or 'deleted 90 days after you close your account').",
+      "noIf": "It only says it keeps data 'as long as necessary', 'as long as needed for business purposes' or similar, with no period.",
+      "unknownIf": "It doesn't say how long it keeps data.",
+      "says": {
+        "yes": "The policy gives a specific time limit for keeping your data.",
+        "no": "The policy has no time limit; it says it keeps data as long as it finds necessary.",
+        "unknown": "I couldn't find how long this site keeps your data."
+      }
+    },
+    {
+      "id": "precise_location",
+      "label": "Precise location",
+      "question": "Does this policy say the company collects your precise location?",
+      "evidence": "Disclosed in policy",
+      "answeredBy": "gemma",
+      "policyField": "preciseLocation",
+      "scored": false,
+      "points": { "yes": 0, "no": 0, "unknown": 0 },
+      "findWords": ["precise geolocation", "precise location", "GPS", "location data", "geolocation"],
+      "yesIf": "It says it collects precise or exact location, GPS location, or geolocation from your device. California law counts location within 1,850 feet as precise.",
+      "noIf": "It says it does not collect precise location, or only a rough location from your IP address (city or region).",
+      "unknownIf": "It doesn't say what kind of location data it collects.",
+      "says": {
+        "yes": "The policy says the site collects your precise location, which California law treats as sensitive.",
+        "no": "The policy says the site only uses your rough location, not your precise location.",
+        "unknown": "I couldn't find whether this site collects your precise location."
+      }
+    },
+    {
+      "id": "sensitive",
+      "label": "Other sensitive data",
+      "question": "Does this policy say the company collects sensitive personal information such as health, biometric, financial account, government ID, racial or ethnic origin, religion, or sexual orientation data?",
+      "evidence": "Disclosed in policy",
+      "answeredBy": "gemma",
+      "policyField": "sensitive",
+      "scored": false,
+      "points": { "yes": 0, "no": 0, "unknown": 0 },
+      "findWords": ["sensitive personal information", "biometric", "health", "financial account", "driver's license", "racial", "religious", "sexual orientation"],
+      "yesIf": "It lists one or more of these categories as information it collects, or has a 'sensitive personal information' section saying it collects some.",
+      "noIf": "It clearly says it does not collect sensitive personal information.",
+      "unknownIf": "It doesn't address these categories.",
+      "says": {
+        "yes": "The policy says the site collects sensitive information, such as health, biometric or financial details.",
+        "no": "The policy says the site doesn't collect sensitive personal information.",
+        "unknown": "I couldn't find whether this site collects sensitive personal information."
+      }
+    },
+    {
+      "id": "other_sources",
+      "label": "Gets data about you from others",
+      "question": "Does this policy say the company gets information about you from other companies, such as data brokers, advertising partners or social networks?",
+      "evidence": "Disclosed in policy",
+      "answeredBy": "gemma",
+      "policyField": "otherSources",
+      "scored": false,
+      "points": { "yes": 0, "no": 0, "unknown": 0 },
+      "findWords": ["third-party sources", "from other sources", "data brokers", "data providers", "obtain information", "receive information", "social media"],
+      "yesIf": "It says it receives or buys information about you from third parties such as data brokers, data providers, advertising or marketing partners, or social networks.",
+      "noIf": "It says it only collects information directly from you and your use of the site.",
+      "unknownIf": "It doesn't say where its information comes from.",
+      "says": {
+        "yes": "The policy says the site adds to its profile of you with data from other companies, such as data brokers or ad partners.",
+        "no": "The policy says the site only collects information directly from you.",
+        "unknown": "I couldn't find whether this site gets information about you from other companies."
+      }
+    }
+  ],
+
+  "forTheReader": [
+    "Ask the gemma questions one or two at a time. Gemma 4 E4B answers more accurately with short prompts.",
+    "Send only the policy paragraphs that contain a findWords match (plus one paragraph before and after), not the whole policy.",
+    "Save each answer in site.policy[policyField] as true (yes), false (no) or null (unknown), and the checked quote in site.policy.quotes[policyField].",
+    "Only 'sells' and 'shares' change the score today. The rest show in 'What C checked' and in Ask C. Changing that needs a team decision and an update to dashboard.html and docs/SPEC.md."
+  ]
+}
