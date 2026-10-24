@@ -109,7 +109,7 @@ Return `false` from `onDecline` if you couldn't find the reject button; C will t
 
 ## Before the demo
 
-- Make sure Ollama is running and `OLLAMA_ORIGINS` is set (it resets when the Mac restarts).
+- Make sure C's brain is downloaded and ready (Dashboard > Ask C). Ollama is only needed for the `ollama` branch: then check it's running and `OLLAMA_ORIGINS` is set (it resets when the Mac restarts). Full checklist: [docs/DEMO.md](docs/DEMO.md).
 - The foreign-adversary list in `shared/data.js` follows 15 CFR § 7.4 (China including Hong Kong, Cuba, Iran, North Korea, Russia, Venezuela). Double-check the current version of the regulation.
 - Fonts (Bricolage Grotesque and Figtree) load from Google Fonts. Without internet, the pages fall back to the system font and still work.
 - Tracker data from DuckDuckGo Tracker Radar has a non-commercial license; fine for a hackathon, worth mentioning if judges ask about turning PrivaC into a product.
