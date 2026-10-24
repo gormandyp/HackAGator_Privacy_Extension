@@ -19,7 +19,9 @@
   },
   "permissions": [
     "storage",
-    "activeTab"
+    "activeTab",
+    "webRequest",
+    "webNavigation"
   ],
   "content_scripts": [
     {
@@ -28,13 +30,15 @@
       ],
       "js": [
         "shared/mascot.js",
-        "content/c-prompt.js"
+        "content/c-prompt.js",
+        "content/cookie-detector.js"
       ],
       "run_at": "document_idle"
     }
   ],
   "host_permissions": [
-    "http://localhost:11434/*"
+    "http://*/*",
+    "https://*/*"
   ],
   "background": {
     "service_worker": "background.js"

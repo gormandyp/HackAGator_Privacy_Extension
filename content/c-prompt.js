@@ -105,20 +105,55 @@
       </div>`, "wave");
 
     root.querySelector('[data-a="decline"]').addEventListener("click", async () => {
-      let ok = true;
-      try { ok = onDecline ? (await onDecline()) !== false : true; } catch (e) { ok = false; }
+      
+      let result = "failed";
+
+      try {
+        result = onDecline ? await onDecline() : "failed";
+      } catch (e) {
+        console.error("PrivaC: Cookie rejection failed", e);
+      }
+
+      // Support our existing true/false results.
+      if (result === true) result = "confirmed";
+      if (result === false) result = "failed";
+
       const card = root.querySelector(".card");
-      if (ok) {
-        card.innerHTML = `<p class="who">C from PrivaC</p><p>Done. Only the essential cookies are left on this site.</p>`;
-        root.querySelector(".c").innerHTML = PrivaCMascot.svg("happy", { size: 120 });
+
+      if (result === "confirmed") {
+        card.innerHTML = `
+          <p class="who">C from PrivaC</p>
+          <p>Nice! Your optional cookie preferences were saved as declined.</p>
+        `;
+        root.querySelector(".c").innerHTML =
+          PrivaCMascot.svg("happy", { size: 120 });
+
         setTimeout(() => hide(), 2600);
-      } else {
-        card.innerHTML = `<button class="close" aria-label="Dismiss">×</button>
-          <p class="who">C from PrivaC</p><p>I couldn't find this site's decline button. Look for "Reject all" or "Manage cookies" in its banner.</p>`;
+
+      } else if (result === "unverified") {
+        card.innerHTML = `
+          <button class="close" aria-label="Dismiss">×</button>
+          <p class="who">C from PrivaC</p>
+          <p>I clicked the rejection button, but couldn't verify that the website saved your choice.</p>
+        `;
+
         card.querySelector(".close").addEventListener("click", () => hide());
-        root.querySelector(".c").innerHTML = PrivaCMascot.svg("uneasy", { size: 120 });
+        root.querySelector(".c").innerHTML =
+          PrivaCMascot.svg("uneasy", { size: 120 });
+
+      } else {
+        card.innerHTML = `
+          <button class="close" aria-label="Dismiss">×</button>
+          <p class="who">C from PrivaC</p>
+          <p>I couldn't complete the cookie rejection. You may need to choose your preferences manually.</p>
+        `;
+
+        card.querySelector(".close").addEventListener("click", () => hide());
+        root.querySelector(".c").innerHTML =
+          PrivaCMascot.svg("uneasy", { size: 120 });
       }
     });
+
     root.querySelector('[data-a="choose"]').addEventListener("click", () => {
       hide();
       if (onChoose) onChoose();

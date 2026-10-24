@@ -1,8 +1,8 @@
 // PrivaC background service worker.
 // For now: answers "Ask C" questions from the dashboard using Gemma via Ollama.
-// Next (PLAN step 3): record each tab's third-party requests into privacData.
+// Also loads background/tracking.js, which records each tab's trackers into privacData.
 self.window = self; // shared/*.js attach themselves to window
-importScripts("shared/data.js", "shared/gemma.js", "shared/askc.js");
+importScripts("shared/data.js", "shared/gemma.js", "shared/askc.js", "background/tracking.js");
 
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (msg && msg.type === "askC") {

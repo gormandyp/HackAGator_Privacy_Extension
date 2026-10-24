@@ -10,8 +10,9 @@ const data = { sample: true, sites: [{ domain: "news.example", grade: "D", score
 
 test("context lists each site with grade, cookies, policy and trackers", () => {
   const c = buildContext(data);
-  assert.match(c, /SAMPLE data/);
-  assert.match(c, /news\.example: grade D, exposure 70\/100; cookies accepted; policy says it sells personal info; trackers: LiveRamp \(Data broker, US\)/);
+  assert.match(c, /news\.example, visited unknown date: grade D, exposure 70\/100, cookies accepted \[Seen on your visit\]/);
+  assert.match(c, /LiveRamp \(Data broker, based in US\) \[Tracker Radar\]/);
+  assert.match(c, /says it sells personal info \[Privacy policy\]/);
 });
 
 test("empty browsing says so", () => {
@@ -50,4 +51,15 @@ test("context includes sourced background facts for general questions", () => {
 test("using a government fact adds it to the 'C checked' line", async () => {
   const r = await answer("Why China?", { load: async () => data, ask: async () => "Listed country. [Government list]" });
   assert.deepStrictEqual(r.trace.map(t => t.label), ["Your browsing", "Government lists"]);
+});
+
+test("cleanAnswer drops the sample-data preface and says 'you'", () => {
+  const raw = "Note that this is SAMPLE data, not the user's real browsing. The user visited x. What you can do: decline cookies.";
+  assert.strictEqual(cleanAnswer(raw), "You visited x.\n\nWhat you can do: decline cookies.");
+});
+
+test("sites are listed riskiest first with today's date", () => {
+  const c = buildContext({ sites: [{ domain: "low.example", score: 5, grade: "A" }, { domain: "high.example", score: 90, grade: "F" }] }, "2026-10-23");
+  assert.match(c, /^Today is 2026-10-23\./);
+  assert.ok(c.indexOf("high.example") < c.indexOf("low.example"));
 });

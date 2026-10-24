@@ -5,36 +5,67 @@
   Used by background.js. Pure functions, so tests can run it with a fake Gemma.
 */
 (function () {
-  const SYSTEM_PROMPT = [
-    "You are C, a friendly privacy guide inside the PrivaC browser extension.",
-    "Answer in plain English for a non-technical person, in 2 to 4 short sentences, then one line starting with 'What you can do:'.",
-    "Use ONLY the evidence you are given. If the evidence doesn't answer the question, say you don't know yet.",
-    "After each fact, add its source tag exactly as written: [Seen on your visit] for anything from the user's browsing (sites, trackers seen, cookie choices, grades), [Tracker Radar] for what a company is (category, country), [Privacy policy] for what a site's policy says.",
-    "Never say data was sent to a government. A tracker loading is not proof that data was sold; say so when it matters.",
-    "For general questions (for example why foreign-adversary links matter), explain using the Background facts, tagged [Government list], then point to what the user's own browsing shows.",
-    "Use no other source tags and no backticks or markdown.",
-    "Grades: A is safest, F is riskiest. The exposure score is 0-100 where higher means more exposure."
-  ].join(" ");
+  const SYSTEM_PROMPT = `You are C, the friendly privacy guide inside the PrivaC browser extension.
 
-  // Short, checked facts Gemma may use for general questions. Keep each one sourced.
-  const BACKGROUND = [
-    "Background facts:",
-    "- The U.S. Commerce Department lists 'foreign adversary' countries in 15 CFR 7.4: China (including Hong Kong), Cuba, Iran, North Korea, Russia and Venezuela. [Government list]",
-    "- China's 2017 National Intelligence Law (Article 7) says organizations must support and cooperate with state intelligence work, so Chinese companies may be legally unable to refuse a government request for data they hold. [Government list]",
-    "- The Pentagon's 1260H list (updated June 2026) names Chinese military companies; Baidu and Alibaba are on it. [Government list]",
-    "- A tracker loading means the company could collect data from that visit. It does not show the data was handed to any government."
-  ].join("\n");
+How to answer:
+- Talk to the person as "you". Never say "the user".
+- Plain English, no jargon. 2 to 4 short sentences, then a line starting "What you can do:" with 2 or 3 concrete steps from the Steps list.
+- Answer the question that was asked first. Then connect it to their own browsing if something there is relevant.
+- Use ONLY the evidence you are given. If it doesn't answer the question, say you don't know yet.
+- Put a source tag right after each fact, copied exactly from the evidence line it came from: [Seen on your visit], [Tracker Radar], [Privacy policy] or [Government list]. Never invent other tags. No backticks, no markdown, no lists with symbols.
+- Never say data was sent to a government. A tracker loading means the company could collect data; it doesn't prove the data was sold or shared.
+- Don't mention sample data; the dashboard already says so.
+- You don't know which site the person has open right now. Don't say "you are currently visiting".
+
+Example
+Question: Who is Criteo?
+Answer: Criteo is an advertising company based in France. [Tracker Radar] Its tracker loaded on 3 of the sites you visited, including dailynews.example. [Seen on your visit] That lets it recognize you across those sites to show you ads. What you can do: decline extra cookies when C offers, and turn on "Block third-party cookies" in Chrome settings.`;
+
+  // Short, checked facts Gemma may use for general questions. Each one carries its source tag.
+  const BACKGROUND = `Background facts:
+- The U.S. Commerce Department lists 'foreign adversary' countries in 15 CFR 7.4: China (including Hong Kong), Cuba, Iran, North Korea, Russia and Venezuela. [Government list]
+- China's 2017 National Intelligence Law (Article 7) says organizations must support and cooperate with state intelligence work, so Chinese companies may be legally unable to refuse a government request for data they hold. [Government list]
+- Russia's 2016 "Yarovaya" laws require internet and phone companies to store users' data and hand it to security services on request, and a 2015 law requires Russians' personal data to be stored inside Russia. [Government list]
+- The Pentagon's 1260H list names Chinese military companies; Baidu and Alibaba are on it. [Government list]
+
+Steps the person can take (no tag needed):
+- Let C decline non-essential cookies, or click "Reject all" on the site's cookie banner.
+- In Chrome, Settings > Privacy and security > Third-party cookies > Block third-party cookies.
+- Avoid entering personal details (name, email, phone, payment) on sites with an F grade or a foreign-adversary flag.
+- Use a tracker-blocking browser extension.
+- Clear a site's cookies after visiting: click the icon left of the address bar > Cookies and site data.
+- Check the site's privacy policy for "sell" or "share" before creating an account.`;
+
+  function siteLine(s) {
+    const t = (s.trackers || []).map(x => `${x.company} (${x.category}, based in ${x.country}) [Tracker Radar]`).join("; ") || "none";
+    const p = s.policy || {};
+    const pol = p.sells === true ? "says it sells personal info [Privacy policy]" : p.shares === true ? "says it shares with partners [Privacy policy]"
+      : (p.sells === false && p.shares === false) ? "says it doesn't sell or share [Privacy policy]" : "not reviewed yet";
+    const day = s.lastVisit ? String(s.lastVisit).slice(0, 10) : "unknown date";
+    return `- ${s.domain}, visited ${day}: grade ${s.grade}, exposure ${s.score}/100, cookies ${s.cookieChoice || "none"} [Seen on your visit]; trackers seen [Seen on your visit]: ${t}; privacy policy ${pol}`;
+  }
+
+  function buildContext(data, today) {
+    const sites = [...((data && data.sites) || [])].sort((a, b) => (b.score || 0) - (a.score || 0));
+    const date = `Today is ${today || new Date().toISOString().slice(0, 10)}.`;
+    if (!sites.length) return `${date}\n${BACKGROUND}\n\nThe person hasn't visited any sites with PrivaC on yet.`;
+    return `${date}\n${BACKGROUND}\n\nSites you visited, riskiest first (${sites.length}):\n${sites.map(siteLine).join("\n")}`;
+  }
 
   const TAGS = ["Seen on your visit", "Tracker Radar", "CA Broker Registry", "HIBP", "RegTrack", "Privacy policy", "Government list"];
   const TAG_ALIASES = {
     "sites visited": "Seen on your visit", "your browsing": "Seen on your visit", "browsing": "Seen on your visit",
     "seen during your visit": "Seen on your visit", "observed": "Seen on your visit", "sample data": "Seen on your visit",
-    "policy": "Privacy policy", "tracker radar data": "Tracker Radar", "government": "Government list", "15 cfr 7.4": "Government list"
+    "policy": "Privacy policy", "tracker radar data": "Tracker Radar", "government": "Government list",
+    "government lists": "Government list", "background facts": "Government list", "15 cfr 7.4": "Government list"
   };
 
-  // Fix Gemma's small formatting slips so the panel shows clean labels.
+  // Fix Gemma's small formatting slips so the panel shows clean labels and "you".
   function cleanAnswer(text) {
     let t = String(text || "").replace(/`/g, "").replace(/\*\*/g, "");
+    t = t.replace(/^(please )?note:? (that )?(this|the data provided) is (a )?sample[^.]*\.\s*/i, "");
+    t = t.replace(/\bthe user's\b/gi, "your").replace(/\bthe user\b/gi, "you");
+    t = t.replace(/(^|[.!?]\s+)(you|your)\b/g, (m, pre, w) => pre + w[0].toUpperCase() + w.slice(1));
     t = t.replace(/\[([^\]]{1,40})\]/g, (m, name) => {
       const n = name.trim();
       const exact = TAGS.find(x => x.toLowerCase() === n.toLowerCase());
@@ -42,24 +73,9 @@
       const alias = TAG_ALIASES[n.toLowerCase()];
       return alias ? `[${alias}]` : "";
     });
-    // Same tag twice in a row -> once.
-    t = t.replace(/(\[[^\]]+\])(\s*\1)+/g, "$1");
-    return t.replace(/\s+([.,;])/g, "$1").replace(/ {2,}/g, " ").trim();
-  }
-
-  function siteLine(s) {
-    const t = (s.trackers || []).map(x => `${x.company} (${x.category}, ${x.country})`).join("; ") || "none";
-    const p = s.policy || {};
-    const pol = p.sells === true ? "says it sells personal info" : p.shares === true ? "says it shares with partners"
-      : (p.sells === false && p.shares === false) ? "says it doesn't sell or share" : "not reviewed";
-    return `- ${s.domain}: grade ${s.grade}, exposure ${s.score}/100; cookies ${s.cookieChoice || "none"}; policy ${pol}; trackers: ${t}`;
-  }
-
-  function buildContext(data) {
-    const sites = (data && data.sites) || [];
-    if (!sites.length) return "The user hasn't visited any sites with PrivaC yet.";
-    const head = data.sample ? "NOTE: this is SAMPLE data, not the user's real browsing. Mention that once.\n" : "";
-    return `${head}${BACKGROUND}\n\nThe user's browsing, sites visited (${sites.length}):\n${sites.map(siteLine).join("\n")}`;
+    t = t.replace(/(\[[^\]]+\])(\s*\1)+/g, "$1");           // same tag twice in a row
+    t = t.replace(/\s*(What you can do:)/i, "\n\n$1");       // steps on their own line
+    return t.replace(/[ \t]+([.,;])/g, "$1").replace(/[ \t]{2,}/g, " ").trim();
   }
 
   async function answer(question, deps) {
@@ -68,9 +84,11 @@
     const data = await deps.load();
     const trace = [{ tool: "get_site_report", label: "Your browsing" }];
     try {
-      const text = await deps.ask(q, { system: SYSTEM_PROMPT, context: buildContext(data) });
-      const usedGov = /\[Government list\]/.test(cleanAnswer(text));
-      return { answer: cleanAnswer(text), trace: usedGov ? trace.concat({ tool: "background_facts", label: "Government lists" }) : trace };
+      const raw = await deps.ask(q, { system: SYSTEM_PROMPT, context: buildContext(data), options: { temperature: 0.2 } });
+      const text = cleanAnswer(raw);
+      if (/\[Government list\]/.test(text)) trace.push({ tool: "background_facts", label: "Government lists" });
+      if (/\[Tracker Radar\]/.test(text)) trace.push({ tool: "lookup_company", label: "Tracker Radar" });
+      return { answer: text, trace };
     } catch (e) {
       return { error: e.message || "I couldn't reach Gemma. Is Ollama running?", trace };
     }

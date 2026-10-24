@@ -27,6 +27,7 @@
     messages.push({ role: "user", content: user });
     const body = { model: opts.model || MODEL, messages, stream: false };
     if (opts.json) body.format = "json";
+    if (opts.options) body.options = opts.options;   // e.g. { temperature: 0.2 } for steadier answers
     return body;
   }
 
