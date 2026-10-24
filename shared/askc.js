@@ -388,7 +388,7 @@ Steps the person can take (no tag needed):
   // "Why did planetfitness.com get a B?" (team doc, 2026-10-24: C said "I don't know yet"). Answered from the score
   // itself, the same lines as the popup's "Why it got a B", so the answer is always right and instant.
   const GRADE_WORDS_Q = /\b(grade[sd]?|grading|scored?|scoring|rate[ds]?|rating)\b/i;
-  const GRADE_LETTER = /\b(?:get|gets|got|getting|has|have|had|is|was|earn|earned|receive|received|a|an)\s+(?:an?\s+)?["']?([A-F])["']?(?=[\s?.!,]|$)/;
+  const GRADE_LETTER = /\b(?:get|gets|got|getting|has|have|had|is|was|earn|earned|receive|received|a|an)\s+(?:an?\s+)?["']?([A-Fa-f])["']?(?=[\s?.!,]|$)/;   // "get a d" too: people type in lowercase
   const GRADE_RANGES = "A is 0-20, B is 21-40, C is 41-60, D is 61-80, F is 81-100";
   const article = (g) => (/^[AEF]/.test(g) ? "an" : "a");
   function gradeAnswer(q, sites) {
@@ -399,7 +399,7 @@ Steps the person can take (no tag needed):
       return domain ? `I haven't seen ${domain.replace(/^www\./, "")} with PrivaC on in the last 7 days, so it has no grade yet. ` +
         "Open it with PrivaC on, then ask me again. [Seen on your visit]" : null;
     }
-    const asked = (q.match(GRADE_LETTER) || [])[1];
+    const asked = ((q.match(GRADE_LETTER) || [])[1] || "").toUpperCase() || undefined;
     const parts = named.map(s => [s, scoreParts(s)]);
     if (parts.some(([, r]) => !r)) return null;
     return parts.map(([s, r]) => {

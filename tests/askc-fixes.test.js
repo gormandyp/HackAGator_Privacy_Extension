@@ -32,3 +32,17 @@ test("Fix 1: \"What can you do about X?\" is a real question for Gemma, not a re
     assert.match(r.answer, /I'm C, PrivaC's privacy guide/);
   }
 });
+
+test("Fix 5: lowercase grade questions get the instant breakdown from the score, not Gemma", async () => {
+  const g = data.sites[0].grade;
+  for (const q of [`why did cnn.com get a ${g.toLowerCase()}`, "why does cnn.com have a c grade", "why did cnn.com get an f"]) {
+    const r = await ask(q);
+    assert.strictEqual(r.calls, 0, q);
+    assert.match(r.answer, new RegExp(`^cnn\\.com got an? ${g}`), q);
+    assert.match(r.answer, /What added points:/);
+  }
+  const wrong = await ask("why did cnn.com get an f");
+  if (g !== "F") assert.match(wrong.answer, /, not an F:/, "the letter asked is compared in capitals");
+  const r = await ask("Why is cnn.com a concern?");
+  assert.strictEqual(r.calls, 1, "a word starting with a-f (\"a concern\") isn't a grade letter");
+});
