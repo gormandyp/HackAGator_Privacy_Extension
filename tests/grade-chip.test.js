@@ -68,3 +68,30 @@ test("the background answers with the popup's own grade for that site, and never
   assert.match(tb, /msg\.type === "privac-site-grade"[\s\S]*PrivaCData\.load\(\)[\s\S]*!d\.sample/);
   assert.match(SRC, /sendMessage\(\{ type: "privac-site-grade", domain \}\)/);
 });
+
+// IDEA.md: "After you decline or accept cookies, a short box that explains what your choice means for your visit."
+test("after you decline: the box says what that means, honestly (trackers can still load)", () => {
+  const n = load().meaning({}, "declined");
+  assert.strictEqual(n.title, "You declined extra cookies");
+  assert.match(n.text, /not to store ad or tracking cookies/);
+  assert.match(n.text, /Trackers can still load/);
+  assert.match(n.text, /10 cookie points come off/);
+});
+
+test("after you accept: the box says what that means and what you can do", () => {
+  const n = load().meaning({}, "accepted");
+  assert.strictEqual(n.title, "You accepted all cookies");
+  assert.match(n.text, /follow you to other sites/);
+  assert.match(n.text, /adds 10 points/);
+  assert.match(n.text, /Clear this site's data/);
+});
+
+test("no explanation for other choices, or when the box is turned off in Settings", () => {
+  assert.strictEqual(load().meaning({}, "no-reject"), null);
+  assert.strictEqual(load().meaning({ privacSettings: { gradeChip: false } }, "declined"), null);
+});
+
+test("c-events.js asks for the explanation when it records your choice", () => {
+  const ev = fs.readFileSync(__dirname + "/../content/c-events.js", "utf8");
+  assert.match(ev, /window\.PrivaCGradeChip\.explain\(c\)/);
+});
