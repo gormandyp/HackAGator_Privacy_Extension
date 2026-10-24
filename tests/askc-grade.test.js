@@ -39,8 +39,8 @@ for (const q of ["Why did planetfitness.com get a B?", "why is planetfitness.com
     assert.ok(!/don't know/i.test(r.answer), r.answer);
     assert.match(r.answer, /planetfitness\.com got a B/);
     assert.match(r.answer, /40 out of 100/);
-    assert.match(r.answer, /4 tracker connections to outside companies \(\+20\)/);
-    assert.match(r.answer, /2 used for advertising, data brokering or recording your screen \(\+10\)/);
+    assert.match(r.answer, /4 outside companies with trackers here \(\+20\)/);
+    assert.match(r.answer, /2 of them for advertising, data brokering or recording your screen \(\+10\)/);
     assert.match(r.answer, /All cookies accepted \(\+10\)/);
     assert.match(r.answer, /\[Seen on your visit\]/);
     assert.deepStrictEqual(r.trace.map((t) => t.label), ["Your browsing"]);
@@ -76,10 +76,21 @@ test("other questions still go to Gemma", async () => {
 
 test("Gemma's evidence lists what makes up each detailed site's score, for grade questions asked other ways", () => {
   const c = buildContext(data, "2026-10-24", [], null, "Tell me about planetfitness.com");
-  assert.match(c, /planetfitness\.com, visited[^\n]*score made of: 4 tracker connections to outside companies \(\+20\)/);
+  assert.match(c, /planetfitness\.com, visited[^\n]*score made of: 4 outside companies with trackers here \(\+20\)/);
 });
 
 test("Ask C keeps the answer's line breaks, so each scoring line shows on its own", () => {
   const css = require("node:fs").readFileSync(__dirname + "/../dashboard/dashboard.css", "utf8");
   assert.match(css, /\.msg \.answer \{[^}]*white-space: pre-line;/);
+});
+
+// Range (Justin's grade-scale doc): the instant answer says what's unknown and how high the score could go.
+test("the instant grade answer names what's still unknown and how high the score could go", async () => {
+  const r = await ask("Why did planetfitness.com get a B?");
+  assert.match(r.answer, /Partly checked: the privacy policy isn't read yet, so this could be as high as 55 out of 100 \(a C\)\. \[Privacy policy\]/);
+  const q = await ask("Why did wikipedia.org get an A?");
+  assert.match(q.answer, /could be as high as 15 out of 100 \(still an A\)/);
+  const full = site("checked.example", [], { cookieChoice: "declined", policy: { sells: false, shares: false } });
+  const f = await ask("Why did checked.example get an A?", [full]);
+  assert.match(f.answer, /Fully checked: every line of the grade has an answer\./);
 });

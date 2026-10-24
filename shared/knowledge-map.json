@@ -36,7 +36,7 @@
       "answeredBy": "code",
       "how": "Network requests matched to shared/atlas.json (DuckDuckGo Tracker Radar).",
       "maxPoints": 40,
-      "pointsRule": "5 per tracker company, up to 40."
+      "pointsRule": "5 per tracker company (a company counts once, however many web addresses it uses; over several visits, only companies seen on at least half of them), up to 40."
     },
     {
       "id": "ad_trackers",
@@ -46,7 +46,7 @@
       "answeredBy": "code",
       "how": "Tracker category from Tracker Radar; data brokers from the California Data Broker Registry.",
       "maxPoints": 20,
-      "pointsRule": "5 each, up to 20."
+      "pointsRule": "5 per company, up to 20."
     },
     {
       "id": "cookie_choice",
