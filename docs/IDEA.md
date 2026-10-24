@@ -1,5 +1,5 @@
 # Idea inbox: Gator Hack V (UF AI Days 2026)
-_Last reviewed 2026-10-24 (Sat, ~4 PM ET). Ideas stay as the team wrote them; **Status** notes and corrections are marked. Source of truth for build details: docs/SPEC.md and docs/PLAN.md._
+_Last reviewed 2026-10-24 (Sat, ~7:45 PM ET, Max's Claude: statuses on every idea; open ones are PLAN R19). Ideas stay as the team wrote them; **Status** notes and corrections are marked. Source of truth for build details: docs/SPEC.md and docs/PLAN.md._
 
 ## Hard facts (from Devpost, checked 2026-10-23)
 - Hacking: Fri Oct 23 5:00 PM -> **Sun Oct 25 5:00 PM ET (48h). Late submissions not accepted.**
@@ -77,23 +77,29 @@ Supporting (older, so NOT the theme answer): DuckDuckGo Tracker Radar (domain to
 
 ## Max
 - Editable UI thats customizable to what you want (i.e, green, dark mode, light mode, etc)
-  - **Status:** not started. Colors already live in shared/theme.css, so themes are a small UI job (PLAN R8, ui).
+  - **Status: done 2026-10-24.** Settings > Appearance: Auto/Light/Dark, Liquid glass or Clean, and six glass colors (R10, R15). The older `max/themes` accent-color branch (R8) was not merged; the glass colors replace it.
 - Grading scale that has a breakdown of the score and why it is that way. MAKE SURE THAT IF COOKIES ARE UNABLE TO BE DECLINED, THAT IMPACTS THE SCORE IN SOME WAY.
   - **Status: done.** Every grade lists each line and its points. A banner with no Reject button = 10 points; no banner while the site tracks you = 10 ("you were never asked").
 - URGENT: CHECK TERMS OF SERVICES OF EACH WEBSITE AND INCORPORATE INTO SCORE
-  - **Status:** planned in two parts (PLAN R3 then R7). First the privacy-policy reader (Gemma reads the policy, quotes "sells"/"shares", feeds the existing policy points). Then terms of service through the same reader, or ToS;DR ratings only if a whole-list download exists (looking up each site would break the privacy promise).
+  - **Status (checked 2026-10-24 7:45 PM): half done.** Part 1 is built: the privacy-policy reader (R3) reads each site's policy, quotes "sells"/"shares", and feeds the grade. Part 2, terms of service (PLAN R7), is **not started** and is marked stretch, so it won't make Sunday's freeze. It stays in the plan for after the hackathon.
 - Make sure that the suggested Ask C topics adjust to your browsing trends.
-  - **Status:** not started; small (PLAN R6).
+  - **Status: done 2026-10-24** (PLAN R6): Ask C's suggested questions are built from your own week (your riskiest site, the company that followed you most, a breached site you visited).
 - Make it so we are able to customize the liquid glass (i.e., green hue background, blue hue background, etc).
   - **Status: done 2026-10-24 (branch `max/glass-tint`).** Settings > Appearance > Glass color: Aurora (original), Ocean (blue), Forest (green), Sunset, Rose, Graphite, each in light and dark.
  - Mcdonalds.com has a warning about cookies usage but C does not pop up with a warning and yield sign.
+   - **Status (checked live 2026-10-24 7:45 PM): not fixed; now PLAN R19a.** McDonald's (US) shows a strip at the top with **no buttons at all**: "By continuing to use our website, you agree to the revised Terms…", plus a link to opt out of ad sharing ("McDonald's Privacy Rights Center"). C only reacts to banners with Accept/Reject buttons, so he stays silent. Fix: treat "by continuing to use … you agree/consent" notices with no Reject as accept-only, show C's "Beware!" with the yield sign, and point to the opt-out link.
  - When Ask C is generating responses, often generates a big paragraph then before it can be read cuts down half of it. May be part of the solution to the "What to do next" problem we wanted fix, but this is a bad solution as it looks confusing to the user.
+   - **Status (checked in the code 2026-10-24): not fixed; now PLAN R19b.** Cause: while Gemma writes, the panel shows the raw text (only "What you can do" is hidden). When it finishes, the cleaned answer replaces it: repeated sentences, "Earlier I told you…", made-up source tags and unsupported tags are removed, and for plain questions the steps are dropped. So the answer visibly shrinks. Fix: run the same cleaning on the text while it streams, so what you read never changes at the end.
  - C logo in "this week tab" isnt actual C mascot - most if instances of capital C in reference to Ask C or C in general should be the C logo.
+   - **Status: not done; now PLAN R19c.** "C stepped in" (home page, This week) and the C's impact tab use a plain orange arc icon (shared/icons.js "c"), not C's face. The new tab icons (branch `max/icon-tabs`) already use C's face for Ask C. Fix: one small C-face icon used wherever C is meant.
  - Look for ways for the home page to be decluttered and be less overwhelming and plan and render - report to either Preston or max with rendering before pushing to main
+   - **Status: not started; now PLAN R19d.** Renderings first (2-3 options), shown to Preston or Max before anything goes to main.
  - Headers like "Worth knowing" and "This week" should be larger or bolded in some way/more prominent so that a users eyes would first see the header before seeing whats in the box because some test users have had confusion with what each box does. 
+   - **Status: not done; now PLAN R19e.** Card titles are 15 px semibold today (dashboard.css `.card h2`), close to the text under them. Fix: bigger, bolder titles with more space below, rendered for review together with R19d.
 
 **Justin
 - Have a "Clear Cache" button within PrivaC to clear users chache with a possible explanation for users about what it does and how its useful.
+  - **Status: done 2026-10-24 (per site)**, same as Smiley's idea below: the popup's "Clear this site's data", with an explanation.
 
 ## Smiley
 - Clear cache button within PrivaC, with explanation on what it means to clear ur cache and how its good

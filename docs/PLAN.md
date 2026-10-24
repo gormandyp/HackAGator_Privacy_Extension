@@ -45,6 +45,15 @@ Owner areas: **core** (repo owner + Claude: background, data plumbing, merges), 
 
 - [ ] **R18. Steadier grades between reloads and people** (repo owner 2026-10-24, branch `grade-steady`; he chose the top option): each company counts once however many web addresses it uses, and over several visits only companies seen on at least half of them add points (the rest are listed, 0 points). Visit counts per site and per company in background/tracking.js. Tests: tests/score-steady.test.js, tests/tracking.test.js. Cookie part: companies that loaded only after you clicked Accept are listed with 0 points (accepting still costs 10).
 
+- [ ] **R19. Team ideas still open (from docs/IDEA.md, reviewed 2026-10-24 7:45 PM by Max's Claude).** Each one needs a test first, like every step:
+  - [ ] **a. McDonald's-type notices** (Max): a strip with no buttons, "By continuing to use our website, you agree…" (mcdonalds.com/us, checked live). Treat it as accept-only: C's "Beware!" with the yield sign, pointing to the site's opt-out link ("Privacy Rights Center", "Do not sell or share"). Belongs with R14 (cookie-detector.js / c-placement.js).
+  - [ ] **b. Ask C answers shrink when they finish** (Max): the streamed text is raw Gemma; the final answer is cleaned (repeats, "Earlier I told you…", bad tags and, for plain questions, the steps are removed). Run the same cleaning on every streamed update (shared/askc.js `onToken`) so the text never changes at the end.
+  - [ ] **c. C's face instead of a plain "C" icon** (Max): "C stepped in" on the home page, the C's impact tab and other places that mean C. Use one small C-face icon (shared/mascot.js) everywhere C is meant; `max/icon-tabs` already does this for the Ask C tab.
+  - [ ] **d. Declutter the home page** (Max): 2-3 rendered options first, reviewed by Preston or Max before main.
+  - [ ] **e. Card titles more prominent** (Max: test users weren't sure what each box was): larger, bolder "Worth knowing", "This week" etc.; render with d.
+  - [ ] **f. Terms of service** (Max, IDEA "URGENT"): this is R7, still stretch. Say so in the Devpost "what's next".
+  - Also waiting to merge: `max/icon-tabs` (tab icons + names).
+
 ## Sun (freeze 11 AM)
 - [ ] 13. [ui] Polish: loading/empty/error states, animations. Run `/check-diff`.
 - [~] 14. [demo] **Done:** dashboard "About" tab lists the past-12-month technology with dates, proof links and the files that use it (tests/about.test.js). README "For judges: a 3-minute tour" and docs/DIFFICULTIES.md brought up to date (2026-10-24 evening). **Left:** "why it's recent" slide with dates (Gemma 4 Mar 31 2026, RegTrack Mar 2026, 1260H Jun 8 2026, CA registry 2026).
