@@ -4,7 +4,7 @@ Update your row every time you push. Keep it to one line per column.
 
 | Person | Area | Branch | Working on (PLAN step) | Blocked by | Next |
 |---|---|---|---|---|---|
-| Repo owner (gormandyp) | core + integrator | main | R4 adversary alert, demo prep | - | UI mockups |
+| Repo owner (gormandyp) | core + integrator | main | F1-F4, R12 counters, Matthew's C merged (pushed 2026-10-24 ~2:45 AM) | APNIC file for F3 | Live check, then R10 mockups on the Mac (docs/HANDOFF.md) |
 | Josh Davis | data | data | Away | - | Check DATA.md |
 | Max Glassman | ask-c + data | max-state-media | F2 done: shared/state-media.json (20 outlets, 61 domains, State Media Monitor) in score, alert and Ask C | Live check on the Mac | Human check of 2 policies (R3) |
 | Matthew Finkelstein | ui | ui | C pop-ups and poses (max/mascot-poses held until he's done) | - | R5 unsafe-site warning |
