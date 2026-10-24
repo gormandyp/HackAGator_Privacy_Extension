@@ -113,7 +113,29 @@
         </div>`
         : `<p class="calm">${I.icon("check", 14)} No outside companies showed up on your visits here this week.</p>`}
       <p class="honesty">Connections your browser made: who could see your visit, not proof your data was sold.</p>
-    </section>`;
+    </section>
+
+    ${inExtension ? `
+    <section class="card glass clear">
+      <div class="card-top"><div class="head-title">${I.tile("trash", "gray", "sm")}<h2>Clear this site's data</h2></div></div>
+      <p class="clear-what">Chrome forgets ${esc(s.domain)}'s own cookies, saved data and cache, so the site can't link your next visit to earlier ones. It also signs you out of ${esc(s.domain)}. Your history and passwords stay. Other companies' tracking cookies aren't removed; Chrome's "Block third-party cookies" setting stops those.</p>
+      <button type="button" class="btn-quiet clear-btn" id="clear-site">Clear ${esc(s.domain)}'s data</button>
+    </section>` : ""}`;
+
+  // Clear this site's data: the first tap asks, the second clears (background/clear-site.js).
+  const clear = $("clear-site");
+  if (clear) {
+    let armed = false;
+    clear.addEventListener("click", async () => {
+      if (!armed) { armed = true; clear.textContent = "Tap again to clear"; clear.classList.add("armed"); return; }
+      clear.disabled = true;
+      let r = null;
+      try { r = await chrome.runtime.sendMessage({ type: "privac-clear-site", domain: s.domain }); } catch (e) { r = null; }
+      clear.classList.remove("armed");
+      clear.textContent = r && r.ok ? "Cleared. Reload the page to start fresh." : "Couldn't clear it. Try again.";
+      if (!(r && r.ok)) { armed = false; clear.disabled = false; }
+    });
+  }
 
   const ask = $("ask-site");
   ask.innerHTML = `${I.icon("c", 16)}<span>Ask C why it got ${an(s.grade)} ${s.grade}</span>`;

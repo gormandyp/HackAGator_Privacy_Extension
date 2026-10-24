@@ -164,7 +164,7 @@ h1, h2, h3 { font-family: var(--font-display); color: var(--text); font-weight: 
 .tile-blue { --tile: var(--t-blue); } .tile-green { --tile: var(--t-green); } .tile-indigo { --tile: var(--t-indigo); }
 .tile-orange { --tile: var(--t-orange); } .tile-pink { --tile: var(--t-pink); } .tile-purple { --tile: var(--t-purple); }
 .tile-red { --tile: var(--t-red); } .tile-teal { --tile: var(--t-teal); } .tile-gray { --tile: var(--t-gray); }
-.tile-c { --tile: var(--t-c); } .tile-grade { --tile: var(--g); }
+.tile-c { --tile: var(--t-c); } .tile-grade { --tile: var(--gs); }
 .tile-yellow { --tile: var(--t-yellow); color: #4a3500; }
 .head-title { display: flex; align-items: flex-start; gap: 10px; min-width: 0; }
 .head-title > .icon-tile { margin-top: 1px; }
@@ -177,10 +177,13 @@ h1, h2, h3 { font-family: var(--font-display); color: var(--text); font-weight: 
 .p-dot { display: inline-block; flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--p, var(--text-3)); }
 
 /* ============ Grades ============ */
-.grade-A { --g: var(--grade-a); } .grade-B { --g: var(--grade-b); } .grade-C { --g: var(--grade-c); }
-.grade-D { --g: var(--grade-d); } .grade-F { --g: var(--grade-f); }
+.grade-A { --g: var(--grade-a); --gs: var(--grade-a-solid); }
+.grade-B { --g: var(--grade-b); --gs: var(--grade-b-solid); }
+.grade-C { --g: var(--grade-c); --gs: var(--grade-c-solid); }
+.grade-D { --g: var(--grade-d); --gs: var(--grade-d-solid); }
+.grade-F { --g: var(--grade-f); --gs: var(--grade-f-solid); }
 .badge { width: 32px; height: 32px; border-radius: 9px; color: #fff; font-family: var(--font-display); font-weight: 700; font-size: 16px; display: grid; place-items: center; flex: none;
-  background: linear-gradient(180deg, color-mix(in oklab, var(--g) 80%, #fff), var(--g) 72%);
+  background: linear-gradient(180deg, color-mix(in oklab, var(--gs) 90%, #fff), var(--gs) 70%);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, .25), inset 0 0 0 .5px rgba(0, 0, 0, .06), 0 1px 2px rgba(0, 0, 0, .12); }
 .badge.big { width: 52px; height: 52px; border-radius: 14px; font-size: 26px; }
 .badge.small { width: 20px; height: 20px; border-radius: 6px; font-size: 11.5px; }
