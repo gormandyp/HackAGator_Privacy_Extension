@@ -9,7 +9,7 @@ const assert = require("node:assert");
 const fs = require("node:fs");
 const vm = require("node:vm");
 
-function load({ settings = null, answer = { ok: true, open: true }, openFails = false, tabs = [] } = {}) {
+function load({ settings = null, answer = { ok: true, open: true }, openFails = false, tabs = [], inject = null } = {}) {
   const calls = [];
   const on = {};
   const chrome = {
@@ -31,6 +31,14 @@ function load({ settings = null, answer = { ok: true, open: true }, openFails = 
       openPopup: async (o) => { calls.push(["openPopup", o]); if (openFails) throw new Error("Could not find an active browser window."); }
     },
     runtime: { onMessage: { addListener: (fn) => { on.message = fn; } } },
+    scripting: inject && {
+      executeScript: async (o) => {
+        calls.push(["executeScript", o]);
+        if (inject === "fails") throw new Error("Cannot access a chrome:// URL");
+        answer = { ok: true, open: true };   // the panel script is on the page now
+        return [{}];
+      }
+    },
     webNavigation: { onCommitted: { addListener: (fn) => { on.nav = fn; } } }
   };
   const ctx = { console, Promise, setTimeout, chrome };
@@ -119,4 +127,32 @@ test("a click with no usable tab does nothing", async () => {
   assert.strictEqual(await T.click(undefined), "none");
   assert.strictEqual(await T.click({ id: -1, windowId: 3 }), "none");
   assert.deepStrictEqual(calls, []);
+});
+
+test("a website tab that was open before PrivaC was installed or reloaded: PrivaC adds the panel to it, then floats it", async () => {
+  const { T, calls } = load({ answer: new Error("Receiving end does not exist."), inject: "works" });
+  assert.strictEqual(await T.click(TAB), "panel");
+  assert.deepStrictEqual(plain(calls), [
+    ["sendMessage", 7, { type: "privac-panel" }, { frameId: 0 }],
+    ["executeScript", { target: { tabId: 7, frameIds: [0] }, files: ["content/panel.js"] }],
+    ["sendMessage", 7, { type: "privac-panel" }, { frameId: 0 }]
+  ], "only the panel script, only the top page, and only after the click");
+});
+
+test("pages where nothing can be added (Chrome's own pages, the Web Store) still get Chrome's window", async () => {
+  const { T, calls } = load({ answer: new Error("Receiving end does not exist."), inject: "fails" });
+  assert.strictEqual(await T.click(TAB), "window");
+  assert.deepStrictEqual(plain(calls.slice(-2)), CHROME_WINDOW);
+});
+
+test("a page that answered no (a modal dialog) isn't given a second copy of the panel script", async () => {
+  const { T, calls } = load({ answer: { ok: false, why: "modal" }, inject: "works" });
+  assert.strictEqual(await T.click(TAB), "window");
+  assert.ok(!calls.some((c) => c[0] === "executeScript"));
+});
+
+test("other PrivaC scripts are on the page but nothing answered for the panel: it's added too", async () => {
+  const { T, calls } = load({ answer: null, inject: "works" });
+  assert.strictEqual(await T.click(TAB), "panel");
+  assert.ok(calls.some((c) => c[0] === "executeScript"));
 });

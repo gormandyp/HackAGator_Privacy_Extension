@@ -20,7 +20,7 @@ function classList() {
   };
 }
 
-function load({ protocol = "https:", modal = false, fullscreen = false, xml = false, innerHeight = 900, inFrame = false } = {}) {
+function load({ protocol = "https:", modal = false, fullscreen = false, xml = false, innerHeight = 900, inFrame = false, existing } = {}) {
   const winOn = {}, docOn = {}, timers = [], sent = [], focused = [];
   let listener = null;
   const pageInput = { tagName: "INPUT", isConnected: true, focus(o) { focused.push(["page input", o]); } };
@@ -70,6 +70,7 @@ function load({ protocol = "https:", modal = false, fullscreen = false, xml = fa
   };
   ctx.window = ctx;
   ctx.top = inFrame ? {} : ctx;
+  if (existing) ctx.PrivaCPanel = existing;
   vm.runInNewContext(SRC, ctx);
 
   const click = () => { let r; listener({ type: "privac-panel" }, { id: "privacid" }, (x) => { r = x; }); return r; };
@@ -234,4 +235,9 @@ test("if the website removed the panel, the next click opens a fresh one", () =>
 test("only the top page gets a panel (frames inside it never do)", () => {
   const t = load({ inFrame: true });
   assert.strictEqual(t.hasListener(), false);
+});
+
+test("a copy left on the page from before PrivaC was reloaded gives way to a fresh one; a live copy isn't doubled", () => {
+  assert.strictEqual(load({ existing: { runtimeId: undefined } }).hasListener(), true, "the old copy lost its connection");
+  assert.strictEqual(load({ existing: { runtimeId: "privacid" } }).hasListener(), false, "already running");
 });

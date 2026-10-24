@@ -22,7 +22,8 @@
     "webRequest",
     "webNavigation",
     "alarms",
-    "cookies"
+    "cookies",
+    "scripting"
   ],
   "content_scripts": [
     {

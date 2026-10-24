@@ -2,8 +2,8 @@
 // Chrome draws an extension's pop-up window as a plain rectangle, and extensions can't change its shape. So on
 // a website, clicking the button floats the same pop-up page over the page in a rounded panel instead
 // (content/panel.js). Everywhere the panel can't go (Chrome's own pages, the Web Store, PDFs, a page showing a
-// modal dialog, a tab that was open before PrivaC was installed or reloaded), and when Settings > Toolbar
-// pop-up is "Chrome's", Chrome's usual pop-up window opens.
+// modal dialog), and when Settings > Toolbar pop-up is "Chrome's", Chrome's usual pop-up window opens. A website tab
+// that was open before PrivaC was installed or reloaded gets the panel script added when you click the button.
 (function () {
   const POPUP = "popup/popup.html";
 
@@ -18,13 +18,23 @@
     try { await chrome.action.openPopup({ windowId: tab.windowId }); return "window"; } catch (e) { return "window-next-click"; }
   }
 
+  const ask = (tab) => chrome.tabs.sendMessage(tab.id, { type: "privac-panel" }, { frameId: 0 });
+
   async function click(tab) {
     if (!tab || typeof tab.id !== "number" || tab.id < 0) return "none";
     if ((await mode()) !== "window") {
-      try {
-        const r = await chrome.tabs.sendMessage(tab.id, { type: "privac-panel" }, { frameId: 0 });
-        if (r && r.ok) return "panel";   // opened, or closed by this second click
-      } catch (e) { /* PrivaC isn't running on this page */ }
+      let r = null;
+      try { r = await ask(tab); } catch (e) { r = null; }
+      if (!r && chrome.scripting) {
+        // Nothing answered: the panel isn't on this page yet (a tab open since before PrivaC was installed or
+        // reloaded). You just clicked the button, so add only the panel script to that tab's top page and ask
+        // again. Chrome's own pages and the Web Store refuse this, and get Chrome's window below.
+        try {
+          await chrome.scripting.executeScript({ target: { tabId: tab.id, frameIds: [0] }, files: ["content/panel.js"] });
+          r = await ask(tab);
+        } catch (e) { r = null; }
+      }
+      if (r && r.ok) return "panel";   // opened, or closed by this second click
     }
     return openWindow(tab);
   }

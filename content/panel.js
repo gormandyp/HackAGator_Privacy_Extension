@@ -7,7 +7,9 @@
 // Where it can't float (not an http/https page, a page showing a modal dialog, full screen) it answers no and
 // the background opens Chrome's own pop-up window instead. Messages from the panel carry only its size and look.
 (function () {
-  if (window.PrivaCPanel || window.top !== window) return;
+  // A copy left from before PrivaC was reloaded can't hear the button any more, so a fresh one takes over.
+  const alive = (p) => { try { return !!(p && p.runtimeId && p.runtimeId === chrome.runtime.id); } catch (e) { return false; } };
+  if (window.top !== window || alive(window.PrivaCPanel)) return;
 
   const GAP = 10;        // px from the window's top and right edges, under the toolbar button
   const WAIT = 4000;     // ms for PrivaC's page to draw before giving up and asking for Chrome's window
@@ -161,5 +163,5 @@
     }
   });
 
-  window.PrivaCPanel = { blocked, fit, isOpen: () => !!cur, close: () => close() };
+  window.PrivaCPanel = { blocked, fit, isOpen: () => !!cur, close: () => close(), runtimeId: chrome.runtime.id };
 })();
