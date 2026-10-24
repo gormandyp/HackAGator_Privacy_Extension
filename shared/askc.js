@@ -458,11 +458,28 @@ Steps the person can take (no tag needed):
     "open cookie database": "Cookie Database", "cookies": "Cookie Database", "cookie db": "Cookie Database"
   };
 
+  // The verb after "the user", changed to go with "you": has -> have, watches -> watch, carries -> carry.
+  // Words that aren't third-person verbs (can, will, should, not...) don't end in s, so they stay as they are.
+  const YOU_VERBS = { is: "are", was: "were", has: "have", does: "do", isn: "aren", wasn: "weren", hasn: "haven", doesn: "don" };
+  function youVerb(v) {
+    const w = v.toLowerCase();
+    if (YOU_VERBS[w]) return YOU_VERBS[w];
+    if (/(?:sses|shes|ches|xes|zes|oes)$/.test(w)) return v.slice(0, -2);
+    if (/[^aeiou]ies$/.test(w)) return v.slice(0, -3) + "y";
+    if (w.length > 3 && /[^su]s$/.test(w)) return v.slice(0, -1);
+    return v;
+  }
+
   // Fix Gemma's small formatting slips so the panel shows clean labels and "you".
   function cleanAnswer(text) {
     let t = String(text || "").replace(/`/g, "").replace(/\*\*/g, "");
     t = t.replace(/^(please )?note:? (that )?(this|the data provided) is (a )?sample[^.]*\.\s*/i, "");
-    t = t.replace(/\bthe user's\b/gi, "your").replace(/\bthe user\b/gi, "you");
+    t = t.replace(/\bthe user's\b/gi, "your");
+    // "the user has" -> "you have", not "you has" (docs/ASKC-FIXES.md Fix 2).
+    // Only when "the user" starts a sentence or clause (it's the subject); "data about the user goes" stays "about you goes".
+    t = t.replace(/(^|[.!?]\s+|\n\s*|\b(?:what|that|who|which|when|where|if|because|so|and|but|while|unless|whether)\s+)the user((?:\s+(?:also|always|often|still|never|just|already|usually|really|probably|only|then))?)\s+([a-z]+)\b/gi,
+      (m, pre, adv, v) => `${pre}you${adv} ${youVerb(v)}`);
+    t = t.replace(/\bthe user\b/gi, "you");
     t = t.replace(/(^|[.!?]\s+)(you|your)\b/g, (m, pre, w) => pre + w[0].toUpperCase() + w.slice(1));
     t = t.replace(/\[([^\]]{1,40})\]/g, (m, name) => {
       const n = name.trim();

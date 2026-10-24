@@ -65,3 +65,29 @@ test("Fix 4: on a busy site, foreign-adversary trackers are still kept first onc
   const ctx = buildContext({ sites: [scored({ domain: "busy.example", lastVisit: "2026-10-24", cookieChoice: "accepted", policy: {}, trackers })] }, "2026-10-24", [], null, "busy.example");
   assert.match(ctx, /Yandex \(Analytics, based in Russia\)/, "Yandex is in the kept 12, not cut");
 });
+
+test("Fix 2: swapping \"the user\" for \"you\" also fixes the verb", () => {
+  const cases = [
+    ["The user has visited 5 sites. [Seen on your visit]", "You have visited 5 sites. [Seen on your visit]"],
+    ["The user is tracked by Criteo. [Tracker Radar]", "You are tracked by Criteo. [Tracker Radar]"],
+    ["The user was tracked on 3 sites.", "You were tracked on 3 sites."],
+    ["Criteo knows what the user does. [Tracker Radar]", "Criteo knows what you do. [Tracker Radar]"],
+    ["The user wants to know.", "You want to know."],
+    ["The user visits cnn.com.", "You visit cnn.com."],
+    ["The user watches videos.", "You watch videos."],
+    ["The user accesses it.", "You access it."],
+    ["The user carries a phone.", "You carry a phone."],
+    ["The user is not tracked.", "You are not tracked."],
+    ["The user doesn't see it.", "You don't see it."],
+    ["The user's data is shared.", "Your data is shared."],
+    ["Ads follow the user.", "Ads follow you."],
+    ["The user can decline.", "You can decline."],
+    ["The user uses Chrome.", "You use Chrome."],
+    ["The user always visits cnn.com.", "You always visit cnn.com."],
+    ["The user also has cookies.", "You also have cookies."],
+    ["Data about the user goes to Criteo.", "Data about you goes to Criteo."],
+    ["Criteo shows the user ads.", "Criteo shows you ads."],
+    ["It's fine. The user isn't tracked here.", "It's fine. You aren't tracked here."]
+  ];
+  for (const [raw, want] of cases) assert.strictEqual(cleanAnswer(raw), want, raw);
+});
