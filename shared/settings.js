@@ -5,6 +5,8 @@
     style:      "glass" | "clean"              (Liquid glass, or solid panels)
     popups:     { cookie, acceptOnly, adversary }  (true = C may show that pop-up on websites)
     policyReader: true                          (Gemma reads privacy policies on this computer)
+    toolbar:    "panel" | "window"              (toolbar button: rounded panel on the page, or Chrome's own pop-up window;
+                                                 see background/toolbar.js)
   Outside the extension (opening the HTML file directly) settings live in localStorage so the look can be previewed.
 */
 (function () {
@@ -12,10 +14,12 @@
     appearance: "system",
     style: "glass",
     popups: { cookie: true, acceptOnly: true, adversary: true },
-    policyReader: true
+    policyReader: true,
+    toolbar: "panel"
   };
   const APPEARANCES = ["system", "light", "dark"];
   const STYLES = ["glass", "clean"];
+  const TOOLBARS = ["panel", "window"];
 
   // Fill gaps with defaults and drop unknown values, so a bad or old saved copy can't break anything.
   function merge(saved) {
@@ -26,7 +30,8 @@
       appearance: APPEARANCES.includes(s.appearance) ? s.appearance : DEFAULTS.appearance,
       style: STYLES.includes(s.style) ? s.style : DEFAULTS.style,
       popups,
-      policyReader: typeof s.policyReader === "boolean" ? s.policyReader : DEFAULTS.policyReader
+      policyReader: typeof s.policyReader === "boolean" ? s.policyReader : DEFAULTS.policyReader,
+      toolbar: TOOLBARS.includes(s.toolbar) ? s.toolbar : DEFAULTS.toolbar
     };
   }
 
