@@ -55,6 +55,9 @@ Without installing anything, you can open `dashboard/dashboard.html` or `popup/p
 ## Data sources and credits
 Tracker data: [DuckDuckGo Tracker Radar](https://github.com/duckduckgo/tracker-radar) (CC BY-NC-SA 4.0). Breach data: [Have I Been Pwned](https://haveibeenpwned.com) (CC BY 4.0). Cookie purposes: [Open Cookie Database](https://github.com/jkwakman/Open-Cookie-Database) (Apache 2.0). Data brokers: [California Privacy Protection Agency](https://cppa.ca.gov/data_broker_registry/). Details: [docs/DATA.md](docs/DATA.md).
 
+## License
+PrivaC's own code is open source under the [MIT](LICENSE) license. The data files keep their own licenses (listed at the end of [LICENSE](LICENSE)); Tracker Radar's is non-commercial.
+
 ## Team
 Josh Davis, Max Glassman, Matthew Finkelstein, Justin Smilowitz, and the repo owner (gormandyp). Teamwork rules: [docs/TEAM.md](docs/TEAM.md).
 
