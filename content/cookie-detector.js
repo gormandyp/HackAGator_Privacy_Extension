@@ -30,12 +30,46 @@
         /^reject all non-essential cookies$/i
     ];
 
+  // Buttons that agree to all cookies.
+  const ACCEPT_LABELS = [
+    /^accept(?: all)?(?: cookies)?$/i, /^allow(?: all)?(?: cookies)?$/i, /^agree(?: and close)?$/i,
+    /^i agree$/i, /^i accept$/i, /^accept and (?:close|continue)$/i, /^yes,? i(?:'|’)?m happy$/i,
+    /^ok(?:ay)?$/i, /^got it$/i, /^continue$/i
+  ];
+
   let promptedFor = null;
   let timer = null;
+  let reportedNoReject = false;
+  const watchedAccept = new WeakSet();
+
+  // Tell the background script what happened with this site's cookies.
+  // (It owns privacData, so writes never clash with tracker updates.)
+  function recordChoice(choice) {
+    try {
+      chrome.runtime.sendMessage({ type: "cookieChoice", domain: location.hostname.replace(/^www\./, ""), choice });
+    } catch (e) { /* extension reloaded; ignore */ }
+  }
+
+  // Is this button inside something that talks about cookies or consent?
+  function inCookieBanner(el) {
+    for (let n = el, i = 0; n && i < 8; n = n.parentElement, i++) {
+      if (/cookie|consent|gdpr|tracking/i.test((n.id || "") + " " + (typeof n.className === "string" ? n.className : ""))) return true;
+      if (i >= 2 && n.innerText && n.innerText.length < 3000 && /cookie/i.test(n.innerText)) return true;
+    }
+    return false;
+  }
+
+  function findAcceptButton() {
+    return findButton(ACCEPT_LABELS, true);
+  }
 
   function findRejectButton() {
+    return findButton(REJECT_LABELS, false);
+  }
+
+  function findButton(labels, needBanner) {
     const elements = document.querySelectorAll(
-      'button, [role="button"], input[type="button"]'
+      'button, [role="button"], input[type="button"], a[role="button"]'
     );
 
     for (const element of elements) {
@@ -50,7 +84,7 @@
         ""
       ).trim().replace(/\s+/g, " ");
 
-      if (REJECT_LABELS.some(pattern => pattern.test(label))) {
+      if (labels.some(pattern => pattern.test(label)) && (!needBanner || inCookieBanner(element))) {
         return element;
       }
     }
@@ -73,7 +107,21 @@
 
     if (!window.PrivaCPrompt) return;
 
+    // If the person clicks "Accept all" themselves, count it.
+    const accept = findAcceptButton();
+    if (accept && !watchedAccept.has(accept)) {
+      watchedAccept.add(accept);
+      accept.addEventListener("click", () => recordChoice("accepted"), { once: true });
+    }
+
     const button = findRejectButton();
+
+    // A cookie banner with an Accept button and no way to say no.
+    if (!button && accept && !reportedNoReject) {
+      reportedNoReject = true;
+      recordChoice("no-reject");
+    }
+
     if (!button || button === promptedFor) return;
 
     promptedFor = button;
@@ -156,24 +204,7 @@
         }
 
         // Only record a confirmed rejection in the privacy score.
-        if (verification === "confirmed") {
-          try {
-            const domain = location.hostname.replace(/^www\./, "");
-            const result = await chrome.storage.local.get("privacData");
-            const data = result.privacData;
-
-            if (data && Array.isArray(data.sites)) {
-              const site = data.sites.find(s => s.domain === domain);
-
-              if (site) {
-                site.cookieChoice = "declined";
-                await chrome.storage.local.set({ privacData: data });
-              }
-            }
-          } catch (e) {
-            console.warn("PrivaC: Could not save cookie choice", e);
-          }
-        }
+        if (verification === "confirmed") recordChoice("declined");
 
         return verification;
       },

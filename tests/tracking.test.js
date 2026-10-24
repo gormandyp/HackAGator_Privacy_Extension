@@ -19,8 +19,8 @@ function load() {
     tabs: { onRemoved: on("closed") }
   };
   const ctx = { chrome, console, URL, Promise, setTimeout };
-  vm.runInNewContext(fs.readFileSync(__dirname + "/../background/tracking.js", "utf8") + "\n;this.flush = () => saveChain; this.setAtlas = setAtlas;", ctx);
-  return { listeners, store: () => store, setStore: (s) => { store = s; }, flush: () => ctx.flush(), setAtlas: ctx.setAtlas };
+  vm.runInNewContext(fs.readFileSync(__dirname + "/../background/tracking.js", "utf8") + "\n;this.flush = () => saveChain; this.setAtlas = setAtlas; this.update = updateCookieChoice;", ctx);
+  return { listeners, store: () => store, setStore: (s) => { store = s; }, flush: () => ctx.flush(), setAtlas: ctx.setAtlas, update: (d, c) => ctx.update(d, c) };
 }
 
 test("records known trackers per site and keeps earlier sites", async () => {
@@ -90,4 +90,17 @@ test("visits older than 7 days are deleted automatically", async () => {
   t.listeners.nav({ frameId: 0, tabId: 7, url: "https://new.example/" });
   await t.flush();
   assert.deepStrictEqual(t.store().privacData.sites.map(s => s.domain), ["new.example"]);
+});
+
+test("cookie choices: declined/accepted win over no-reject, and stick through tracker updates", async () => {
+  const t = load();
+  t.listeners.nav({ frameId: 0, tabId: 8, url: "https://shop.example/" });
+  await t.flush();
+  await t.update("shop.example", "no-reject");
+  assert.strictEqual(t.store().privacData.sites[0].cookieChoice, "no-reject");
+  await t.update("shop.example", "declined");
+  await t.update("shop.example", "no-reject");
+  t.listeners.req({ tabId: 8, url: "https://hotjar.com/s.js" });
+  await t.flush();
+  assert.strictEqual(t.store().privacData.sites[0].cookieChoice, "declined");
 });

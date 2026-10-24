@@ -54,16 +54,17 @@
 
     <section class="block">
       <h2>How the grade works</h2>
-      <p class="lede">The exposure score runs from 0 (barely exposed) to 100 (heavily exposed). It's our team's rubric, not a probability that your data will be sold or breached.</p>
+      <p class="lede">The exposure score runs from 0 (barely exposed) to 100 (heavily exposed). It's our team's rubric, not a probability that your data will be sold or breached. Only things PrivaC actually saw or found on record add points; anything unknown adds nothing.</p>
       <div class="rubric">
         <table>
           <thead><tr><th>What we check</th><th>Points</th></tr></thead>
           <tbody>
             <tr><td>Each tracker connection to an outside company</td><td>5 each, up to 40</td></tr>
-            <tr><td>Each one used for advertising or data brokering</td><td>5 each, up to 20</td></tr>
-            <tr><td>Cookie choice: accepted all / none recorded / declined</td><td>10 / 5 / 0</td></tr>
+            <tr><td>Each one used for advertising, data brokering or screen recording</td><td>5 each, up to 20</td></tr>
+            <tr><td>Cookies: accepted all, or the banner had no Reject button / declined / no banner</td><td>10 / 0 / 0</td></tr>
             <tr><td>Any company based in a listed foreign-adversary country</td><td>15</td></tr>
-            <tr><td>Privacy policy: sells / shares / neither / not reviewed</td><td>15 / 8 / 0 / 5</td></tr>
+            <tr><td>Privacy policy: sells / shares / neither / not checked yet</td><td>15 / 8 / 0 / 0</td></tr>
+            <tr><td>The site's own data breach (Have I Been Pwned): last 12 months / older</td><td>15 / 5</td></tr>
           </tbody>
         </table>
         <div class="grades-key" id="grades-key"></div>

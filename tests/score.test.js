@@ -25,9 +25,29 @@ test("foreign-adversary country adds 15 and is flagged", () => {
   assert.strictEqual(r.score, 5 + 15);
 });
 
-test("unknown policy and no cookie choice are not treated as safe", () => {
+test("rubric v3: no banner and an unchecked policy add nothing (fresh Google tab = A)", () => {
   const r = computeScore({ trackers: [] , cookieChoice: "none", policy: { sells: null, shares: null } });
+  assert.strictEqual(r.score, 0);
+  assert.strictEqual(r.grade, "A");
+});
+
+test("a banner with no reject option costs as much as accepting all", () => {
+  const r = computeScore({ trackers: [], cookieChoice: "no-reject", policy: {} });
   assert.strictEqual(r.score, 10);
+});
+
+test("session recording counts with advertising", () => {
+  const r = computeScore({ trackers: [tracker("Session recording")], cookieChoice: "none", policy: {} });
+  assert.strictEqual(r.score, 10);
+});
+
+test("breach in the last year adds 15, an older one adds 5", () => {
+  const now = Date.parse("2026-10-23");
+  const recent = computeScore({ trackers: [], breach: { name: "X", breachDate: "2026-06-01", addedDate: "2026-07-01" } }, now);
+  const old = computeScore({ trackers: [], breach: { name: "X", breachDate: "2021-01-01", addedDate: "2021-02-01" } }, now);
+  assert.strictEqual(recent.score, 15);
+  assert.strictEqual(old.score, 5);
+  assert.match(recent.parts.at(-1).label, /last year \(X, 2026\)/);
 });
 
 test("grade boundaries", () => {

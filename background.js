@@ -11,4 +11,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       .catch(() => sendResponse({ error: "I couldn't reach Gemma. Is Ollama running?" }));
     return true; // keep the channel open for the async reply
   }
+  if (msg && msg.type === "cookieChoice") {
+    updateCookieChoice(msg.domain, msg.choice);
+  }
 });

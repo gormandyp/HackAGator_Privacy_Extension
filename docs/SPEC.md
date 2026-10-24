@@ -12,12 +12,14 @@ Everyday internet users, students included, who worry their data is collected an
 - **Pentagon 1260H list** (updated June 8, 2026): names specific Chinese military companies such as Baidu and Alibaba. This sharpens the foreign-adversary flag.
 
 ## How the grade works (already built in shared/data.js; keep popup, dashboard and this table in sync)
-- Code computes an **exposure score 0-100** from fixed rules:
-  - Trackers: 5 points each, up to 40.
-  - Ad or data-broker trackers: 5 points each, up to 20.
-  - Cookie choice: accepted 10, none recorded 5, declined 0.
+- Code computes an **exposure score 0-100** from fixed rules (v3, Oct 23 9:45 PM: only things PrivaC actually saw or found on record add points; unknown = 0):
+  - Trackers: 5 points each, up to 40. Tracker list = shared/atlas.json (DuckDuckGo Tracker Radar). Requests to the site's own company don't count.
+  - Ad, data-broker or session-recording trackers: 5 points each, up to 20.
+  - Cookies: accepted all 10, banner with no Reject button 10, declined 0, no banner seen 0.
   - Foreign-adversary-country company present: 15.
-  - Privacy policy: sells 15, shares 8, neither 0, not reviewed 5.
+  - Privacy policy: sells 15, shares 8, neither 0, not checked yet 0.
+  - The site's own data breach (Have I Been Pwned): added in the last 12 months 15, older 5.
+  - Capped at 100.
 - **Shown to users as a Privacy Score = 100 - exposure** (higher is safer), with a letter grade:
   - **A** 80-100
   - **B** 60-79

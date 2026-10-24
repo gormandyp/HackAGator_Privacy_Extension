@@ -9,7 +9,8 @@
       {
         domain: "dailynews.example",
         lastVisit: "2026-10-23T14:02:00Z",
-        cookieChoice: "declined" | "accepted" | "none",   // "none" = no banner seen / unknown
+        cookieChoice: "declined" | "accepted" | "no-reject" | "none",   // "none" = no banner seen; "no-reject" = banner had no way to say no
+        breach: { name, breachDate, addedDate, pwnCount } | null,      // the site's own most recent breach (Have I Been Pwned)
         policy: { sells: true|false|null, shares: true|false|null, source: "url or null" },
         trackers: [
           { domain: "doubleclick.net", company: "Google", category: "Advertising", country: "US" }
@@ -30,7 +31,7 @@
     KP: "North Korea", RU: "Russia", VE: "Venezuela"
   };
 
-  const AD_CATEGORIES = ["Advertising", "Data broker"];
+  const AD_CATEGORIES = ["Advertising", "Data broker", "Session recording"];
 
   const T = {
     gAds:      { domain: "doubleclick.net",        company: "Google",     category: "Advertising", country: "US" },
@@ -74,7 +75,7 @@
     Privacy exposure score, 0–100. Higher = more exposure. NOT a probability.
     Each part is returned so the UI can explain the grade line by line.
   */
-  function computeScore(site) {
+  function computeScore(site, now = Date.now()) {
     const t = site.trackers || [];
     const parts = [];
 
@@ -83,11 +84,16 @@
 
     const adCount = t.filter(x => AD_CATEGORIES.includes(x.category)).length;
     const adPts = Math.min(20, adCount * 5);
-    parts.push({ label: `${adCount} used for advertising or data brokering`, points: adPts, kind: "observed" });
+    parts.push({ label: `${adCount} used for advertising, data brokering or recording your screen`, points: adPts, kind: "observed" });
 
-    const cookiePts = site.cookieChoice === "accepted" ? 10 : site.cookieChoice === "declined" ? 0 : 5;
-    const cookieLabel = site.cookieChoice === "accepted" ? "All cookies accepted"
-      : site.cookieChoice === "declined" ? "Non-essential cookies declined" : "No cookie choice recorded";
+    // Only what PrivaC actually saw costs points. No banner on the page = nothing to judge = 0.
+    const COOKIE = {
+      accepted:    [10, "All cookies accepted"],
+      "no-reject": [10, "Cookie banner had no Reject button"],
+      declined:    [0,  "Non-essential cookies declined"],
+      none:        [0,  "No cookie banner seen"]
+    };
+    const [cookiePts, cookieLabel] = COOKIE[site.cookieChoice] || COOKIE.none;
     parts.push({ label: cookieLabel, points: cookiePts, kind: "observed" });
 
     const flagged = t.filter(x => FOREIGN_ADVERSARIES[x.country]);
@@ -95,11 +101,23 @@
     parts.push({ label: flagged.length ? `Link to a company in a listed foreign-adversary country` : "No foreign-adversary links", points: flagPts, kind: "observed" });
 
     const p = site.policy || {};
-    let policyPts = 5, policyLabel = "Privacy policy not yet reviewed";
+    let policyPts = 0, policyLabel = "Privacy policy not checked yet";
     if (p.sells === true) { policyPts = 15; policyLabel = "Policy says it sells personal information"; }
     else if (p.shares === true) { policyPts = 8; policyLabel = "Policy says it shares information with partners"; }
     else if (p.sells === false && p.shares === false) { policyPts = 0; policyLabel = "Policy says it doesn't sell or share"; }
     parts.push({ label: policyLabel, points: policyPts, kind: "disclosed" });
+
+    // The site's own data breaches, from Have I Been Pwned. A recent one matters most.
+    const b = site.breach;
+    if (b && (b.addedDate || b.breachDate)) {
+      const when = Date.parse(b.addedDate || b.breachDate);
+      const recent = now - when < 365 * 86400000;
+      const year = String(b.breachDate || b.addedDate).slice(0, 4);
+      parts.push({ label: recent ? `Data breach reported in the last year (${b.name}, ${year})` : `Past data breach on record (${b.name}, ${year})`,
+                   points: recent ? 15 : 5, kind: "breach" });
+    } else {
+      parts.push({ label: "No known data breaches", points: 0, kind: "breach" });
+    }
 
     const score = Math.min(100, parts.reduce((s, x) => s + x.points, 0));
     return { score, grade: gradeFor(score), parts, flagged };

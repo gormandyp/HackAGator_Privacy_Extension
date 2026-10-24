@@ -76,7 +76,7 @@
   $("sites").innerHTML = sites.map((s) => {
     const uniq = new Set(s.trackers.map((t) => t.company)).size;
     const when = new Date(s.lastVisit).toLocaleString([], { weekday: "short", hour: "numeric", minute: "2-digit" });
-    const cookie = s.cookieChoice === "declined" ? "cookies declined" : s.cookieChoice === "accepted" ? "cookies accepted" : "no cookie choice";
+    const cookie = s.cookieChoice === "declined" ? "cookies declined" : s.cookieChoice === "accepted" ? "cookies accepted" : s.cookieChoice === "no-reject" ? "no way to reject cookies" : "no cookie banner";
     return `
     <details class="site grade-${s.grade}">
       <summary>

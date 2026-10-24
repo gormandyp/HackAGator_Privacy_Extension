@@ -112,6 +112,23 @@ function saveSite(site) {
   return saveChain;
 }
 
+// Cookie choices reported by content/cookie-detector.js.
+// A real choice (declined / accepted) beats "no-reject"; nothing beats a real choice except a newer one.
+function updateCookieChoice(domain, choice) {
+  if (!["declined", "accepted", "no-reject"].includes(choice)) return Promise.resolve();
+  saveChain = saveChain.then(async () => {
+    const res = await chrome.storage.local.get("privacData");
+    const data = res.privacData;
+    const site = data && Array.isArray(data.sites) && data.sites.find(s => s.domain === domain);
+    if (!site) return;
+    if (choice === "no-reject" && (site.cookieChoice === "declined" || site.cookieChoice === "accepted")) return;
+    site.cookieChoice = choice;
+    for (const s of tabSites.values()) if (s.domain === domain) s.cookieChoice = choice;
+    await chrome.storage.local.set({ privacData: data });
+  }).catch(e => console.warn("PrivaC: could not save cookie choice", e));
+  return saveChain;
+}
+
 // Start a fresh record when a tab navigates to a new website.
 chrome.webNavigation.onCommitted.addListener(details => {
   if (details.frameId !== 0) return;

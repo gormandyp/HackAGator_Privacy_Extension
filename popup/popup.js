@@ -58,7 +58,7 @@
       <ul class="reasons">
         ${site.parts.map((p) => `
           <li>
-            <span>${escapeHtml(p.label)}<span class="src">${p.kind === "observed" ? "Observed on this visit" : "Disclosed in privacy policy"}</span></span>
+            <span>${escapeHtml(p.label)}<span class="src">${p.kind === "observed" ? "Observed on this visit" : p.kind === "breach" ? "Have I Been Pwned" : "Disclosed in privacy policy"}</span></span>
             <span class="pts ${p.points ? "" : "zero"}">+${p.points}</span>
           </li>`).join("")}
       </ul>
@@ -95,6 +95,7 @@
 
     const second = s.cookieChoice === "declined" ? " You declined the extra cookies, nice."
       : s.cookieChoice === "accepted" ? " You accepted all cookies here. Clearing this site's cookies would lower your score."
+      : s.cookieChoice === "no-reject" ? " This site's cookie banner had no Reject button, only Accept."
       : "";
     return first + second;
   }
