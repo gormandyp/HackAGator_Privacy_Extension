@@ -19,8 +19,8 @@ function load() {
     tabs: { onRemoved: on("closed") }
   };
   const ctx = { chrome, console, URL, Promise, setTimeout };
-  vm.runInNewContext(fs.readFileSync(__dirname + "/../background/tracking.js", "utf8") + "\n;this.flush = () => saveChain;", ctx);
-  return { listeners, store: () => store, flush: () => ctx.flush() };
+  vm.runInNewContext(fs.readFileSync(__dirname + "/../background/tracking.js", "utf8") + "\n;this.flush = () => saveChain; this.setAtlas = setAtlas;", ctx);
+  return { listeners, store: () => store, setStore: (s) => { store = s; }, flush: () => ctx.flush(), setAtlas: ctx.setAtlas };
 }
 
 test("records known trackers per site and keeps earlier sites", async () => {
@@ -56,4 +56,38 @@ test("ignores the site's own requests and unknown domains", async () => {
   t.listeners.req({ tabId: 3, url: "https://cdn.unknown-thing.io/y.js" });
   await t.flush();
   assert.strictEqual(t.store().privacData.sites[0].trackers.length, 0);
+});
+
+const atlas = JSON.parse(fs.readFileSync(__dirname + "/../shared/atlas.json", "utf8"));
+
+test("the new-tab page and chrome:// pages are not recorded as visits", async () => {
+  const t = load();
+  t.listeners.nav({ frameId: 0, tabId: 4, url: "chrome://newtab/" });
+  t.listeners.nav({ frameId: 0, tabId: 4, url: "chrome-extension://abc/dashboard/dashboard.html" });
+  await t.flush();
+  assert.strictEqual(t.store().privacData, undefined);
+});
+
+test("with the Atlas: finds trackers by parent domain, skips the site owner's own trackers", async () => {
+  const t = load();
+  t.setAtlas(atlas);
+  t.listeners.nav({ frameId: 0, tabId: 5, url: "https://www.google.com/" });
+  t.listeners.req({ tabId: 5, url: "https://stats.g.doubleclick.net/x" });      // Google on google.com
+  t.listeners.nav({ frameId: 0, tabId: 6, url: "https://news.example/" });
+  t.listeners.req({ tabId: 6, url: "https://stats.g.doubleclick.net/x" });      // Google on a news site
+  t.listeners.req({ tabId: 6, url: "https://analytics.tiktok.com/i18n/pixel" }); // ByteDance
+  await t.flush();
+  const [g, n] = t.store().privacData.sites;
+  assert.strictEqual(g.trackers.length, 0);
+  assert.deepStrictEqual(n.trackers.map(x => x.company), ["Google", "ByteDance"]);
+  assert.strictEqual(n.trackers[1].country, "CN");
+});
+
+test("visits older than 7 days are deleted automatically", async () => {
+  const t = load();
+  const old = new Date(Date.now() - 8 * 86400000).toISOString();
+  t.setStore({ privacData: { sites: [{ domain: "old.example", lastVisit: old, trackers: [] }] } });
+  t.listeners.nav({ frameId: 0, tabId: 7, url: "https://new.example/" });
+  await t.flush();
+  assert.deepStrictEqual(t.store().privacData.sites.map(s => s.domain), ["new.example"]);
 });
