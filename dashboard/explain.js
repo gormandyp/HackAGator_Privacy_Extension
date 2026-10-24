@@ -74,6 +74,7 @@
     btn.setAttribute("aria-expanded", "true");
     pop = document.createElement("div");
     pop.className = "explain glass";
+    pop.dataset.liquid = "sheet";
     pop.setAttribute("role", "dialog");
     pop.setAttribute("aria-label", "C explains");
     pop.innerHTML = `

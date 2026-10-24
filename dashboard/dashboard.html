@@ -6,6 +6,7 @@
   <meta name="color-scheme" content="light dark">
   <title>PrivaC dashboard</title>
   <link rel="stylesheet" href="../shared/theme.css">
+  <link rel="stylesheet" href="../shared/ui.css">
   <link rel="stylesheet" href="dashboard.css">
   <script src="../shared/settings.js"></script>
   <script src="../shared/theme-boot.js"></script>
@@ -14,7 +15,7 @@
   <div class="backdrop" aria-hidden="true"></div>
 
   <header class="toolbar">
-    <div class="toolbar-inner glass">
+    <div class="toolbar-inner glass" data-liquid="bar">
       <span class="brand"><span id="wordmark"></span><span id="sample-note" class="sample-badge" title="Browse with PrivaC on and your own sites appear here." hidden>Sample data</span></span>
       <nav class="segmented" id="tabs" role="tablist" aria-label="Dashboard sections">
         <span class="seg-thumb" aria-hidden="true"></span>
@@ -153,7 +154,7 @@
 
   <!-- Settings -->
   <div class="sheet-scrim" id="settings-scrim" hidden></div>
-  <aside class="sheet glass" id="settings" role="dialog" aria-modal="true" aria-labelledby="settings-title" hidden>
+  <aside class="sheet glass" data-liquid="sheet" id="settings" role="dialog" aria-modal="true" aria-labelledby="settings-title" hidden>
     <div class="sheet-head">
       <h2 id="settings-title">Settings</h2>
       <button class="icon-btn" id="close-settings" aria-label="Close settings">
@@ -211,6 +212,9 @@
   <script src="../shared/data.js"></script>
   <script src="../shared/stats.js"></script>
   <script src="../shared/highlights.js"></script>
+  <script src="../shared/site-summary.js"></script>
+  <script src="../shared/icons.js"></script>
+  <script src="../shared/liquid-glass.js"></script>
   <script src="explain.js"></script>
   <script src="dashboard.js"></script>
   <script src="activity.js"></script>

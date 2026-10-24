@@ -1,0 +1,193 @@
+/* PrivaC design system, shared by the dashboard and the toolbar popup.
+   <html data-style="glass|clean" data-theme="light|dark"> is set by shared/settings.js.
+   Type: Apple's system font (San Francisco). Materials: Liquid glass (translucent panes over a soft color
+   wallpaper, bright rims, refraction on the floating bars via shared/liquid-glass.js) or Clean (solid panels).
+   Color does one job at a time: grades for grades, status for good/bad, purpose colors for what a tracker
+   does, C's orange for C. Every color sits next to a text label. */
+
+/* ============ Tokens ============ */
+:root, :root[data-theme="light"] {
+  --font-body: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", system-ui, sans-serif;
+  --font-display: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", system-ui, sans-serif;
+
+  --bg-1: #eef1f6; --bg-2: #f5f6f8;
+  --text: #16233f; --text-2: #4e586d; --text-3: #848ea2;
+  --hair: rgba(22, 35, 63, .085); --hair-strong: rgba(22, 35, 63, .15);
+  --fill: rgba(22, 35, 63, .05); --fill-2: rgba(22, 35, 63, .085);
+
+  --panel: #ffffff;
+  /* Liquid glass */
+  --glass: rgba(255, 255, 255, .28); --glass-bar: rgba(255, 255, 255, .38); --glass-sheet: rgba(250, 251, 253, .58);
+  --glass-blur: 16px; --glass-sat: 190%;
+  --sheen: linear-gradient(162deg, rgba(255, 255, 255, .58) 0%, rgba(255, 255, 255, .14) 28%, rgba(255, 255, 255, 0) 54%);
+  --rim: linear-gradient(135deg, #fff 0%, rgba(255, 255, 255, .72) 16%, rgba(255, 255, 255, .14) 42%, rgba(255, 255, 255, .2) 68%, rgba(255, 255, 255, .9) 100%);
+  --edge: inset 0 1px 1px rgba(255, 255, 255, .8), inset 0 -1px 1px rgba(255, 255, 255, .32), inset 0 0 0 .5px rgba(255, 255, 255, .4), inset 0 0 26px rgba(255, 255, 255, .24);
+  --lift: 0 1px 1px rgba(22, 35, 63, .04), 0 10px 22px -12px rgba(22, 35, 63, .16), 0 32px 64px -32px rgba(22, 35, 63, .36);
+  --glass-fill: rgba(255, 255, 255, .46); --glass-fill-2: rgba(255, 255, 255, .66);
+
+  --warn: #a8670a; --good: #1f8a5b;
+  --thumb: rgba(255, 255, 255, .96); --thumb-shadow: 0 1px 2px rgba(22, 35, 63, .12), 0 3px 8px -2px rgba(22, 35, 63, .1), inset 0 0 0 .5px rgba(22, 35, 63, .06);
+  --group: rgba(255, 255, 255, .7); --selected: rgba(22, 35, 63, .07);
+  --switch-off: #e1e4ea; --switch-on: #34c759; --danger: #d93a3f; --focus: #fa4616;
+
+  /* C (brand), risk, and the neutral rest */
+  --s-c: #f2541b; --s-risk: #d03b3b; --s-safe: #2a78d6; --s-base: #c7ccd6; --meter: rgba(22, 35, 63, .3);
+  --top-row: rgba(250, 70, 22, .06);
+  /* Metrics (This week tiles, Safety tiles) */
+  --m-trackers: #2a78d6; --m-cookies: #eda100;
+  /* What a tracker does: identity colors in a fixed order (checked for color-blind separation) */
+  --p-ads: #2a78d6; --p-measure: #1baf7a; --p-record: #6250d6; --p-broker: #e87ba4; --p-social: #eda100;
+  --p-malware: #d03b3b; --p-risk: #d03b3b; --p-hidden: #8992a5; --p-other: #8992a5;
+  /* Status: good, warning, serious, critical (always with an icon or label) */
+  --st-good: #0ca30c; --st-warn: #fab219; --st-serious: #ec835a; --st-critical: #d03b3b;
+  /* Apple system colors for icon tiles */
+  --t-blue: #007aff; --t-green: #34c759; --t-indigo: #5856d6; --t-orange: #ff9500; --t-pink: #ff2d55;
+  --t-purple: #af52de; --t-red: #ff3b30; --t-teal: #30b0c7; --t-yellow: #ffcc00; --t-gray: #8e8e93; --t-c: #fa4616;
+  color-scheme: light;
+}
+:root[data-theme="dark"] {
+  --bg-1: #0c0e12; --bg-2: #13161c;
+  --text: #eef1f6; --text-2: #aab3c3; --text-3: #7c869b;
+  --hair: rgba(255, 255, 255, .075); --hair-strong: rgba(255, 255, 255, .14);
+  --fill: rgba(255, 255, 255, .06); --fill-2: rgba(255, 255, 255, .1);
+
+  --panel: #1a1d23;
+  --glass: rgba(24, 28, 40, .36); --glass-bar: rgba(22, 26, 36, .46); --glass-sheet: rgba(22, 25, 33, .7);
+  --glass-blur: 20px; --glass-sat: 165%;
+  --sheen: linear-gradient(162deg, rgba(255, 255, 255, .11) 0%, rgba(255, 255, 255, .025) 32%, rgba(255, 255, 255, 0) 58%);
+  --rim: linear-gradient(135deg, rgba(255, 255, 255, .55) 0%, rgba(255, 255, 255, .2) 18%, rgba(255, 255, 255, .04) 46%, rgba(255, 255, 255, .06) 70%, rgba(255, 255, 255, .32) 100%);
+  --edge: inset 0 1px 0 rgba(255, 255, 255, .12), inset 0 0 0 .5px rgba(255, 255, 255, .06), inset 0 0 26px rgba(255, 255, 255, .035);
+  --lift: 0 1px 1px rgba(0, 0, 0, .3), 0 26px 52px -22px rgba(0, 0, 0, .72);
+  --glass-fill: rgba(255, 255, 255, .07); --glass-fill-2: rgba(255, 255, 255, .12);
+
+  --warn: #f0b23a; --good: #34b37a;
+  --thumb: rgba(255, 255, 255, .17); --thumb-shadow: 0 1px 2px rgba(0, 0, 0, .4), inset 0 .5px 0 rgba(255, 255, 255, .18);
+  --group: rgba(255, 255, 255, .05); --selected: rgba(255, 255, 255, .09);
+  --switch-off: rgba(255, 255, 255, .16); --switch-on: #30d158; --danger: #ff6369; --focus: #ff7a4d;
+
+  --s-c: #ff6b3d; --s-risk: #e66767; --s-safe: #3987e5; --s-base: #4a5162; --meter: rgba(255, 255, 255, .34);
+  --top-row: rgba(255, 107, 61, .09);
+  --m-trackers: #3987e5; --m-cookies: #c98500;
+  --p-ads: #3987e5; --p-measure: #199e70; --p-record: #9085e9; --p-broker: #d55181; --p-social: #c98500;
+  --p-malware: #e66767; --p-risk: #e66767; --p-hidden: #788297; --p-other: #788297;
+  --grade-a: #34b37a; --grade-b: #7cbd4f; --grade-c: #e2ac22; --grade-d: #f08a38; --grade-f: #f0554f;
+  --flag: #ff6b63; --flag-soft: rgba(255, 90, 82, .14);
+  --t-blue: #0a84ff; --t-green: #30d158; --t-indigo: #5e5ce6; --t-orange: #ff9f0a; --t-pink: #ff375f;
+  --t-purple: #bf5af2; --t-red: #ff453a; --t-teal: #40c8e0; --t-yellow: #ffd60a; --t-gray: #8e8e93; --t-c: #ff5a1f;
+  color-scheme: dark;
+}
+/* Inside Liquid glass, wells and tracks are lighter glass rather than gray. */
+:root[data-style="glass"] { --fill: var(--glass-fill); --fill-2: var(--glass-fill-2); }
+/* Older components read theme.css names. */
+:root { --ink: var(--text); --ink-2: var(--text-2); --ink-3: var(--text-3); --line: var(--hair); --surface: var(--panel); --paper: var(--bg-2); }
+
+/* ============ Page ============ */
+body {
+  background: var(--bg-2); color: var(--text);
+  font-family: var(--font-body); font-size: 13.5px; line-height: 1.5;
+  letter-spacing: -0.005em;
+  -webkit-font-smoothing: antialiased;
+}
+h1, h2, h3 { font-family: var(--font-display); color: var(--text); font-weight: 600; }
+
+/* The wallpaper the glass looks through. Fixed, so panes slide over it as you scroll. */
+.backdrop {
+  position: fixed; inset: 0; z-index: -1; overflow: hidden;
+  background: url("wallpaper-light.svg") center / cover no-repeat, var(--bg-1);
+}
+:root[data-theme="dark"] .backdrop { background: url("wallpaper-dark.svg") center / cover no-repeat, var(--bg-1); }
+/* A whisper of grain so large gradients don't band; it also gives the glass something to diffuse. */
+.backdrop::after {
+  content: ""; position: absolute; inset: 0; opacity: .04; mix-blend-mode: multiply;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+[data-theme="dark"] .backdrop::after { mix-blend-mode: screen; opacity: .03; }
+[data-style="clean"] .backdrop, :root[data-style="clean"][data-theme="dark"] .backdrop { background: var(--bg-2); }
+[data-style="clean"] .backdrop::after { display: none; }
+
+/* ============ Materials ============ */
+.glass, .card { position: relative; border-radius: 20px; background: var(--panel); border: 1px solid var(--hair); }
+[data-style="glass"] .glass {
+  background-color: var(--glass);
+  background-image: var(--sheen);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-sat));
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-sat));
+  border-color: transparent;
+  box-shadow: var(--edge), var(--lift);
+}
+/* Floating bars and sheets bend what's behind them at the rim (shared/liquid-glass.js sets --lg). */
+[data-style="glass"] [data-liquid] {
+  -webkit-backdrop-filter: var(--lg, blur(var(--glass-blur)) saturate(var(--glass-sat)));
+  backdrop-filter: var(--lg, blur(var(--glass-blur)) saturate(var(--glass-sat)));
+}
+/* The specular rim: bright where the light hits (top left), faint along the sides, a softer catch at bottom right. */
+[data-style="glass"] .glass::before {
+  content: ""; position: absolute; inset: -1px; border-radius: inherit; padding: 1px; pointer-events: none;
+  background: var(--rim);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor; mask-composite: exclude;
+}
+@media (prefers-reduced-transparency: reduce) {
+  [data-style="glass"] .glass { background-color: var(--panel); -webkit-backdrop-filter: none; backdrop-filter: none; }
+}
+
+/* ============ Icon tiles (like System Settings rows) ============ */
+.icon-tile {
+  --tile: var(--t-gray);
+  flex: none; width: 26px; height: 26px; border-radius: 8px;
+  display: inline-grid; place-items: center; color: #fff;
+  background: linear-gradient(180deg, color-mix(in oklab, var(--tile) 78%, #fff), var(--tile) 70%);
+  box-shadow: inset 0 0 0 .5px rgba(0, 0, 0, .06), inset 0 1px 0 rgba(255, 255, 255, .28), 0 1px 2px rgba(0, 0, 0, .14);
+}
+.icon-tile svg { width: 16px; height: 16px; display: block; }
+.icon-tile.tile-sm { width: 22px; height: 22px; border-radius: 7px; }
+.icon-tile.tile-sm svg { width: 14px; height: 14px; }
+.icon-tile.tile-lg { width: 32px; height: 32px; border-radius: 9px; }
+.icon-tile.tile-lg svg { width: 19px; height: 19px; }
+.tile-blue { --tile: var(--t-blue); } .tile-green { --tile: var(--t-green); } .tile-indigo { --tile: var(--t-indigo); }
+.tile-orange { --tile: var(--t-orange); } .tile-pink { --tile: var(--t-pink); } .tile-purple { --tile: var(--t-purple); }
+.tile-red { --tile: var(--t-red); } .tile-teal { --tile: var(--t-teal); } .tile-gray { --tile: var(--t-gray); }
+.tile-c { --tile: var(--t-c); } .tile-grade { --tile: var(--g); }
+.tile-yellow { --tile: var(--t-yellow); color: #4a3500; }
+.head-title { display: flex; align-items: flex-start; gap: 10px; min-width: 0; }
+.head-title > .icon-tile { margin-top: 1px; }
+
+/* ============ What a tracker does: purpose colors ============ */
+.p-ads { --p: var(--p-ads); } .p-measure { --p: var(--p-measure); } .p-record { --p: var(--p-record); }
+.p-broker { --p: var(--p-broker); } .p-social { --p: var(--p-social); } .p-malware { --p: var(--p-malware); }
+.p-risk { --p: var(--p-risk); } .p-hidden { --p: var(--p-hidden); } .p-other { --p: var(--p-other); }
+.st-good { --p: var(--st-good); } .st-warn { --p: var(--st-warn); } .st-serious { --p: var(--st-serious); } .st-critical { --p: var(--st-critical); }
+.p-dot { display: inline-block; flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--p, var(--text-3)); }
+
+/* ============ Grades ============ */
+.grade-A { --g: var(--grade-a); } .grade-B { --g: var(--grade-b); } .grade-C { --g: var(--grade-c); }
+.grade-D { --g: var(--grade-d); } .grade-F { --g: var(--grade-f); }
+.badge { width: 32px; height: 32px; border-radius: 9px; color: #fff; font-family: var(--font-display); font-weight: 700; font-size: 16px; display: grid; place-items: center; flex: none;
+  background: linear-gradient(180deg, color-mix(in oklab, var(--g) 80%, #fff), var(--g) 72%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .25), inset 0 0 0 .5px rgba(0, 0, 0, .06), 0 1px 2px rgba(0, 0, 0, .12); }
+.badge.big { width: 52px; height: 52px; border-radius: 14px; font-size: 26px; }
+.badge.small { width: 20px; height: 20px; border-radius: 6px; font-size: 11.5px; }
+
+/* ============ Buttons ============ */
+.pill-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  border: 0; border-radius: 999px; padding: 6px 13px;
+  background: var(--fill); color: var(--text);
+  font: inherit; font-size: 12.5px; font-weight: 550; white-space: nowrap;
+  transition: background 180ms, transform 180ms;
+}
+.pill-btn:hover { background: var(--fill-2); }
+.pill-btn:active { transform: scale(.97); }
+.icon-btn {
+  width: 34px; height: 34px; border-radius: 11px;
+  display: grid; place-items: center;
+  border: 0; background: transparent; color: var(--text-2);
+  transition: background 180ms, color 180ms, transform 180ms;
+}
+.icon-btn:hover { background: var(--fill); color: var(--text); }
+.icon-btn:active { transform: scale(.94); }
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: 6px; }
+
+/* The wordmark and C's navy outlines turn light in dark mode so he stays visible. */
+.privac-wordmark { color: var(--text) !important; }
+[data-theme="dark"] .c-art svg [stroke="#16233f"], [data-theme="dark"] .privac-wordmark svg [stroke="#16233f"] { stroke: #dfe5ef; }

@@ -3,6 +3,7 @@
 // labelled sample totals, like the rest of the dashboard.
 (function () {
   const $ = (id) => document.getElementById(id);
+  const tile = (g, c, size) => (window.PrivaCIcons ? PrivaCIcons.tile(g, c, size) : "");
   const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const RANGE_WORDS = { day: "today", week: "in the last 7 days", month: "in the last 30 days" };
   const range = { impact: "week", safety: "week" };
@@ -90,9 +91,9 @@
     const n = (k) => ev[k] || 0;
     const when = RANGE_WORDS[range.impact];
     const kinds = [
-      { key: "popup-cookie", label: "Offers to decline cookies", q: "What does C's offer to decline cookies do, and what happens when I say yes?" },
-      { key: "popup-accept-only", label: "Warnings about banners with no Reject", q: "Why does C warn me about cookie banners that only have an Accept button?" },
-      { key: "popup-adversary", label: "Foreign-adversary alerts", q: "What is a foreign-adversary alert, and what should I do when C shows one?" }
+      { key: "popup-cookie", icon: ["cookie", "orange"], label: "Offers to decline cookies", q: "What does C's offer to decline cookies do, and what happens when I say yes?" },
+      { key: "popup-accept-only", icon: ["alert", "yellow"], label: "Warnings about banners with no Reject", q: "Why does C warn me about cookie banners that only have an Accept button?" },
+      { key: "popup-adversary", icon: ["globe", "red"], label: "Foreign-adversary alerts", q: "What is a foreign-adversary alert, and what should I do when C shows one?" }
     ];
     const most = Math.max(1, ...kinds.map((k) => n(k.key)));
     const responses = [
@@ -106,16 +107,16 @@
     $("impact").innerHTML = `
       <div class="bento">
         <div class="card glass">
-          <h2 class="lead">C stepped in ${plural(sum.totals.popups, "time", "times")} ${when}.</h2>
+          <div class="lead-row">${tile("c", "c", "lg")}<h2 class="lead">C stepped in ${plural(sum.totals.popups, "time", "times")} ${when}.</h2></div>
           <ul class="meter-list">
-            ${kinds.map((k) => `<li><span>${esc(k.label)}</span><span class="bar"><i class="c" style="--w:${(n(k.key) / most) * 100}%"></i></span><b>${n(k.key)}</b>${ask(k.q, k.label)}</li>`).join("")}
+            ${kinds.map((k) => `<li><span class="lbl">${tile(k.icon[0], k.icon[1], "sm")}${esc(k.label)}</span><span class="bar"><i class="c" style="--w:${(n(k.key) / most) * 100}%"></i></span><b>${n(k.key)}</b>${ask(k.q, k.label)}</li>`).join("")}
           </ul>
           ${range.impact === "day" ? `<p class="hint">Pick 7 or 30 days to see how this changes day by day.</p>`
             : `<h3 class="chart-title">C's pop-ups per day</h3>${columns(days, [{ key: "popups", label: "pop-ups", cls: "s-c" }], { label: `C's pop-ups per day ${when}` })}
                ${numbersTable(sum.days, [{ label: "Pop-ups", get: (d) => d.popups }, { label: "Declines with C", get: (d) => d.events["decline-click"] || 0 }])}`}
         </div>
         <div class="card glass">
-          <h2>What you did next</h2>
+          <div class="head-title">${tile("check", "green")}<h2>What you did next</h2></div>
           <ul class="kv">
             ${responses.map(([label, v, q, cls]) => `<li class="${cls || ""}"><span>${esc(label)}</span><span class="end"><b>${v}</b>${ask(q, label)}</span></li>`).join("")}
           </ul>
@@ -137,39 +138,40 @@
       return { day: d.day, values: { risky: r, other: Math.max(0, (s.sites || 0) - r) } };
     });
     const tiles = [
-      ["Foreign-adversary links", t.flaggedSites || 0, "site visits", "What does a foreign-adversary link on a site mean for me?"],
-      ["Sites with a data breach", t.breachedSites || 0, "site visits", "What should I do after visiting a site that had a data breach?"],
-      ["Trackers seen", t.trackers || 0, `${(t.adTrackers || 0).toLocaleString()} for advertising`, "What do the trackers on the sites I visit collect?"],
-      ["Tracking cookies", t.trackingCookies || 0, `of ${(t.cookies || 0).toLocaleString()} cookies`, "What's the difference between a tracking cookie and one a site needs?"]
+      ["Foreign-adversary links", t.flaggedSites || 0, "site visits", "What does a foreign-adversary link on a site mean for me?", ["globe", "red"]],
+      ["Sites with a data breach", t.breachedSites || 0, "site visits", "What should I do after visiting a site that had a data breach?", ["breach", "pink"]],
+      ["Trackers seen", t.trackers || 0, `${(t.adTrackers || 0).toLocaleString()} for advertising`, "What do the trackers on the sites I visit collect?", ["radar", "blue"]],
+      ["Tracking cookies", t.trackingCookies || 0, `of ${(t.cookies || 0).toLocaleString()} cookies`, "What's the difference between a tracking cookie and one a site needs?", ["cookie", "orange"]]
     ];
+    // Status colors, always beside the label: good (declined) to critical (tracked without asking).
     const choices = [
-      ["Declined the extras", t.declined || 0, "What does declining the extra cookies change?"],
-      ["Accepted all", t.accepted || 0, "What happens to my data when I accept all cookies?"],
-      ["Banner had no Reject", t.noReject || 0, "Why do some cookie banners have no Reject button, and is that allowed?"],
-      ["Tracked you without asking", t.neverAsked || 0, "How can a site track me without showing a cookie banner?"]
+      ["Declined the extras", t.declined || 0, "What does declining the extra cookies change?", "st-good"],
+      ["Accepted all", t.accepted || 0, "What happens to my data when I accept all cookies?", "st-warn"],
+      ["Banner had no Reject", t.noReject || 0, "Why do some cookie banners have no Reject button, and is that allowed?", "st-serious"],
+      ["Tracked you without asking", t.neverAsked || 0, "How can a site track me without showing a cookie banner?", "st-critical"]
     ];
     const choiceMax = Math.max(1, ...choices.map((c) => c[1]));
     $("safety").innerHTML = `
       <div class="bento">
         <div class="card glass">
-          ${visits ? `<h2 class="lead">${risky.toLocaleString()} of ${plural(visits, "site visit", "site visits")} ${risky === 1 ? "was" : "were"} risky ${when}.</h2>
+          ${visits ? `<div class="lead-row">${tile("shield", "blue", "lg")}<h2 class="lead">${risky.toLocaleString()} of ${plural(visits, "site visit", "site visits")} ${risky === 1 ? "was" : "were"} risky ${when}.</h2></div>
             <p class="sub">Risky means graded D or F. A site visit is one site on one day.</p>`
             : `<h2 class="lead">No browsing recorded ${when} yet.</h2>`}
           <div class="grade-mix" aria-label="Site visits by grade">
             ${["A", "B", "C", "D", "F"].map((g) => `<span class="g grade-${g} ${t.grades[g] ? "" : "none"}"><b>${g}</b><span>${t.grades[g] || 0}</span></span>`).join("")}
           </div>
           ${range.safety === "day" ? `<p class="hint">Pick 7 or 30 days to see how this changes day by day.</p>`
-            : `<h3 class="chart-title">Site visits per day</h3>${columns(days, [{ key: "risky", label: "Risky (D or F)", cls: "s-risk" }, { key: "other", label: "A to C", cls: "s-base" }], { label: `Site visits per day ${when}, risky versus the rest` })}
+            : `<h3 class="chart-title">Site visits per day</h3>${columns(days, [{ key: "risky", label: "Risky (D or F)", cls: "s-risk" }, { key: "other", label: "A to C", cls: "s-safe" }], { label: `Site visits per day ${when}, risky versus the rest` })}
                ${numbersTable(sum.days, [{ label: "Site visits", get: (d) => (d.snapshot && d.snapshot.sites) || 0 }, { label: "Risky (D or F)", get: (d) => d.snapshot ? (d.snapshot.grades.D || 0) + (d.snapshot.grades.F || 0) : 0 }])}`}
         </div>
         <div class="col-stack">
           <div class="card glass">
-            <h2>What showed up</h2>
-            <div class="tiles">${tiles.map(([label, v, note, q]) => `<div><span class="tile-top"><span>${esc(label)}</span>${ask(q, label)}</span><b>${v.toLocaleString()}</b><small>${esc(note)}</small></div>`).join("")}</div>
+            <div class="head-title">${tile("list", "purple")}<h2>What showed up</h2></div>
+            <div class="tiles">${tiles.map(([label, v, note, q, ic]) => `<div><span class="tile-top"><span class="lbl">${tile(ic[0], ic[1], "sm")}${esc(label)}</span>${ask(q, label)}</span><b>${v.toLocaleString()}</b><small>${esc(note)}</small></div>`).join("")}</div>
           </div>
           <div class="card glass">
-            <h2>Cookie choices</h2>
-            <ul class="meter-list">${choices.map(([label, v, q]) => `<li><span>${esc(label)}</span><span class="bar"><i style="--w:${(v / choiceMax) * 100}%"></i></span><b>${v}</b>${ask(q, label)}</li>`).join("")}</ul>
+            <div class="head-title">${tile("cookie", "orange")}<h2>Cookie choices</h2></div>
+            <ul class="meter-list">${choices.map(([label, v, q, st]) => `<li class="${st}"><span class="lbl"><i class="p-dot"></i>${esc(label)}</span><span class="bar"><i style="--w:${(v / choiceMax) * 100}%"></i></span><b>${v}</b>${ask(q, label)}</li>`).join("")}</ul>
           </div>
         </div>
       </div>`;
