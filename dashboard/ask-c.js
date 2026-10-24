@@ -125,7 +125,36 @@
     return Promise.race([promise, new Promise((_, rej) => setTimeout(() => rej(new Error("timeout")), ms))]);
   }
 
-  async function askBackground(question) {
+  // Speed: stream the answer from the background (background.js "privac-ask" port) so C's first words show
+  // as soon as Gemma writes them. Resolves null if streaming isn't available (then askBackground asks normally).
+  function askStreaming(question, onText) {
+    return new Promise((resolve) => {
+      let port;
+      try { port = chrome.runtime.connect({ name: "privac-ask" }); } catch (e) { resolve(null); return; }
+      let settled = false, started = false, timer = 0;
+      const finish = (v) => { if (settled) return; settled = true; clearTimeout(timer); try { port.disconnect(); } catch (e) { /* closed */ } resolve(v); };
+      timer = setTimeout(() => finish({ error: "I took too long to answer. Try a shorter question." }), 90000);
+      port.onMessage.addListener((m) => {
+        if (!m) return;
+        if (m.type === "start") started = true;
+        else if (m.type === "token") { started = true; onText(m.text); }
+        else if (m.type === "done") {
+          const r = m.result || {};
+          finish(r.answer || r.error ? r : { ...r, error: "C didn't find an answer. Try asking another way." });
+        }
+      });
+      // Gone before it started: this background can't stream, so the panel asks the normal way (null).
+      // Gone after it started: say so instead of asking Gemma a second time.
+      port.onDisconnect.addListener(() => finish(started ? { error: "C stopped answering (PrivaC restarted). Ask again." } : null));
+      try { port.postMessage({ type: "ask", question }); } catch (e) { finish(null); }
+    });
+  }
+
+  async function askBackground(question, onText) {
+    if (hasRuntime() && onText && chrome.runtime.connect) {
+      const res = await askStreaming(question, onText);
+      if (res) return { ...res, sample: false };
+    }
     if (hasRuntime()) {
       try {
         const res = await withTimeout(chrome.runtime.sendMessage({ type: "askC", question }), 90000);
@@ -140,6 +169,11 @@
   }
 
   // ---------- Rendering ----------
+  // While C is still writing: drop markdown marks and a half-written [tag at the very end.
+  function partialText(text) {
+    return String(text || "").replace(/`/g, "").replace(/\*\*/g, "").replace(/\[[^\]]*$/, "").replace(/\bthe user's\b/gi, "your").replace(/\bthe user\b/gi, "you");
+  }
+
   function renderAnswer(text) {
     let html = esc(text);
     html = html.replace(/\[([^\]]+)\]/g, (m, name) => {
@@ -183,7 +217,19 @@
     const pending = addMessage(`<p class="checking">C is checking<span class="dots"><i></i><i></i><i></i></span></p>`, "c");
     setMood("uneasy");
 
-    let res = await askBackground(question);
+    // Show C's words as they arrive (at most one redraw per frame); the finished answer replaces them below.
+    let partial = null, frame = 0;
+    const draw = () => {
+      frame = 0;
+      if (partial === null) return;
+      pending.innerHTML = `<p class="answer">${renderAnswer(partialText(partial))}<span class="dots" aria-hidden="true"><i></i><i></i><i></i></span></p>`;
+      pending.scrollIntoView({ block: "nearest" });
+    };
+    const onText = (text) => { partial = text; if (!frame) frame = requestAnimationFrame(draw); };
+
+    let res = await askBackground(question, onText);
+    if (frame) cancelAnimationFrame(frame);
+    partial = null;
     // Gemma unreachable (e.g. Ollama not running): a suggested question still gets its sample answer.
     if (res.error && !res.answer && sampleFor(question)) {
       res = { ...sampleFor(question), sample: true, offline: res.error };
@@ -211,6 +257,8 @@
   function init() {
     if (!$("ask-c")) return;
     setMood("wave");
+    // Speed: start loading Gemma now, so it's ready by the time a question is typed.
+    if (hasRuntime()) { try { chrome.runtime.sendMessage({ type: "privac-warm" }).catch(() => {}); } catch (e) { /* no background */ } }
     const showSuggestions = (qs) => { $("ask-suggest").innerHTML = qs.map((q) => `<button type="button" class="suggest">${esc(q)}</button>`).join(""); };
     showSuggestions(SUGGESTED);
     if (window.PrivaCData) window.PrivaCData.load().then((d) => showSuggestions(suggestionsFor(d))).catch(() => {});
@@ -235,7 +283,7 @@
       ask(question);
     },
     // Pure helpers, exported for tests (tests/askc-panel.test.js).
-    sampleFor, renderAnswer, questionFromUrl, suggestionsFor
+    sampleFor, renderAnswer, questionFromUrl, suggestionsFor, partialText, askStreaming
   };
 
   if (typeof document !== "undefined") init();
