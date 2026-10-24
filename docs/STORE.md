@@ -1,11 +1,15 @@
 # Publishing PrivaC on the Chrome Web Store
 
-Status (2026-10-24, branch `max/store-ready`): the code meets every Store rule we can check in code (`tests/store-ready.test.js`).
+Status (2026-10-24, branch `max/store-ready`, checked against the code on 2026-10-24): the code meets every Store rule we can check in code (`tests/store-ready.test.js`).
+PRIVACY.md and TERMS.md were checked line by line against what the code stores and sends; section 6 lists the code changes we still recommend before a public upload.
 What's left is the account, the upload and the forms below; every answer is written out so you can paste it.
 
 ## 1. Before you upload (people, not code)
 - [ ] **Pick whose account publishes it.** The developer email can't be changed later, so use a team or repo-owner account, not a personal one you might drop.
-- [ ] **Register** at https://chrome.google.com/webstore/devconsole: accept the developer agreement and pay the one-time registration fee. Google may ask you to turn on 2-Step Verification for the account.
+- [ ] **Register** at https://chrome.google.com/webstore/devconsole: accept the developer agreement and pay the one-time registration fee (US$5 when this was written; the sign-up page shows the current amount). Google may ask you to turn on 2-Step Verification for the account.
+- [ ] **Contact email.** The Store shows a developer email on the listing and Google must be able to reach it. Use a team address you'll keep (it can't be moved to another account later). PRIVACY.md and TERMS.md point people to GitHub issues, which works without an email.
+- [ ] **Privacy policy URL.** The Store needs a public web page, not a file in a zip. Easiest: merge this branch into main and use https://github.com/gormandyp/HackAGator_Privacy_Extension/blob/main/PRIVACY.md (the repo must stay public). Cleaner: turn on GitHub Pages for the repo and use that address. The welcome page already links to the GitHub address.
+- [ ] **Pick a license for the code** (there is no LICENSE file yet, so by default nobody may reuse it). `shared/atlas.json` comes from Tracker Radar and must stay under CC BY-NC-SA 4.0 whatever you pick for the code.
 - [ ] **Trader or non-trader:** a free student project with no business behind it is a **non-trader**.
 - [ ] **Wait until after the hackathon (Sun 4 PM).** Review can take days to weeks for an extension that runs on every site, and nothing here is needed for judging.
 - [ ] **Retake screenshots with real browsing** (optional but better): the ones in `store/` use the dashboard's sample data and show a "Sample data" badge.
@@ -72,12 +76,15 @@ Every later update: raise `"version"` in manifest.json first (for example 0.1.0 
 
 **Data usage, what PrivaC collects** (it stays on the device, but the Store counts anything the extension handles):
 - [x] **Web history**: names of sites visited (not full URLs), kept 7 days on the device.
-- [x] **Website content**: reads cookie-banner buttons and a site's privacy-policy text, on the device, to decline cookies and answer policy questions.
-- [ ] Personally identifiable info, health, financial, authentication, personal communications, location, user activity (keystrokes, mouse): **not collected**.
+- [x] **Website content**: reads cookie-banner buttons, "Privacy" links and a site's privacy-policy text, on the device, to decline cookies and answer policy questions.
+- [x] **User activity**: the Store's examples include "network monitoring" and "clicks". PrivaC watches which outside servers each page contacts (`webRequest`, read-only) and records the user's cookie-banner choice. No keystrokes, mouse movement or scrolling. Ticking this matches what the code does; leaving it unticked risks a rejection for under-disclosure.
+- [ ] Personally identifiable info, health, financial, authentication, personal communications, location: **not collected**. (A server's country is not the user's location.)
+
+Google's User Data FAQ (question 3) says data that is only processed or stored on the device must still be disclosed, which is why these are ticked even though nothing leaves the computer.
 
 **Certifications:** check all three: no selling or transferring to third parties outside the approved uses; no use or transfer for purposes unrelated to the single purpose; no use for creditworthiness or lending.
 
-**Privacy policy URL:** https://github.com/gormandyp/HackAGator_Privacy_Extension/blob/main/PRIVACY.md (after `max/store-ready` is merged into main).
+**Privacy policy URL:** https://github.com/gormandyp/HackAGator_Privacy_Extension/blob/main/PRIVACY.md (after this branch is merged into main), or a GitHub Pages copy. Terms of use: TERMS.md (the Store has no field for it; it ships in the zip and the welcome page links to it).
 
 ## 5. Things a reviewer may question (and our answer)
 - **Runs on every site.** Needed for the single purpose; the justification above says why. Expect a longer "in-depth" review.
@@ -87,3 +94,14 @@ Every later update: raise `"version"` in manifest.json first (for example 0.1.0 
 - **Disclosure on install** (rule enforced since Aug 1, 2026): the welcome page (welcome/welcome.html) opens on first install and says what PrivaC keeps, what it does on websites and what it downloads. If PrivaC ever changes what it records or sends, update PRIVACY.md and the welcome page and tell users in the extension before shipping.
 
 Sources: [Program Policies](https://developer.chrome.com/docs/webstore/program-policies/policies), [2026 policy updates](https://developer.chrome.com/blog/cws-policy-updates-2026), [Privacy fields](https://developer.chrome.com/docs/webstore/cws-dashboard-privacy), [Listing](https://developer.chrome.com/docs/webstore/cws-dashboard-listing), [Register](https://developer.chrome.com/docs/webstore/register).
+
+## 6. Code changes we recommend before a public upload (from the 2026-10-24 security audit, re-checked against this branch)
+None of these send browsing data anywhere, and PRIVACY.md describes today's behavior honestly, so they don't block the hackathon. They are what a careful reviewer or a security researcher would point at.
+1. **Policy reader follows redirects** (`background/policy-reader.js`, `redirect: "follow"`). A site's own "Privacy" link can forward PrivaC's request to another address, including one on the user's home network. Fix: refuse a final address that isn't on the same site, and never follow to `localhost` or private IP ranges.
+2. **Policy page is fetched again on every visit while C's AI isn't set up** (a failed read saves nothing, so `checkedAt` never gets set). Fix: check the AI is ready before fetching, or remember a failed try for a day.
+3. **Old history is only deleted when you next browse** (`isFresh` runs inside `saveSite`). Fix: also prune on Chrome start and on the daily alarm, so "7 days" holds even if PrivaC sits idle.
+4. **Message handlers don't check who is asking** (`background.js` `askC`, `privac-ai`; `background/tracking.js` `privac-tab-site`), and `content/cookie-detector.js` writes `privacData` itself. Only PrivaC's own scripts can reach them (no `externally_connectable`), but one shared sender check, and moving that write into the background, would match the "only the background writes privacData" rule in CLAUDE.md.
+5. **"Do not sell or share" click has no switch** (`content/cookie-detector.js`, Matthew's file). Add one under Settings › C on websites, then update PRIVACY.md, TERMS.md and the welcome page.
+6. **Wording**: the dashboard footer says PrivaC "only downloads public lists (trackers, ...)". Trackers are bundled, not downloaded, and policy pages are also fetched; align it with PRIVACY.md.
+After any of these, re-read PRIVACY.md, TERMS.md and welcome/welcome.html, and run `node --test`.
+

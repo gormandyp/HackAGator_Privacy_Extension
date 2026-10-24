@@ -8,7 +8,7 @@ const { execFileSync } = require("child_process");
 const root = path.join(__dirname, "..");
 // Everything the manifest and pages load. A test (tests/store-ready.test.js) checks nothing the extension needs is missing.
 const INCLUDE = ["manifest.json", "background.js", "background", "content", "shared", "popup", "dashboard",
-  "offscreen", "welcome", "preview", "vendor", "icons", "c-poses", "PRIVACY.md"];
+  "offscreen", "welcome", "preview", "vendor", "icons", "c-poses", "PRIVACY.md", "TERMS.md"];
 const EXCLUDE = ["*.DS_Store", "*/README.md"];
 
 function files() {
