@@ -51,6 +51,12 @@
   // Reject button gets one click listener (Zara alternated between them and re-clicked the link).
   const handled = new WeakSet();
 
+  // Some consent tools (Sourcepoint, TrustArc) draw their pop-up in a frame from another website. This file
+  // also runs inside frames: there it only looks for a Reject button and tells the top page, where C asks.
+  // background/frames.js passes the messages between the two, inside the same tab.
+  const inFrame = window.top !== window;
+  let frameShown = null;   // top page: the frame whose pop-up C is offering to decline
+
   // Elements matching `selector` on the page and inside open shadow roots (Usercentrics puts its banner
   // inside #usercentrics-root, where document.querySelectorAll can't see). C's own pop-up is skipped.
   function queryAll(selector) {
@@ -246,6 +252,82 @@
         return answers.every(Boolean);
     }
 
+  // After clicking Reject: waits up to 3 seconds for the button to disappear (or slide out of view).
+  async function waitUntilGone(button) {
+    let bannerDismissed = false;
+
+    for (let i = 0; i < 15; i++) {
+      await new Promise(resolve => setTimeout(resolve, 200));
+
+      if (!button.isConnected) {
+        bannerDismissed = true;
+        break;
+      }
+
+      const rect = button.getBoundingClientRect();
+      const style = window.getComputedStyle(button);
+
+      if (
+        rect.width === 0 ||
+        rect.height === 0 ||
+        style.display === "none" ||
+        style.visibility === "hidden" ||
+        // Slid out of the window but still in the page (Tesco's banner slides away).
+        rect.bottom <= 0 ||
+        rect.right <= 0 ||
+        rect.top >= window.innerHeight ||
+        rect.left >= window.innerWidth ||
+        // Hidden or faded out by a box around it.
+        (button.checkVisibility &&
+          !button.checkVisibility({ opacityProperty: true, visibilityProperty: true }))
+      ) {
+        bannerDismissed = true;
+        break;
+      }
+    }
+    return bannerDismissed;
+  }
+
+  // Says how the decline went: "confirmed" (the consent record says the optional cookies are off),
+  // "unverified" (the pop-up went away, no record to check) or "failed".
+  async function finishDecline(bannerDismissed) {
+    // The banner may stay on screen while the site still saved the choice.
+    if (!bannerDismissed && optionalCookiesOff(document.cookie) !== true) {
+        console.warn("PrivaC: Cookie banner did not disappear.");
+        return "failed";
+    }
+
+    // Check whether the site's consent tool saved the optional categories as off.
+    const verification =
+      optionalCookiesOff(document.cookie) === true ? "confirmed" : "unverified";
+
+    if (verification === "confirmed") {
+      console.log("PrivaC: cookie rejection verified!");
+    }
+
+    // Only record a confirmed rejection in the privacy score.
+    if (verification === "confirmed") {
+      try {
+        const domain = location.hostname.replace(/^www\./, "");
+        const result = await chrome.storage.local.get("privacData");
+        const data = result.privacData;
+
+        if (data && Array.isArray(data.sites)) {
+          const site = data.sites.find(s => s.domain === domain);
+
+          if (site) {
+            site.cookieChoice = "declined";
+            await chrome.storage.local.set({ privacData: data });
+          }
+        }
+      } catch (e) {
+        console.warn("PrivaC: Could not save cookie choice", e);
+      }
+    }
+
+    return verification;
+  }
+
   function checkForCookieBanner() {
 
     // If the original cookie button disappeared,
@@ -355,74 +437,7 @@
         // Click the website's reject button.
         button.click();
 
-        // Wait up to 3 seconds for the button to disappear.
-        let bannerDismissed = false;
-
-        for (let i = 0; i < 15; i++) {
-          await new Promise(resolve => setTimeout(resolve, 200));
-
-          if (!button.isConnected) {
-            bannerDismissed = true;
-            break;
-          }
-
-          const rect = button.getBoundingClientRect();
-          const style = window.getComputedStyle(button);
-
-          if (
-            rect.width === 0 ||
-            rect.height === 0 ||
-            style.display === "none" ||
-            style.visibility === "hidden" ||
-            // Slid out of the window but still in the page (Tesco's banner slides away).
-            rect.bottom <= 0 ||
-            rect.right <= 0 ||
-            rect.top >= window.innerHeight ||
-            rect.left >= window.innerWidth ||
-            // Hidden or faded out by a box around it.
-            (button.checkVisibility &&
-              !button.checkVisibility({ opacityProperty: true, visibilityProperty: true }))
-          ) {
-            bannerDismissed = true;
-            break;
-          }
-        }
-
-        // The banner may stay on screen while the site still saved the choice.
-        if (!bannerDismissed && optionalCookiesOff(document.cookie) !== true) {
-            console.warn("PrivaC: Cookie banner did not disappear.");
-            return "failed";
-        }
-
-        // Check whether the site's consent tool saved the optional categories as off.
-        const verification =
-          optionalCookiesOff(document.cookie) === true ? "confirmed" : "unverified";
-
-        if (verification === "confirmed") {
-          console.log("PrivaC: cookie rejection verified!");
-        }
-
-        // Only record a confirmed rejection in the privacy score.
-        if (verification === "confirmed") {
-          try {
-            const domain = location.hostname.replace(/^www\./, "");
-            const result = await chrome.storage.local.get("privacData");
-            const data = result.privacData;
-
-            if (data && Array.isArray(data.sites)) {
-              const site = data.sites.find(s => s.domain === domain);
-
-              if (site) {
-                site.cookieChoice = "declined";
-                await chrome.storage.local.set({ privacData: data });
-              }
-            }
-          } catch (e) {
-            console.warn("PrivaC: Could not save cookie choice", e);
-          }
-        }
-
-        return verification;
+        return finishDecline(await waitUntilGone(button));
       },
 
       onChoose: () => {
@@ -438,10 +453,86 @@
     }
   }
 
+  // Sends a message to the background; a missing answer is fine.
+  function tell(msg) {
+    try {
+      const sent = chrome.runtime.sendMessage(msg);
+      if (sent && sent.catch) sent.catch(() => {});
+    } catch (e) { /* no background */ }
+  }
+
+  // Inside a frame: report its Reject button once, and say when it goes away.
+  function checkFrame() {
+    if (promptedFor) {
+      const rect = promptedFor.getBoundingClientRect();
+      if (!promptedFor.isConnected || !rect.width || !rect.height) {
+        promptedFor = null;
+        tell({ type: "privac-frame-gone" });
+      }
+      return;
+    }
+
+    const button = findRejectButton();
+    if (!button || handled.has(button)) return;
+    handled.add(button);
+    promptedFor = button;
+    tell({ type: "privac-frame-banner" });
+  }
+
+  // Top page: a frame has a cookie pop-up. C offers to decline it, unless C is already asking about one here.
+  function offerForFrame(frameId) {
+    if (!window.PrivaCPrompt || frameShown === frameId) return;
+    if (promptedFor && promptedFor.isConnected) return;
+    frameShown = frameId;
+
+    PrivaCPrompt.cookie({
+      onDecline: async () => {
+        let answer = null;
+        try {
+          answer = await chrome.runtime.sendMessage({ type: "privac-frame-decline", frameId });
+        } catch (e) {
+          answer = null;   // the frame closed
+        }
+        // The consent record is saved on the top page's site, so it's checked here.
+        return finishDecline(!!(answer && answer.dismissed));
+      },
+      onChoose: () => tell({ type: "privac-frame-choose", frameId })
+    });
+  }
+
+  if (typeof chrome !== "undefined" && chrome.runtime && chrome.runtime.onMessage) {
+    chrome.runtime.onMessage.addListener((msg, sender, reply) => {
+      if (!msg) return;
+
+      if (inFrame) {
+        const button = promptedFor;
+        if (!button) return;
+        if (msg.type === "privac-frame-decline") {
+          button.click();
+          waitUntilGone(button).then(dismissed => reply({ dismissed }));
+          return true;   // answers after the wait
+        }
+        if (msg.type === "privac-frame-choose") {
+          button.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
+        return;
+      }
+
+      if (typeof msg.frameId !== "number") return;
+      if (msg.type === "privac-frame-banner") offerForFrame(msg.frameId);
+      if (msg.type === "privac-frame-gone" && msg.frameId === frameShown) {
+        frameShown = null;
+        if (!PrivaCPrompt.isReacting?.() && !PrivaCPrompt.isCelebrating?.()) PrivaCPrompt.hide();
+      }
+    });
+  }
+
+  const check = inFrame ? checkFrame : checkForCookieBanner;
+
   // Cookie banners often load after the webpage itself.
   const observer = new MutationObserver(() => {
     clearTimeout(timer);
-    timer = setTimeout(checkForCookieBanner, 350);
+    timer = setTimeout(check, 350);
   });
 
   observer.observe(document.documentElement, {
@@ -450,9 +541,9 @@
   });
 
   // Lets the tests run a re-check (tests/cookie-detector.test.js).
-  window.PrivaCCookieCheck = checkForCookieBanner;
+  window.PrivaCCookieCheck = check;
 
-  checkForCookieBanner();
-  setTimeout(checkForCookieBanner, 1500);
-  setTimeout(checkForCookieBanner, 4000);
+  check();
+  setTimeout(check, 1500);
+  setTimeout(check, 4000);
 })();

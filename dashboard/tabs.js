@@ -26,7 +26,7 @@
   }
   // Arrow keys move between segments, like macOS.
   document.addEventListener("keydown", (e) => {
-    const seg = e.target.closest && e.target.closest(".segmented");
+    const seg = e.target.closest && e.target.closest(".segmented, .swatches");
     if (!seg || !["ArrowLeft", "ArrowRight"].includes(e.key)) return;
     const buttons = [...seg.querySelectorAll("button")];
     const i = buttons.indexOf(e.target);

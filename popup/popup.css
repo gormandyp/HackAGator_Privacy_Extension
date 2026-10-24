@@ -115,6 +115,10 @@ main { display: grid; gap: 8px; margin-top: 8px; }
 :root.in-panel body { width: auto; padding-bottom: 8px; }
 :root.in-panel[data-style="glass"] body { background: transparent; }
 :root.in-panel[data-style="glass"] .backdrop { display: none; }
+/* Glass color (Settings > Appearance) shows here as a light wash of its two colors; Aurora keeps the plain glass. */
+:root.in-panel[data-style="glass"][data-tint]:not([data-tint="aurora"]) body {
+  background: linear-gradient(160deg, color-mix(in srgb, var(--tint-a) 22%, transparent), color-mix(in srgb, var(--tint-b) 14%, transparent));
+}
 /* The panel already blurs the page behind it. A second blur inside the frame only adds seams, so panes and
    bars here are tinted glass without their own blur, and the bars are a little more solid so rows that
    scroll under them stay out of the way. */
