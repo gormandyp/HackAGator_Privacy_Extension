@@ -115,7 +115,7 @@
       ]);
       if (!res) throw Object.assign(new Error("C's brain didn't answer."), { code: "FAILED" });
       if (res.error) throw Object.assign(new Error(res.error), { code: res.code || "FAILED" });
-        const text = String(res.text || "").trim();
+      const text = String(res.text || "").trim();
       if (!text && !opts.json) throw Object.assign(new Error("C's brain sent back an empty answer. Try asking again."), { code: "FAILED" });
       return opts.json ? root.PrivaCGemma.parseJsonReply(text) : text;
     } catch (e) {
