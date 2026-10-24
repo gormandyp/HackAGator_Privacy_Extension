@@ -193,12 +193,14 @@
     if (stats) (which === "impact" ? renderImpact : renderSafety)();
   }
 
-  (async () => {
+  // Overview reads the same totals (its "This week" card), so share them once they're loaded.
+  const ready = (async () => {
     const data = await PrivaCData.load();
     stats = await loadStats(data.sample);
     renderImpact();
     renderSafety();
+    return stats;
   })();
 
-  window.PrivaCActivity = { setRange, sampleStats };
+  window.PrivaCActivity = { setRange, sampleStats, ready };
 })();

@@ -34,18 +34,15 @@
   <main class="page">
     <!-- Overview -->
     <section class="panel" id="panel-overview" role="tabpanel" aria-labelledby="tab-overview">
-      <div class="overview-top">
+      <div class="ov-grid">
         <div class="hero glass" id="intro"></div>
-        <div class="spotlight glass" id="callout"></div>
-      </div>
-      <div class="card glass overview-matrix">
-        <div class="card-head">
-          <div>
-            <h2>Who followed you across sites</h2>
-            <p>Each dot is a company's tracker loading on one of your sites. The more sites a company appears on, the more of your browsing it can connect.</p>
-          </div>
-        </div>
-        <div class="matrix-scroll"><table class="matrix" id="matrix"></table></div>
+        <div class="card glass gauge-card" id="exposure"></div>
+        <div class="card glass facts-card" id="facts"></div>
+        <div class="card glass week-card" id="week"></div>
+        <div class="card glass" id="purposes"></div>
+        <div class="card glass" id="cookies-card"></div>
+        <div class="card glass" id="countries"></div>
+        <div class="card glass follow-card" id="follow"></div>
       </div>
     </section>
 
@@ -213,9 +210,11 @@
   <script src="../shared/cookies.js"></script>
   <script src="../shared/data.js"></script>
   <script src="../shared/stats.js"></script>
+  <script src="../shared/highlights.js"></script>
   <script src="explain.js"></script>
   <script src="dashboard.js"></script>
   <script src="activity.js"></script>
+  <script src="overview.js"></script>
   <script src="tabs.js"></script>
   <script src="ask-c.js"></script>
 </body>

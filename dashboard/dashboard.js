@@ -1,5 +1,5 @@
-// Dashboard: Overview (headline, spotlight, who followed you), Sites (list + detail), Grades.
-// C's impact and Safety live in activity.js; tabs and Settings in tabs.js; row "Ask C" buttons in explain.js.
+// Dashboard: Sites (list + detail) and Grades. Overview is overview.js; C's impact and Safety are
+// activity.js; tabs and Settings are tabs.js; the row "Ask C" buttons are explain.js.
 (async function () {
   const $ = (id) => document.getElementById(id);
   const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -13,73 +13,6 @@
   const data = await PrivaCData.load();
   if (data.sample) $("sample-note").hidden = false;
   const sites = [...data.sites].sort((a, b) => b.score - a.score);
-
-  // ---- Companies across sites ----
-  const companyMap = new Map();
-  for (const s of sites) {
-    for (const t of s.trackers) {
-      if (!companyMap.has(t.company)) companyMap.set(t.company, { sites: new Set(), categories: new Set(), country: t.country });
-      const c = companyMap.get(t.company);
-      c.sites.add(s.domain);
-      c.categories.add(t.category);
-    }
-  }
-  const companies = [...companyMap.entries()]
-    .map(([name, v]) => ({ name, ...v }))
-    .sort((a, b) => b.sites.size - a.sites.size || a.name.localeCompare(b.name));
-
-  // ---- Headline ----
-  const counts = { A: 0, B: 0, C: 0, D: 0, F: 0 };
-  sites.forEach((s) => counts[s.grade]++);
-  const worst = sites[0];
-  const flaggedSites = sites.filter((s) => s.flagged.length || s.ownerFlag || s.addressFlag || s.serverFlag);
-  $("intro").innerHTML = `
-    <div class="hero-c">${PrivaCMascot.svg(worst && (worst.grade === "D" || worst.grade === "F") ? "uneasy" : "wave", { size: 92 })}</div>
-    <div class="hero-text">
-      <h1>${companies.length} ${companies.length === 1 ? "company" : "companies"} saw your browsing across ${sites.length} ${sites.length === 1 ? "site" : "sites"} this week.</h1>
-      <p>${flaggedSites.length
-        ? `${flaggedSites.length === 1 ? "One site" : flaggedSites.length + " sites"} also connected to a company or server in a listed foreign-adversary country.`
-        : "None of them connected to a company in a listed foreign-adversary country."}</p>
-      <div class="grade-strip" aria-label="Sites by grade">
-        ${Object.entries(counts).map(([g, n]) => `<button type="button" class="g grade-${g} ${n ? "" : "none"}" data-goto="${g}" aria-label="${n} ${n === 1 ? "site" : "sites"} graded ${g}"><b>${g}</b><span>${n} ${n === 1 ? "site" : "sites"}</span></button>`).join("")}
-      </div>
-    </div>`;
-
-  // ---- Spotlight: the company that followed you furthest ----
-  const top = companies[0];
-  $("callout").innerHTML = top && top.sites.size > 1 ? `
-    <div class="spot-row">${PrivaCMascot.svg("uneasy", { body: false, size: 40 })}
-      <p><strong>${esc(top.name)}</strong> showed up on ${top.sites.size} of your ${sites.length} sites, more than any other company.</p></div>
-    <button type="button" class="pill-btn" data-ask-pill data-ask="Who is ${esc(top.name)}, and what can it learn from seeing me on ${top.sites.size} different sites?">Ask C about ${esc(top.name)}</button>`
-    : `<div class="spot-row">${PrivaCMascot.svg("happy", { body: false, size: 40 })}
-      <p>No company followed you across more than one site this week.</p></div>`;
-
-  // ---- Who followed you: company x site ----
-  const siteCols = sites.map((s) => s.domain);
-  $("matrix").innerHTML = `
-    <thead><tr>
-      <th></th>
-      ${sites.map((s) => `<th scope="col"><span class="site-head grade-${s.grade}"><span class="mini-grade">${s.grade}</span>${esc(s.domain.replace(/\.example$/, ""))}</span></th>`).join("")}
-      <th scope="col" style="text-align:right">Sites</th>
-      <th><span class="visually-hidden">Ask C</span></th>
-    </tr></thead>
-    <tbody>
-      ${companies.map((c, i) => `
-        <tr class="${ADV[c.country] ? "flagged" : ""} ${i === 0 && c.sites.size > 1 ? "top-row" : ""}">
-          <th scope="row">${esc(c.name)}<small>${esc([...c.categories].join(", "))}</small></th>
-          ${siteCols.map((d) => `<td>${c.sites.has(d) ? `<span class="dot" title="${esc(c.name)} on ${esc(d)}"></span>` : `<span class="no-dot" aria-hidden="true"></span>`}</td>`).join("")}
-          <td class="reach">${c.sites.size} of ${sites.length}</td>
-          <td class="ask-cell">${ask(`Who is ${c.name}, and what does it do with what it sees on ${[...c.sites].slice(0, 3).join(", ")}?`, c.name)}</td>
-        </tr>`).join("")}
-    </tbody>`;
-
-  $("intro").addEventListener("click", (e) => {
-    const b = e.target.closest("[data-goto]");
-    if (!b || !window.PrivaCTabs) return;
-    const i = sites.findIndex((s) => s.grade === b.dataset.goto);
-    window.PrivaCTabs.show("sites");
-    if (i >= 0) selectSite(i, true);
-  });
 
   // ---- Sites: list on the left, the chosen site on the right ----
   const cookieWords = (c) => c === "declined" ? "cookies declined" : c === "accepted" ? "cookies accepted" : c === "no-reject" ? "no way to reject cookies" : "no cookie banner";
@@ -137,6 +70,7 @@
     e.preventDefault();
     selectSite(Math.max(0, Math.min(sites.length - 1, current + (e.key === "ArrowDown" ? 1 : -1))), true);
   });
+  window.PrivaCSites = { select: (domain) => { const i = sites.findIndex((s) => s.domain === domain); if (i >= 0) selectSite(i); } };
   if (sites.length) selectSite(0);
   else $("site-detail").innerHTML = `<p class="hint">Pick a site on the left once PrivaC has seen a few.</p>`;
 
