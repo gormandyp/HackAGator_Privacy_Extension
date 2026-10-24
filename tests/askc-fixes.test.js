@@ -46,3 +46,22 @@ test("Fix 5: lowercase grade questions get the instant breakdown from the score,
   const r = await ask("Why is cnn.com a concern?");
   assert.strictEqual(r.calls, 1, "a word starting with a-f (\"a concern\") isn't a grade letter");
 });
+
+test("Fix 4: Gemma's evidence names countries (China, France, United States), never bare codes", async () => {
+  const r = await ask("Who tracked me on cnn.com?");
+  const c = r.seen.context;
+  assert.match(c, /Baidu \(Analytics, based in China\)/);
+  assert.match(c, /Criteo \(Advertising, based in France\)/);
+  assert.match(c, /Companies seen on the most sites[^\n]*Criteo \(Advertising, France\)/);
+  assert.doesNotMatch(c, /based in [A-Z]{2}\)|\((?:Advertising|Analytics), [A-Z]{2}\)/);
+  const facts = window.PrivaCAskC.lookupFacts("Who is Yandex?", null, { domains: { "yandex.ru": ["Yandex", "Advertising", "RU", 1.3] } });
+  assert.match(facts.join("\n"), /based in Russia/);
+  assert.doesNotMatch(facts.join("\n"), /based in RU\b/);
+});
+
+test("Fix 4: on a busy site, foreign-adversary trackers are still kept first once countries are names", () => {
+  const trackers = Array.from({ length: 20 }, (_, i) => ({ company: `Plain${i}`, category: "Analytics", country: "US" }));
+  trackers.push({ company: "Yandex", category: "Analytics", country: "RU" });
+  const ctx = buildContext({ sites: [scored({ domain: "busy.example", lastVisit: "2026-10-24", cookieChoice: "accepted", policy: {}, trackers })] }, "2026-10-24", [], null, "busy.example");
+  assert.match(ctx, /Yandex \(Analytics, based in Russia\)/, "Yandex is in the kept 12, not cut");
+});

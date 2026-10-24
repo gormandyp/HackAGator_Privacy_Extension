@@ -95,6 +95,15 @@ Steps the person can take (no tag needed):
 
   // F2: the site itself is a state-run outlet (shared/state-media.json, via background/tracking.js).
   const COUNTRY_NAMES = { CN: "China", RU: "Russia", IR: "Iran", CU: "Cuba", KP: "North Korea", VE: "Venezuela" };
+  // Every other code (US, FR, GB...) by its English name, so Gemma never answers "based in RU" (docs/ASKC-FIXES.md Fix 4).
+  let REGIONS = null;
+  try { REGIONS = new Intl.DisplayNames(["en"], { type: "region" }); } catch (e) { /* very old browser: codes stay */ }
+  function countryName(c) {
+    if (!c) return c;
+    if (COUNTRY_NAMES[c]) return COUNTRY_NAMES[c];
+    if (c === "HK") return "Hong Kong (China)";
+    try { return (REGIONS && REGIONS.of(c)) || c; } catch (e) { return c; }
+  }
   function stateMediaText(owner) {
     const sm = owner && owner.stateMedia;
     if (!sm) return "";
@@ -109,13 +118,13 @@ Steps the person can take (no tag needed):
     const count = new Map();
     for (const x of s.trackers || []) {
       const listed = listedCompany(x.company, extra);
-      const text = `${x.company} (${x.category}, based in ${x.country || "unknown country"}) [Tracker Radar]` +
+      const text = `${x.company} (${x.category}, based in ${x.country ? countryName(x.country) : "unknown country"}) [Tracker Radar]` +
         (listed ? listedText(listed) : "") +
         (x.broker ? `, registered California data broker [CA Broker Registry]` : "");
       count.set(text, (count.get(text) || 0) + 1);
     }
     // Long lists are cut to the ones that matter most (foreign-adversary or 1260H links, brokers, advertising first).
-    const rank = (text) => (/1260H|based in (CN|HK|RU|IR|CU|KP|VE)\)/.test(text) ? 0
+    const rank = (text) => (/1260H|based in (China|Hong Kong \(China\)|Russia|Iran|Cuba|North Korea|Venezuela)\)/.test(text) ? 0
       : /data broker|\((High-risk|Malware),/i.test(text) ? 1 : /\((Advertising|Data broker|Session recording),/.test(text) ? 2 : 3);
     const entries = [...count].map(([text, n], i) => ({ text: n > 1 ? `${text} (${n} tracker addresses)` : text, co: text.slice(0, text.indexOf(" (")), r: rank(text), i }));
     const kept = entries.length > TRACKERS_SHOWN ? [...entries].sort((a, b) => a.r - b.r || a.i - b.i).slice(0, TRACKERS_SHOWN).sort((a, b) => a.i - b.i) : entries;
@@ -187,7 +196,7 @@ Steps the person can take (no tag needed):
         if (facts.length >= 6 || !has(co)) continue;
         seen.add(L.norm(co));
         const cat = Object.entries(x.cats).sort((a, b) => b[1] - a[1])[0][0];
-        facts.push(`- ${co} runs ${x.n} tracker domain${x.n > 1 ? "s" : ""} (mostly ${cat}), the biggest on about ${x.prev}% of popular websites${x.ctry ? `; based in ${x.ctry}` : ""} [Tracker Radar]`);
+        facts.push(`- ${co} runs ${x.n} tracker domain${x.n > 1 ? "s" : ""} (mostly ${cat}), the biggest on about ${x.prev}% of popular websites${x.ctry ? `; based in ${countryName(x.ctry)}` : ""} [Tracker Radar]`);
         const b = L.brokerFor(co, x.top, lists, atlas.entities && atlas.entities[co]);
         if (b) facts.push(`- ${co} is registered as a data broker in California (as "${b.name}") [CA Broker Registry]`);
       }
@@ -260,7 +269,6 @@ Steps the person can take (no tag needed):
 
   const yearOf = (b) => String(b.breachDate || b.addedDate || "").slice(0, 4);
   const ADVERSARY = new Set(["CN", "HK", "RU", "IR", "CU", "KP", "VE"]);   // 15 CFR 7.4 (same list as shared/data.js)
-  const countryName = (c) => COUNTRY_NAMES[c] || (c === "HK" ? "Hong Kong (China)" : c);
   const more = (list, max) => (list.length > max ? `; and ${list.length - max} more` : "");
 
   // Totals and cross-site lists over every site, so questions like "which data brokers have seen me?" or
@@ -308,7 +316,7 @@ Steps the person can take (no tag needed):
     lines.push(`Your browsing with PrivaC on, last 7 days [Seen on your visit]: ${sites.length} sites; grades ${Object.entries(grades).map(([g, n]) => `${n} ${g}`).join(", ")}; ` +
       `cookie banners: ${choices.declined} declined, ${choices.accepted} accepted, ${choices["no-reject"]} had no Reject button, ${choices.none} with no banner seen.`);
     const top = [...byCo].sort((a, b) => b[1].sites.size - a[1].sites.size).slice(0, 10);
-    if (top.length) lines.push(`Companies seen on the most sites [Seen on your visit] [Tracker Radar]: ${top.map(([co, x]) => `${co} (${x.category}, ${x.country || "unknown country"}) on ${x.sites.size} of ${sites.length} sites`).join("; ")}.`);
+    if (top.length) lines.push(`Companies seen on the most sites [Seen on your visit] [Tracker Radar]: ${top.map(([co, x]) => `${co} (${x.category}, ${x.country ? countryName(x.country) : "unknown country"}) on ${x.sites.size} of ${sites.length} sites`).join("; ")}.`);
     if (brokers.size) {
       const list = [...brokers].map(([name, b]) => `${b.company} (registered as "${name}") on ${b.sites.length} site${b.sites.length > 1 ? "s" : ""}: ${b.sites.slice(0, 4).join(", ")}${b.sites.length > 4 ? "..." : ""}`);
       lines.push(`Registered California data brokers seen [CA Broker Registry] [Seen on your visit]: ${list.slice(0, LIST_MAX).join("; ")}${more(list, LIST_MAX)}.`);
