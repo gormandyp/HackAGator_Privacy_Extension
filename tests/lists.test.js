@@ -88,3 +88,13 @@ test("Ask C context explains what a site collects", () => {
   assert.match(ctx, /2 of them aren't needed for the site to work \[Cookie Database\]/);
   assert.match(ctx, /fingerprinting\): Google \[Tracker Radar\]/);
 });
+
+test("earlier breaches of the same site are kept (newest first), so all can be listed", () => {
+  const by = L.compactBreaches([
+    { Name: "A2016", Title: "A", Domain: "a.example", BreachDate: "2016-01-01", AddedDate: "2016-02-01", PwnCount: 5, DataClasses: [] },
+    { Name: "A2024", Title: "A", Domain: "a.example", BreachDate: "2024-01-01", AddedDate: "2024-02-01", PwnCount: 7, DataClasses: [] },
+    { Name: "A2019", Title: "A", Domain: "www.a.example", BreachDate: "2019-01-01", AddedDate: "2019-02-01", PwnCount: 6, DataClasses: [] }
+  ]);
+  assert.strictEqual(by["a.example"].name, "A2024");
+  assert.deepStrictEqual(by["a.example"].earlier.map(b => b.name), ["A2019", "A2016"]);
+});

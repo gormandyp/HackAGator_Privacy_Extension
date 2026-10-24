@@ -152,20 +152,34 @@
     else if (p.sells === false && p.shares === false) { policyPts = 0; policyLabel = "Policy says it doesn't sell or share"; }
     parts.push({ label: policyLabel, points: policyPts, kind: "disclosed" });
 
-    // The site's own data breaches, from Have I Been Pwned. A recent one matters most.
+    // The site's own data breaches, from Have I Been Pwned (rule v4, repo owner 2026-10-24):
+    // reported in the last 12 months 15; happened in the last 5 years 5; older 0, unless major (100 million+ accounts) 5.
+    // Every breach is listed; points come from the worst one, counted once.
     const b = site.breach;
     if (b && (b.addedDate || b.breachDate)) {
-      const when = Date.parse(b.addedDate || b.breachDate);
-      const recent = now - when < 365 * 86400000;
-      const year = String(b.breachDate || b.addedDate).slice(0, 4);
-      parts.push({ label: recent ? `Data breach reported in the last year (${b.name}, ${year})` : `Past data breach on record (${b.name}, ${year})`,
-                   points: recent ? 15 : 5, kind: "breach" });
+      const all = [b, ...(b.earlier || [])];
+      const scored = all.map(x => ({ x, ...breachPoints(x, now) })).sort((p, q) => q.points - p.points);
+      const top = scored[0];
+      const others = all.filter(x => x !== top.x).sort((p, q) => (yearOf(p) < yearOf(q) ? 1 : -1));
+      const extra = others.length ? `; ${others.length} ${others.length === 1 ? "other breach" : "earlier breaches"} on record: ${others.map(x => `${x.name} (${yearOf(x)})`).join(", ")}` : "";
+      parts.push({ label: top.label + extra, points: top.points, kind: "breach" });
     } else {
       parts.push({ label: "No known data breaches", points: 0, kind: "breach" });
     }
 
     const score = Math.min(100, parts.reduce((s, x) => s + x.points, 0));
     return { score, grade: gradeFor(score), parts, flagged, ownerFlag: owner, addressFlag };
+  }
+
+  const YEAR_MS = 365.25 * 86400000;
+  function yearOf(b) { return String(b.breachDate || b.addedDate).slice(0, 4); }
+  function breachPoints(b, now) {
+    const added = Date.parse(b.addedDate || b.breachDate), happened = Date.parse(b.breachDate || b.addedDate);
+    const millions = b.pwnCount ? Math.floor(b.pwnCount / 1e6) : 0;
+    if (now - added < YEAR_MS) return { points: 15, label: `Data breach reported in the last year (${b.name}, ${yearOf(b)})` };
+    if (now - happened < 5 * YEAR_MS) return { points: 5, label: `Data breach in the last 5 years (${b.name}, ${yearOf(b)})` };
+    if (millions >= 100) return { points: 5, label: `Major past data breach (${b.name}, ${yearOf(b)}, ${millions} million accounts)` };
+    return { points: 0, label: `Past data breach on record (${b.name}, ${yearOf(b)}): older than 5 years, no points` };
   }
 
   function gradeFor(score) {

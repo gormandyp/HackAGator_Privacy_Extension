@@ -33,3 +33,7 @@ Update your row every time you push. Keep it to one line per column.
 - 2026-10-24 (repo owner): video presenters Matthew, Max and Justin; recorded on the repo owner's Mac.
 - 2026-10-24: hold max/mascot-poses until Matthew finishes; old ask-c branch deleted (superseded by max-askc).
 - 2026-10-24 1:30 AM: merged Max's R3 policy reader (89 tests). Found state-run sites in listed countries aren't flagged; fix plan F1-F5 in PLAN.md and HANDOFF.md.
+- 2026-10-24 (repo owner): F1 rule confirmed (country web address = one 15-point line; unknown outside servers with those endings = label only). F3: download registry lists through Chrome.
+- 2026-10-24 (Claude, asked by repo owner): F3 site's own server registered in a listed country = the 15-point line; outside servers = label only.
+- 2026-10-24 (repo owner): breach rule v4: last 12 months 15, last 5 years 5, older 0 unless 100 million+ accounts (5); all breaches listed.
+- 2026-10-24: google.com got B from Google's result-page prefetch (an AliExpress ad page counted as an Alibaba tracker). Fixed: page loads (main_frame) never count as trackers.

@@ -26,7 +26,7 @@ An **exposure score 0-100** (higher = more exposed), computed by code from fixed
 - Cookies: accepted all 10; banner with no Reject button 10; no banner while trackers or tracking cookies are present 10 ("you were never asked"); declined 0; no banner and no tracking 0.
 - Foreign-adversary line, counted once: 15. Triggered by a tracker company based in a listed foreign-adversary country (15 CFR 7.4) or on the 1260H list, a site owned by a company in a listed country, or (F1) a site whose own web address ends in a listed country's code (.cn .hk .ru .su .рф .ir .cu .kp .ve). Outside servers with those endings whose owner is unknown are shown as a 0-point label.
 - Privacy policy: sells 15, shares 8, neither 0, not checked yet 0. (R3 fills this in.)
-- The site's own data breach (Have I Been Pwned): added in the last 12 months 15, older 5.
+- The site's own data breaches (Have I Been Pwned), all listed, the worst one counts once: reported in the last 12 months 15; happened in the last 5 years 5; older than 5 years 0, unless major (100 million+ accounts) 5. (Rule v4, repo owner 2026-10-24.)
 - Capped at 100. Grades: **A** 0-20, **B** 21-40, **C** 41-60, **D** 61-80, **F** 81-100.
 - The rubric is our team's proposal, not a validated measure. Say so in the pitch.
 

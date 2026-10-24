@@ -237,6 +237,9 @@ chrome.webNavigation.onCommitted.addListener(details => {
 });
 
 function handleRequest(details, site) {
+  // A whole-page load is never a tracker on the page you're on. Google's results page pre-loads ("prefetches")
+  // result and ad pages in the same tab (e.g. aliexpress.com); those were wrongly counted as google.com trackers.
+  if (details.type === "main_frame") return;
   const hostname = cleanDomain(details.url);
   if (!hostname) return;
 

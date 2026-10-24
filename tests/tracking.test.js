@@ -144,3 +144,13 @@ test("F1: unknown outside servers with a listed country ending are remembered by
   assert.deepStrictEqual(sites.find(s => s.domain === "granma.cu").foreignHosts, ["cip.cu"]);
   assert.deepStrictEqual(sites.find(s => s.domain === "news.example").foreignHosts, ["tns-counter.ru"]);
 });
+
+test("pages Google pre-loads from its results (navigation prefetch) are not trackers of google.com", async () => {
+  const t = load();
+  t.listeners.nav({ frameId: 0, tabId: 9, url: "https://www.google.com/search?q=aliexpress" });
+  t.listeners.req({ tabId: 9, type: "main_frame", url: "https://hm.baidu.com/landing" });   // a known tracker domain
+  t.listeners.req({ tabId: 9, type: "script", url: "https://mc.yandex.ru/watch" });
+  await t.flush();
+  const g = t.store().privacData.sites.find(s => s.domain === "google.com");
+  assert.deepStrictEqual(g.trackers.map(x => x.domain), ["mc.yandex.ru"]);
+});

@@ -21,7 +21,13 @@
       const d = b.Domain.toLowerCase().replace(/^www\./, "");
       const item = { name: b.Name, title: b.Title, breachDate: b.BreachDate, addedDate: (b.AddedDate || "").slice(0, 10),
                      pwnCount: b.PwnCount, dataClasses: (b.DataClasses || []).slice(0, 6) };
-      if (!byDomain[d] || item.addedDate > byDomain[d].addedDate) byDomain[d] = item;
+      (byDomain[d] = byDomain[d] || []).push(item);
+    }
+    // Newest breach per site, with the site's earlier breaches (up to 5) under "earlier" so all can be listed.
+    for (const d of Object.keys(byDomain)) {
+      const [newest, ...rest] = byDomain[d].sort((a, b) => (a.addedDate < b.addedDate ? 1 : -1));
+      if (rest.length) newest.earlier = rest.slice(0, 5).map(({ name, title, breachDate, addedDate, pwnCount }) => ({ name, title, breachDate, addedDate, pwnCount }));
+      byDomain[d] = newest;
     }
     return byDomain;
   }
