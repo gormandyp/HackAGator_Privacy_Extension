@@ -32,3 +32,4 @@ Update your row every time you push. Keep it to one line per column.
 - 2026-10-24 (repo owner): 1260H and foreign-adversary country never double count (one 15-point line). A site owned by a company in a listed country counts as that line too.
 - 2026-10-24 (repo owner): video presenters Matthew, Max and Justin; recorded on the repo owner's Mac.
 - 2026-10-24: hold max/mascot-poses until Matthew finishes; old ask-c branch deleted (superseded by max-askc).
+- 2026-10-24 1:30 AM: merged Max's R3 policy reader (89 tests). Found state-run sites in listed countries aren't flagged; fix plan F1-F5 in PLAN.md and HANDOFF.md.

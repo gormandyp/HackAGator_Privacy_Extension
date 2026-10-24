@@ -24,8 +24,13 @@ Owner areas: **core** (repo owner + Claude: background, data plumbing, merges), 
 - [ ] **R5. [ui: Matthew] Unsafe-site warning** (grade F + flagged company or recent breach → Go back / Continue anyway) and a C pop-up for banners with no Reject button (IKEA) pointing to the site's settings link.
 - [~] **R6. Ask C from your browsing.** Done (Max): adaptive suggestions, popup "Ask C why". Left: overall exposure score across sites on the dashboard (goes into R10).
 - [ ] **R7. [ask-c, stretch] Terms of service** through the R3 reader, or ToS;DR only if a whole-list download exists.
-- [ ] **R8. [ui, stretch] Themes** (light / dark / accent) from shared/theme.css (Max's idea).
+- [~] **R8. Themes** (Max, branch `max/themes`, not merged): dark mode, accent colors, larger text. Hold until the dashboard mockups (R10) pick a direction.
 - [~] **R9. Reliability.** Done: tab state survives pauses. Left: more company countries in build-atlas.js; owner-name fixes from Tracker Radar quirks (e.g. cnevids.com shows a law firm).
+- [ ] **F1. Country web address rule** (do first): site ending in a listed country's code (.ir .ru .su .cn .hk .cu .kp .ve .рф) → foreign-adversary line, 15 points, never doubled. Unknown outside servers with those endings → label only. See docs/HANDOFF.md.
+- [ ] **F4. More company countries** in scripts/build-atlas.js (PDD/Temu wording with Max, Russian counters, Tencent ad networks).
+- [ ] **F3. Server location**: country of each server's IP address from the regional internet registries' public lists (download through the repo owner's Chrome; keep only the 7 listed countries).
+- [ ] **F2. [Max] State-media list** `shared/state-media.json`, each entry sourced (Xinhua, CGTN, RT, Sputnik, TASS, IRNA, PressTV, Granma, teleSUR, KCNA...).
+- [ ] **F5. [stretch] "Who runs this site"**: Gemma reads the About/footer text, quote verified; label "The site says it is run by...".
 - [ ] **R10. [ui] Dashboard mockups**: several clickable variations to compare; then build the chosen one with Matthew.
 - [ ] **R11. [later, decided 2026-10-24] Gemma fully in the browser** (Transformers.js + WebGPU, Ollama as fallback). Only after the kinks and the UI are done.
 
