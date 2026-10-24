@@ -31,6 +31,7 @@
     });
   } catch (e) { /* storage unavailable: keep defaults */ }
   const choice = (c) => send({ type: "cookieChoice", domain: domain(), choice: c });
+  const newest = () => [...document.querySelectorAll("privac-prompt")].pop() || null;   // C's pop-up on the page
 
   function label(el) {
     return ((el.innerText || el.value || (el.getAttribute && (el.getAttribute("aria-label") || el.getAttribute("title"))) || "") + "").trim().replace(/\s+/g, " ");
@@ -64,8 +65,13 @@
       const decline = opts.onDecline;
       opts.onDecline = async (...a) => {
         event("decline-click");
+        const asking = newest();
         const result = await decline(...a);
         if (result === "confirmed" || result === true) { event("decline-confirmed"); choice("declined"); }
+        // c-prompt.js keeps the "couldn't verify" / "couldn't complete" answer up until you press ×, and
+        // the detector can't take C away while he's showing it. Close it after a few seconds, unless a
+        // newer pop-up of C's has replaced it.
+        else setTimeout(() => { if (asking && asking.isConnected && newest() === asking) P.hide(); }, 6000);
         return result;
       };
     }

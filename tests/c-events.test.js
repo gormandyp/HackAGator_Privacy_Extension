@@ -7,27 +7,27 @@ const fs = require("node:fs");
 const vm = require("node:vm");
 
 function load(pageButtons = [], settings = null, settingsLater = false) {
-  const sent = [], calls = [], listeners = {};
+  const sent = [], calls = [], listeners = {}, timers = [], hidden = [];
   const storageListeners = [];
   const P = {
     cookie(opts) { calls.push(["cookie", opts]); },
     acceptOnly() { calls.push(["acceptOnly"]); },
     adversary(o) { calls.push(["adversary", o]); },
     ignored() { calls.push(["ignored"]); },
-    hide() {}
+    hide() { hidden.push(true); }
   };
   const document = {
     addEventListener: (name, fn) => { listeners[name] = fn; },
     querySelectorAll: () => pageButtons
   };
-  const ctx = { console, Promise, location: { hostname: "www.news.example" }, document,
+  const ctx = { console, Promise, setTimeout: (fn, ms) => timers.push({ fn, ms }), location: { hostname: "www.news.example" }, document,
     chrome: { runtime: { sendMessage: (m) => sent.push(m) },
       storage: { local: { get: () => ({ then: (fn) => { const give = () => fn({ privacSettings: settings }); if (settingsLater) setTimeout(give, 0); else give(); return { catch() {} }; } }) },
                  onChanged: { addListener: (fn) => storageListeners.push(fn) } } } };
   ctx.window = ctx;
   ctx.window.PrivaCPrompt = P;
   vm.runInNewContext(fs.readFileSync(__dirname + "/../content/c-events.js", "utf8"), ctx);
-  return { P: ctx.window.PrivaCPrompt, sent, calls, listeners, storageListeners, document };
+  return { P: ctx.window.PrivaCPrompt, sent, calls, listeners, storageListeners, document, timers, hidden };
 }
 const events = (sent) => sent.filter(m => m.type === "privac-event").map(m => m.event);
 const choices = (sent) => sent.filter(m => m.type === "cookieChoice").map(m => m.choice);
@@ -140,4 +140,37 @@ test("Protect me automatically when the settings arrive after C already asked (f
   assert.ok(!calls[0][1].auto);
   await new Promise((r) => setTimeout(r, 0));
   assert.strictEqual(decline.clicks, 1, "C presses Protect me for you once the setting is known");
+});
+
+// After "Protect me", C's answer used to stay on screen until you pressed × when the decline couldn't be
+// confirmed (gov.uk, Tesco). Now it goes away by itself after a few seconds, like the "Nice!" answer does.
+for (const result of ["unverified", "failed"]) {
+  test(`a "${result}" decline: C's answer goes away by itself after a few seconds`, async () => {
+    const host = { isConnected: true, innerText: "", getAttribute: () => null };
+    const page = load([host]);
+    page.P.cookie({ onDecline: async () => result });
+    await page.calls[0][1].onDecline();
+    const later = page.timers.filter((t) => t.ms >= 4000 && t.ms <= 8000);
+    assert.strictEqual(later.length, 1, "one timer of 4-8 seconds");
+    later[0].fn();
+    assert.strictEqual(page.hidden.length, 1);
+  });
+}
+
+test("a confirmed decline is left to C's own \"Nice!\" timing", async () => {
+  const page = load([{ isConnected: true, innerText: "", getAttribute: () => null }]);
+  page.P.cookie({ onDecline: async () => "confirmed" });
+  await page.calls[0][1].onDecline();
+  page.timers.forEach((t) => t.fn());
+  assert.strictEqual(page.hidden.length, 0);
+});
+
+test("if another C pop-up replaced the answer in the meantime, it isn't closed", async () => {
+  const buttons = [{ isConnected: true, innerText: "", getAttribute: () => null }];
+  const page = load(buttons);
+  page.P.cookie({ onDecline: async () => "unverified" });
+  await page.calls[0][1].onDecline();
+  buttons.push({ isConnected: true, innerText: "", getAttribute: () => null });   // a newer C
+  page.timers.forEach((t) => t.fn());
+  assert.strictEqual(page.hidden.length, 0);
 });

@@ -8,10 +8,18 @@ const vm = require("node:vm");
 
 const SRC = fs.readFileSync(__dirname + "/../content/cookie-detector.js", "utf8");
 
+// Whether a fake element of this kind ("button", "link" or a form's "submit" button) matches a selector.
+function fits(kind, sel) {
+  if (kind === "link") return /(^|,\s*)a(\[|,|$)/.test(sel);
+  if (kind === "submit") return sel.includes('input[type="submit"]');
+  return true;
+}
+
 // A fake button or link. `banner` is what closest() finds around it (the cookie pop-up).
 function control(label, { kind = "button", banner = null } = {}) {
   return {
     kind, innerText: label, value: "", isConnected: true, clicks: 0, clickListeners: 0,
+    matches: (sel) => fits(kind, sel),
     getAttribute: () => null,
     getBoundingClientRect: () => ({ top: 100, bottom: 140, left: 100, right: 220, width: 120, height: 40 }),
     closest: () => banner,
@@ -44,24 +52,44 @@ function load(controls, { hosts = [], cookie = "" } = {}) {
     isCelebrating: () => false
   };
   const saved = [];
+  const later = new Map();   // the detector's own timers over 200 ms, run by clock.tick()
+  const clock = { now: 0, nextId: 1, checks: 0 };
+  clock.tick = (ms) => {
+    const end = clock.now + ms;
+    for (;;) {
+      const due = [...later].filter(([, t]) => t.at <= end).sort((a, b) => a[1].at - b[1].at)[0];
+      if (!due) break;
+      later.delete(due[0]);
+      clock.now = due[1].at;
+      due[1].fn();
+    }
+    clock.now = end;
+  };
   const document = {
     cookie,
     documentElement: {},
     querySelectorAll(sel) {
-      if (sel === "*") return hosts;
-      const withLinks = /(^|,\s*)a(\[|,|$)/.test(sel);
-      return controls.filter((c) => c.kind === "button" || withLinks);
+      if (sel === "*") { clock.checks++; return hosts; }
+      return controls.filter((c) => fits(c.kind, sel));
     }
   };
   const ctx = {
     console: { log() {}, warn() {}, table() {}, error() {} },
     document, location: { hostname: "www.shop.example" }, innerWidth: 1440, innerHeight: 900,
-    MutationObserver: class { observe() {} },
+    MutationObserver: class {
+      constructor(callback) { ctx.observer = { callback }; }
+      observe(target, options) { ctx.observer.options = options; }
+    },
     getComputedStyle: () => ({ display: "block", visibility: "visible" }),
-    // onDecline's 200 ms waits run right away; the detector's own 1.5 s and 4 s re-checks are left out
-    // so each test decides how many checks run.
-    setTimeout: (fn, ms) => { if (ms <= 200) setImmediate(fn); return 0; },
-    clearTimeout() {},
+    // onDecline's 200 ms waits run right away; the detector's own longer timers (its 1.5 s and 4 s re-checks,
+    // the re-check after the page changes) only run when a test calls clock.tick(ms).
+    setTimeout: (fn, ms) => {
+      if (ms <= 200) { setImmediate(fn); return 0; }
+      const id = clock.nextId++;
+      later.set(id, { fn, at: clock.now + ms });
+      return id;
+    },
+    clearTimeout(id) { later.delete(id); },
     atob: (s) => Buffer.from(s, "base64").toString("binary"),
     chrome: { storage: { local: { get: async () => ({ privacData: { sites: [] } }), set: async (v) => saved.push(v) } } }
   };
@@ -69,7 +97,7 @@ function load(controls, { hosts = [], cookie = "" } = {}) {
   ctx.top = ctx;   // the top page, not a frame
   ctx.PrivaCPrompt = P;
   vm.runInNewContext(SRC, ctx);
-  return { calls, ctx, saved, kinds: () => calls.map((c) => c[0]) };
+  return { calls, ctx, saved, clock, kinds: () => calls.map((c) => c[0]) };
 }
 
 // Each new Reject label: C offers to decline, on a banner with only that button and Accept.
@@ -132,6 +160,11 @@ const RECORDS = {
     declined: "CookieConsent={stamp:%27k3b9%27%2Cnecessary:true%2Cpreferences:false%2Cstatistics:false%2Cmarketing:false%2Cmethod:%27explicit%27%2Cver:1%2Cutc:1792800000000%2Cregion:%27gb%27}",
     accepted: "CookieConsent={stamp:%27k3b9%27%2Cnecessary:true%2Cpreferences:true%2Cstatistics:true%2Cmarketing:true%2Cmethod:%27explicit%27%2Cver:1%2Cutc:1792800000000%2Cregion:%27gb%27}"
   },
+  // GOV.UK keeps the choice as URL-encoded JSON in cookies_policy (essential is always on).
+  "GOV.UK": {
+    declined: "cookies_policy=" + encodeURIComponent(JSON.stringify({ essential: true, settings: false, usage: false, campaigns: false })),
+    accepted: "cookies_policy=" + encodeURIComponent(JSON.stringify({ essential: true, settings: true, usage: true, campaigns: true }))
+  },
   Didomi: {
     declined: "didomi_token=" + b64({ user_id: "u1", purposes: { enabled: [], disabled: ["analytics", "advertising"] }, vendors: { enabled: [], disabled: ["google"] }, version: 2 }),
     accepted: "didomi_token=" + b64({ user_id: "u1", purposes: { enabled: ["analytics", "advertising"], disabled: [] }, vendors: { enabled: ["google"], disabled: [] }, version: 2 })
@@ -161,6 +194,7 @@ test("no consent record PrivaC knows: C keeps the honest \"couldn't verify\"", a
   assert.strictEqual((await declineWith("session=abc123; theme=dark")).result, "unverified");
   assert.strictEqual((await declineWith("CookieConsent=-1")).result, "unverified", "Cookiebot's 'no consent needed here'");
   assert.strictEqual((await declineWith("didomi_token=not-base64!")).result, "unverified");
+  assert.strictEqual((await declineWith("cookies_policy=not-json")).result, "unverified");
 });
 
 test("a confirmed decline saves only the choice, never the cookie's contents", async () => {
@@ -233,3 +267,121 @@ test("banner still showing and no record: C honestly says it didn't work", async
   assert.strictEqual(await declineWhere(() => {}), "failed");
   assert.strictEqual(await declineWhere((b) => { b.checkVisibility = () => true; }), "failed");
 });
+
+// C staying silent (R14). The detector re-checks the page after it changes, since pop-ups often load late.
+const pageChange = { target: { closest: () => null } };
+
+test("a busy page (a price ticker changing every 100 ms) still gets re-checked: C asks about a late pop-up", () => {
+  const controls = [];
+  const page = load(controls);
+  page.clock.tick(5000);   // the 1.5 s and 4 s re-checks: nothing there yet
+  controls.push(...bannerWith(["Accept all", "Reject all"]).controls);
+  for (let i = 0; i < 20; i++) {   // 2 seconds of the ticker changing the page
+    page.ctx.observer.callback([pageChange]);
+    page.clock.tick(100);
+  }
+  assert.deepStrictEqual(page.kinds(), ["cookie"]);
+});
+
+test("a pop-up already in the page but shown later by a style or class change is noticed", () => {
+  const page = load([]);
+  const { options } = page.ctx.observer;
+  assert.strictEqual(options.childList, true);
+  assert.strictEqual(options.subtree, true);
+  assert.strictEqual(options.attributes, true, "watches attribute changes, not only added elements");
+  for (const name of ["style", "class", "hidden"]) assert.ok(options.attributeFilter.includes(name), name);
+});
+
+test("C moving himself around doesn't make the detector re-check the page", () => {
+  const page = load([]);
+  page.clock.tick(5000);
+  const before = page.clock.checks;
+  const cMoved = { target: { closest: (sel) => (sel === "privac-prompt" ? {} : null) } };
+  for (let i = 0; i < 10; i++) { page.ctx.observer.callback([cMoved]); page.clock.tick(100); }
+  assert.strictEqual(page.clock.checks, before);
+  page.ctx.observer.callback([cMoved, pageChange]);
+  page.clock.tick(400);
+  assert.ok(page.clock.checks > before, "a real page change still does");
+});
+
+// Accept wording that content/c-events.js already counts as "you accepted" (from real sites), but the detector
+// didn't: a banner with one of these and only a settings button got no "Beware!" warning at all.
+for (const label of ["Accept", "Allow", "Allow cookies", "I accept", "Accept and close", "Accept and continue",
+  "Agree and close", "Yes, I'm happy", "Yes I’m happy"]) {
+  test(`"${label}" + "Cookie settings": C warns that the site may still track you`, () => {
+    assert.deepStrictEqual(load(bannerWith([label, "Cookie settings"]).controls).kinds(), ["acceptOnly"]);
+  });
+}
+
+test("every Accept wording c-events.js knows also counts as Accept in the detector", () => {
+  const events = fs.readFileSync(__dirname + "/../content/c-events.js", "utf8");
+  const list = events.slice(events.indexOf("const ACCEPT = ["), events.indexOf("];", events.indexOf("const ACCEPT = [")));
+  const samples = ["Accept", "Accept all", "Accept all cookies", "Accept cookies", "Allow", "Allow all", "Allow cookies",
+    "Allow all cookies", "Agree", "Agree and close", "Agree and continue", "I agree", "I accept", "Accept and close",
+    "Accept and continue", "Yes, I'm happy", "Yes I’m happy", "OK", "Okay", "Got it"];
+  const known = eval("[" + list.slice(list.indexOf("[") + 1) + "]");   // c-events.js's own patterns
+  for (const label of samples) {
+    assert.ok(known.some((p) => p.test(label)), `c-events.js counts "${label}"`);
+    assert.deepStrictEqual(load(bannerWith([label, "Cookie settings"]).controls).kinds(), ["acceptOnly"], label);
+  }
+});
+
+// A "no" button whose wording isn't in REJECT_LABELS yet. The "Beware!" check already treated it as a way to
+// say no, so C said nothing at all. Inside a cookie pop-up, a short label starting with reject/decline/deny/
+// refuse/disagree, or saying necessary/essential "only", now counts as the Reject button. (PLAN.md lists
+// "Deny" on Usercentrics as wording to check on the real site.)
+for (const [labels, no, tool] of [
+  [["Deny", "Allow selection", "Allow all"], "Deny", "a Deny button"],
+  [["Accept All", "Deny", "More Information"], "Deny", "Deny between Accept and More"],
+  [["Agree and close", "Disagree and close", "Learn more"], "Disagree and close", "Disagree and close"],
+  [["Accept", "Decline"], "Decline", "two plain buttons"],
+  [["Allow all", "Strictly necessary only"], "Strictly necessary only", "necessary-only wording"]
+]) {
+  test(`${tool} (${labels.join(" + ")}): C offers to decline, and "Protect me" clicks "${no}"`, async () => {
+    const { controls } = bannerWith(labels);
+    const page = load(controls);
+    assert.deepStrictEqual(page.kinds(), ["cookie"]);
+    const target = controls.find((c) => c.innerText === no);
+    target.click = () => { target.clicks++; target.isConnected = false; };
+    await page.calls[0][1].onDecline();
+    assert.deepStrictEqual(controls.map((c) => c.clicks), controls.map((c) => (c === target ? 1 : 0)));
+  });
+}
+
+test("a known Reject label wins over other no-words on the page", () => {
+  const { controls } = bannerWith(["Decline", "Reject all", "Accept all"]);
+  const page = load(controls);
+  page.calls[0][1].onDecline();
+  assert.strictEqual(controls[1].clicks, 1);
+  assert.strictEqual(controls[0].clicks, 0);
+});
+
+test("a Decline button outside any cookie pop-up (a calendar invite) isn't mistaken for Reject", () => {
+  const invite = control("Decline", { banner: null });
+  assert.deepStrictEqual(load([invite, control("Accept", { banner: null })]).kinds(), []);
+});
+
+test("settings-style no-words aren't a one-click Reject: C warns instead of staying silent", () => {
+  for (const labels of [["Accept all cookies", "Manage necessary cookies"], ["Accept all", "Reject or customise settings"]]) {
+    assert.deepStrictEqual(load(bannerWith(labels).controls).kinds(), ["acceptOnly"], labels.join(" + "));
+  }
+});
+
+// Reject shown as a plain link, or as a form's submit button. These count only inside a cookie pop-up.
+for (const kind of ["link", "submit"]) {
+  test(`Reject as a ${kind} inside a cookie pop-up: C offers to decline, and "Protect me" clicks it`, async () => {
+    const { banner, controls } = bannerWith(["Accept all"]);
+    const reject = control("Reject all", { kind, banner });
+    reject.click = () => { reject.clicks++; reject.isConnected = false; };
+    controls.push(reject);
+    const page = load(controls);
+    assert.deepStrictEqual(page.kinds(), ["cookie"]);
+    await page.calls[0][1].onDecline();
+    assert.strictEqual(reject.clicks, 1);
+    assert.strictEqual(controls[0].clicks, 0, "Accept isn't touched");
+  });
+
+  test(`a "Reject all" ${kind} outside any cookie pop-up is left alone`, () => {
+    assert.deepStrictEqual(load([control("Reject all", { kind, banner: null })]).kinds(), []);
+  });
+}
