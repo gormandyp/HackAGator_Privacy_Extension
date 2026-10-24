@@ -34,16 +34,17 @@
   }
 
   // ---------- the offscreen page that holds Gemma ----------
+  const BRAIN_PAGE = "offscreen/brain.html";
   let creating = null;
   async function ensureBrainPage() {
     if (!chrome.offscreen) throw Object.assign(new Error("This Chrome can't run C's in-browser brain."), { code: "UNSUPPORTED" });
     if (chrome.runtime.getContexts) {
-      const pages = await chrome.runtime.getContexts({ contextTypes: ["OFFSCREEN_DOCUMENT"] });
+      const pages = await chrome.runtime.getContexts({ contextTypes: ["OFFSCREEN_DOCUMENT"], documentUrls: [chrome.runtime.getURL(BRAIN_PAGE)] });
       if (pages.length) return;
     }
     if (!creating) {
       creating = chrome.offscreen.createDocument({
-        url: "offscreen/brain.html",
+        url: BRAIN_PAGE,
         reasons: ["WORKERS"],
         justification: "Runs Gemma, PrivaC's AI, on this computer's graphics chip (WebGPU), so questions and browsing never leave the computer."
       }).catch((e) => { if (!/single offscreen|only a single|already/i.test(String(e && e.message))) throw e; })
@@ -109,7 +110,7 @@
         new Promise((_, reject) => { timer = setTimeout(() => reject(Object.assign(new Error("C took too long to answer. Try again in a moment."), { code: "TIMEOUT" })), ANSWER_TIMEOUT_MS); }),
         new Promise((_, reject) => {   // whoever asked hung up (e.g. the Ask C tab closed): stop Gemma
           if (!opts.signal) return;
-          onAbort = () => reject(Object.assign(new Error("Stopped."), { code: "TIMEOUT" }));
+          onAbort = () => reject(Object.assign(new Error("Stopped."), { code: "STOPPED" }));
           if (opts.signal.aborted) onAbort(); else opts.signal.addEventListener("abort", onAbort, { once: true });
         })
       ]);
@@ -119,7 +120,7 @@
       if (!text && !opts.json) throw Object.assign(new Error("C's brain sent back an empty answer. Try asking again."), { code: "FAILED" });
       return opts.json ? root.PrivaCGemma.parseJsonReply(text) : text;
     } catch (e) {
-      if (e.code === "TIMEOUT") brain({ cmd: "cancel", id }).catch(() => {});
+      if (e.code === "TIMEOUT" || e.code === "STOPPED") brain({ cmd: "cancel", id }).catch(() => {});   // frees Gemma for the next question
       throw e;
     } finally {
       clearTimeout(timer);

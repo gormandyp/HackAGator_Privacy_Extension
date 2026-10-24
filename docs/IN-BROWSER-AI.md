@@ -9,7 +9,8 @@ This branch (`in-browser-ai`) runs **Gemma 4 E2B inside Chrome**, on your comput
    - If the main PrivaC is also loaded, turn it off first (both would show C's pop-ups).
 3. Click the PrivaC icon, open the dashboard, go to **Ask C**, and click **Download C's brain** (2.0 GB, one time;
    about 1 minute on fast Wi-Fi). Grades and C's pop-ups work while it downloads.
-4. Ask C anything. The first answer after installing takes ~20 s while Chrome sets up the graphics chip; after that, answers start in about a second.
+4. When the download finishes, C loads Gemma right away. The very first time, Chrome sets up the graphics chip
+   (~20 s, the card says "Getting C's brain ready"); after that, answers start in about a second.
 
 **Offline / no download:** put `gemma-4-E2B-it-web.litertlm` (from
 https://huggingface.co/litert-community/gemma-4-E2B-it-litert-lm, Apache 2.0) in a `models/` folder inside the extension
@@ -55,7 +56,8 @@ Switch back with **Use the in-browser brain**.
 ## Troubleshooting
 - "can't run here": update Chrome (`chrome://settings/help`), and check `chrome://gpu` shows WebGPU as hardware accelerated.
 - "ran out of graphics memory": close a few tabs (especially video or 3D) and ask again.
-- Download stopped: click **Try again** (it starts over).
+- Download stopped: click **Try again** (it starts over). **Cancel** stops it and keeps nothing.
+- PrivaC only keeps the download if it is exactly the right file (2,008,432,640 bytes); a Wi-Fi sign-in page or a cut-off download is thrown away.
 - To delete the 2 GB model: remove the extension in `chrome://extensions`, or click **Delete download** on the Ask C card.
 
 ## For the team

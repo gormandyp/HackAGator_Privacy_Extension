@@ -7,7 +7,9 @@ globalThis.window = globalThis;
 require("../shared/brain-core.js");
 const { create, MODEL, REASONS } = window.PrivaCBrainCore;
 
-function fakeLM({ failCreate, chunks = ["Criteo is ", "an ad company."], delay = 0 } = {}) {
+const SIZE = 1000;   // the tests' stand-in for the 2 GB model file (create({ model }) below)
+
+function fakeLM({ failCreate, chunks = ["Criteo is ", "an ad company."], delay = 0, createDelay = 0 } = {}) {
   const calls = { engines: 0, convs: [], deleted: 0, wasm: null, settings: null };
   class Conv {
     constructor(cfg) { this.cfg = cfg; this.cancelled = false; calls.convs.push(this); }
@@ -32,6 +34,7 @@ function fakeLM({ failCreate, chunks = ["Criteo is ", "an ad company."], delay =
     Engine: {
       create: async (settings) => {
         calls.engines++; calls.settings = settings;
+        if (createDelay) await new Promise((r) => setTimeout(r, createDelay));
         if (failCreate) throw new Error(failCreate);
         return { createConversation: async (cfg) => new Conv(cfg), delete: async () => { calls.engineDeleted = true; } };
       }
@@ -51,18 +54,22 @@ function fakeCaches() {
   };
 }
 
-// A download of `size` bytes in 7 pieces; `breakAt` makes the connection drop part-way.
-function download(size, { breakAt } = {}) {
+// A download of `size` bytes in 7 pieces; `breakAt` makes the connection drop part-way; `pause` (ms) slows each
+// piece. Like a real fetch, it stops with an AbortError when its signal is aborted (Cancel).
+function download(size, { breakAt, pause = 0, signal, claim } = {}) {
   let sent = 0;
   const body = new ReadableStream({
-    pull(c) {
+    start(c) { if (signal) signal.addEventListener("abort", () => { try { c.error(new DOMException("The user aborted a request.", "AbortError")); } catch (e) { /* closed */ } }); },
+    async pull(c) {
+      if (pause) await new Promise((r) => setTimeout(r, pause));
+      if (signal && signal.aborted) return;
       if (breakAt && sent >= breakAt) { c.error(new TypeError("network error")); return; }
       const n = Math.min(Math.ceil(size / 7), size - sent);
       if (n <= 0) { c.close(); return; }
       sent += n; c.enqueue(new Uint8Array(n));
     }
   });
-  return new Response(body, { headers: { "content-length": String(size) } });
+  return new Response(body, { headers: { "content-length": String(claim || size) } });
 }
 
 function brainWith(opts = {}) {
@@ -71,9 +78,10 @@ function brainWith(opts = {}) {
   const caches = opts.caches || fakeCaches();
   const brain = create({
     lm, caches,
+    model: { ...MODEL, bytes: SIZE },
     wasmUrl: "chrome-extension://x/vendor/litert-lm/wasm/litertlm_wasm_internal.js",
     bundledModelUrl: "chrome-extension://x/models/" + MODEL.file,
-    fetch: opts.fetch || (async (url) => { if (url === MODEL.url) return download(1000); throw new TypeError("Failed to fetch"); }),
+    fetch: opts.fetch || (async (url, init) => { if (url === MODEL.url) return download(SIZE, { signal: init && init.signal }); throw new TypeError("Failed to fetch"); }),
     gpu: "gpu" in opts ? opts.gpu : { requestAdapter: async () => ({ info: {} }) },
     jspi: "jspi" in opts ? opts.jspi : true,
     post: (m) => posts.push(m)
@@ -197,4 +205,88 @@ test("Remove deletes the downloaded file and frees the GPU", async () => {
   assert.strictEqual(s.state, "none");
   assert.strictEqual(caches.store.size, 0);
   assert.ok(lm.calls.engineDeleted);
+});
+
+// ---------- review fixes (second opinions from ChatGPT and a fresh Claude review) ----------
+
+test("a download of the wrong size (e.g. a Wi-Fi sign-in page) is refused before it fills the disk", async () => {
+  let pulled = 0;
+  const { brain, caches } = brainWith({ fetch: async (url) => {
+    if (url !== MODEL.url) throw new TypeError("Failed to fetch");
+    const r = download(SIZE, { claim: 4321 });
+    return new Response(r.body.pipeThrough(new TransformStream({ transform(c, o) { pulled += c.byteLength; o.enqueue(c); } })), { headers: r.headers });
+  } });
+  await brain.handle({ cmd: "download" });
+  for (let i = 0; i < 50 && brain.status().state !== "error"; i++) await flush();
+  assert.strictEqual(brain.status().state, "error");
+  assert.match(brain.status().error, /C's brain file/);
+  assert.strictEqual(caches.store.size, 0);
+  assert.ok(pulled < SIZE, "stopped before reading the whole thing");
+});
+
+test("Cancel stops the download and goes back to the offer, with nothing stored", async () => {
+  const { brain, caches } = brainWith({ fetch: async (url, init) => { if (url === MODEL.url) return download(SIZE, { pause: 15, signal: init.signal }); throw new TypeError("Failed to fetch"); } });
+  await brain.handle({ cmd: "download" });
+  await new Promise((r) => setTimeout(r, 40));
+  assert.strictEqual(brain.status().state, "downloading");
+  await brain.handle({ cmd: "cancel-download" });
+  for (let i = 0; i < 50 && brain.status().state === "downloading"; i++) await flush();
+  assert.strictEqual(brain.status().state, "none");
+  assert.strictEqual(brain.status().error, null);
+  assert.strictEqual(caches.store.size, 0);
+});
+
+test("Delete while C is answering: the answer stops, the file is deleted and the graphics memory is freed", async () => {
+  const caches = fakeCaches(); caches.store.set(MODEL.url, SIZE);
+  const { brain, lm } = brainWith({ caches, delay: 20 });
+  const answering = brain.handle({ cmd: "generate", id: "a1", system: "s", user: "u", temperature: 0.2 });
+  await new Promise((r) => setTimeout(r, 10));
+  const s = await brain.handle({ cmd: "remove" });
+  assert.strictEqual((await answering).code, "CANCELLED");
+  await flush();
+  assert.strictEqual(s.state, "none");
+  assert.strictEqual(brain.status().state, "none");
+  assert.strictEqual(caches.store.size, 0);
+  assert.ok(lm.calls.engineDeleted);
+});
+
+test("Delete while Gemma is still loading: it doesn't come back afterwards", async () => {
+  const caches = fakeCaches(); caches.store.set(MODEL.url, SIZE);
+  const { brain, lm } = brainWith({ caches, createDelay: 30 });
+  const warming = brain.handle({ cmd: "warm", system: "s" });
+  await new Promise((r) => setTimeout(r, 5));
+  await brain.handle({ cmd: "remove" });
+  await warming;
+  await flush();
+  assert.strictEqual(brain.status().state, "none");
+  assert.ok(lm.calls.engineDeleted, "the engine that finished loading was freed");
+  const r = await brain.handle({ cmd: "generate", id: "after", system: "s", user: "u" });
+  assert.strictEqual(r.code, "NOT_READY");
+});
+
+test("a status check that started before Gemma finished loading doesn't overwrite 'ready'", async () => {
+  const caches = fakeCaches(); caches.store.set(MODEL.url, SIZE);
+  const open = caches.open;
+  let slowOnce = true;
+  caches.open = async () => {   // the first look into the cache is slow (busy disk)
+    const c = await open();
+    if (slowOnce) { slowOnce = false; const match = c.match; c.match = async (u) => { await new Promise((r) => setTimeout(r, 40)); return match(u); }; }
+    return c;
+  };
+  const { brain } = brainWith({ caches });
+  const looking = brain.handle({ cmd: "status" });
+  await new Promise((r) => setTimeout(r, 5));
+  await brain.handle({ cmd: "warm", system: "s" });
+  assert.strictEqual(brain.status().state, "ready");
+  await looking;
+  assert.strictEqual(brain.status().state, "ready");
+});
+
+test("speed: whether the graphics chip works is checked once, not on every status check", async () => {
+  let asked = 0;
+  const { brain } = brainWith({ gpu: { requestAdapter: async () => { asked++; return { info: {} }; } } });
+  await brain.handle({ cmd: "status" });
+  await brain.handle({ cmd: "status" });
+  await brain.handle({ cmd: "status" });
+  assert.strictEqual(asked, 1);
 });

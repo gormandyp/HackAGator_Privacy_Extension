@@ -11,6 +11,7 @@ function load({ brain, ollamaUp = false, use } = {}) {
   const sent = [];
   const local = use ? { privacAI: { use } } : {};
   let pageOpen = false;
+  const lookups = [];
   const chrome = {
     storage: {
       local: { get: async (k) => ({ [k]: local[k] }), set: async (o) => Object.assign(local, o) },
@@ -18,7 +19,8 @@ function load({ brain, ollamaUp = false, use } = {}) {
     },
     offscreen: { createDocument: async () => { pageOpen = true; } },
     runtime: {
-      getContexts: async () => (pageOpen ? [{}] : []),
+      getURL: (p) => "chrome-extension://privac/" + p,
+      getContexts: async (filter) => { lookups.push(filter); return pageOpen ? [{}] : []; },
       onMessage: { addListener: (f) => listeners.push(f) },
       sendMessage: async (msg) => { sent.push(msg); return brain(msg, (m) => listeners.forEach((f) => f(m))); }
     }
@@ -32,7 +34,7 @@ function load({ brain, ollamaUp = false, use } = {}) {
   ctx.PrivaCGemma.ask = async (q, o) => { ollamaCalls.push({ q, o }); return "from Ollama"; };
   ctx.PrivaCGemma.warm = async () => { ollamaCalls.push({ warm: true }); return true; };
   vm.runInContext(fs.readFileSync(__dirname + "/../shared/ai.js", "utf8"), ctx);
-  return { AI: ctx.PrivaCAI, sent, ollamaCalls, local };
+  return { AI: ctx.PrivaCAI, sent, ollamaCalls, local, lookups };
 }
 
 // A fake brain page: answers "generate" after streaming two pieces; status says ready.
@@ -127,4 +129,21 @@ test("hanging up stops the in-browser answer too", async () => {
   await assert.rejects(p);
   await new Promise((r) => setTimeout(r, 5));
   assert.strictEqual(cancelled.length, 1);
+});
+
+test("the hidden brain page is found by its own address (not any other hidden page)", async () => {
+  const { AI, lookups } = load({ brain: readyBrain() });
+  await AI.command({ cmd: "status" });
+  assert.ok(lookups.length > 0);
+  assert.deepStrictEqual(JSON.parse(JSON.stringify(lookups[0].documentUrls)), ["chrome-extension://privac/offscreen/brain.html"]);
+});
+
+test("hanging up is reported as stopped (not as 'took too long')", async () => {
+  const brain = async (msg) => (msg.cmd === "generate" ? new Promise(() => {}) : { state: "ready", cancelled: true });
+  const { AI } = load({ brain });
+  const hangUp = new AbortController();
+  const p = AI.ask("Hi", { signal: hangUp.signal });
+  await new Promise((r) => setTimeout(r, 5));
+  hangUp.abort();
+  await assert.rejects(p, (e) => e.code === "STOPPED" && !/too long/.test(e.message));
 });

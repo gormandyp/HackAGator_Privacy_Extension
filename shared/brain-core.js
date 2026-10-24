@@ -54,11 +54,14 @@
   }
 
   function create(d) {
-    // d: { lm, wasmUrl, bundledModelUrl, caches, fetch, gpu, jspi, post, now, setTimeout, clearTimeout }
+    // d: { lm, wasmUrl, bundledModelUrl, caches, fetch, gpu, jspi, post, model, now, setTimeout, clearTimeout }
+    const M = d.model || MODEL;           // (the tests use a small stand-in file)
     const now = d.now || (() => Date.now());
     const later = d.setTimeout || setTimeout, cancelLater = d.clearTimeout || clearTimeout;
-    let status = { state: "unknown", model: MODEL.id, name: MODEL.name, loaded: 0, total: MODEL.bytes, error: null, reason: null };
+    let status = { state: "unknown", model: M.id, name: M.name, loaded: 0, total: M.bytes, error: null, reason: null };
     let engine = null, loading = null, downloading = null, stopDownload = null, runtimeReady = null;
+    let removing = null;                  // a Delete in progress: nothing new loads or answers meanwhile
+    let gpuOk = false;                    // the graphics chip worked once: no need to ask Chrome again
     let bundled = undefined;              // true/false once checked: is the model file packed inside the extension?
     let prepared = null;                  // { key, conv: Promise } a conversation with its system prompt already read
     let queue = Promise.resolve();        // one generation at a time
@@ -75,10 +78,12 @@
     async function unsupportedReason() {
       if (!d.gpu) return "no-webgpu";
       if (!d.jspi) return "old-browser";
+      if (gpuOk) return null;
       try {
         const a = await d.gpu.requestAdapter({ powerPreference: "high-performance" });
         if (!a || (a.info && a.info.isFallbackAdapter)) return "no-gpu";
       } catch (e) { return "no-gpu"; }
+      gpuOk = true;
       return null;
     }
 
@@ -94,52 +99,67 @@
 
     async function cached() {
       const cache = await d.caches.open(CACHE);
-      return cache.match(MODEL.url);
+      return cache.match(M.url);
     }
+
+    const notReady = () => Object.assign(new Error("C's brain isn't downloaded yet."), { code: "NOT_READY" });
 
     // What's true right now: can this browser run Gemma, and is the model here (packed in, or downloaded)?
     async function check() {
       const why = await unsupportedReason();
       if (why) return { state: "unsupported", reason: why, error: REASONS[why] };
-      if (engine) return { state: "ready", error: null };
-      const have = (await hasBundled()) || !!(await cached());
-      return { state: have ? "downloaded" : "none", error: null, loaded: have ? MODEL.bytes : 0 };
+      const where = engine ? null : (await hasBundled()) ? "bundled" : (await cached()) ? "downloaded" : null;
+      if (engine) return { state: "ready", error: null };   // looked at last: Gemma may have finished loading meanwhile
+      return { state: where ? "downloaded" : "none", where, error: null, loaded: where ? M.bytes : 0 };
     }
 
     async function refresh() {
-      if (downloading) return status;          // the download keeps its own progress up to date
+      if (downloading || removing) return status;   // they keep the status up to date themselves
       if (loading) return set({ state: "loading" });
-      return set(await check());
+      const seen = await check();
+      if (downloading || loading || removing) return status;   // one of them started while we looked
+      return set(seen);
     }
 
     // ---------- one-time download (whole file, same for everyone; nothing about you is sent) ----------
     function download() {
       if (downloading) return downloading;
+      if (removing) return Promise.resolve(status);
+      let stopped = false;
       downloading = (async () => {
-        const now0 = await check();
-        if (now0.state !== "none") return set(now0);   // unsupported, already here, or loaded
+        const seen = await check();
+        if (seen.state !== "none") return set(seen);   // unsupported, already here, or loaded
         const controller = new AbortController();
-        stopDownload = () => controller.abort();
-        set({ state: "downloading", loaded: 0, total: MODEL.bytes, error: null });
-        const res = await d.fetch(MODEL.url, { signal: controller.signal, cache: "no-store" });
+        stopDownload = () => { stopped = true; controller.abort(); };
+        set({ state: "downloading", loaded: 0, total: M.bytes, error: null });
+        const res = await d.fetch(M.url, { signal: controller.signal, cache: "no-store" });
         if (!res.ok || !res.body) throw new Error(`Download failed (HTTP ${res.status})`);
-        const total = Number(res.headers.get("content-length")) || MODEL.bytes;
+        const told = Number(res.headers.get("content-length"));
+        if (told && told !== M.bytes && !res.headers.get("content-encoding")) {   // e.g. a Wi-Fi sign-in page instead
+          controller.abort();
+          throw new Error("The download wasn't C's brain file. Check your internet connection and try again.");
+        }
         let loaded = 0, lastPost = 0;
         const counter = new TransformStream({
           transform(chunk, out) {
             loaded += chunk.byteLength;
             const t = now();
-            if (t - lastPost > 400) { lastPost = t; set({ loaded, total }); }
+            if (t - lastPost > 400) { lastPost = t; set({ loaded, total: M.bytes }); }
             out.enqueue(chunk);
           }
         });
         const cache = await d.caches.open(CACHE);
-        await cache.put(MODEL.url, new Response(res.body.pipeThrough(counter), {
-          headers: { "content-type": "application/octet-stream", "content-length": String(total) }
-        }));
-        if (loaded !== total) { await cache.delete(MODEL.url); throw new Error("The download was incomplete. Try again."); }
-        return set({ state: "downloaded", loaded, total, error: null });
-      })().catch((e) => set({ state: "error", error: friendly(e) }))
+        try {
+          await cache.put(M.url, new Response(res.body.pipeThrough(counter), {
+            headers: { "content-type": "application/octet-stream", "content-length": String(M.bytes) }
+          }));
+          if (loaded !== M.bytes) throw new Error("The download was incomplete. Try again.");   // exact size of the pinned file
+        } catch (e) {
+          await cache.delete(M.url).catch(() => {});   // never keep part of the file
+          throw e;
+        }
+        return set({ state: "downloaded", where: "downloaded", loaded, total: M.bytes, error: null });
+      })().catch((e) => (stopped ? set({ state: "none", loaded: 0, error: null }) : set({ state: "error", error: friendly(e) })))
         .finally(() => { downloading = null; stopDownload = null; });
       return downloading;
     }
@@ -148,13 +168,14 @@
     function load() {
       if (engine) return Promise.resolve(engine);
       if (loading) return loading;
+      if (removing) return Promise.reject(notReady());
       loading = (async () => {
         const why = await unsupportedReason();
         if (why) { set({ state: "unsupported", reason: why, error: REASONS[why] }); throw Object.assign(new Error(REASONS[why]), { code: "UNSUPPORTED" }); }
         let stream = null, where = null;
         if (await hasBundled()) { const r = await d.fetch(d.bundledModelUrl); if (r.ok) { stream = r.body; where = "bundled"; } }
         if (!stream) { const hit = await cached(); if (hit) { stream = hit.body; where = "downloaded"; } }
-        if (!stream) { set({ state: "none" }); throw Object.assign(new Error("C's brain isn't downloaded yet."), { code: "NOT_READY" }); }
+        if (!stream) { set({ state: "none" }); throw notReady(); }
         set({ state: "loading", error: null });
         const t0 = now();
         if (!runtimeReady) runtimeReady = d.lm.getOrLoadGlobalLiteRtLm(d.wasmUrl);   // our own copy, never a CDN
@@ -171,9 +192,9 @@
     }
 
     async function unload() {
-      const p = prepared; prepared = null;
-      if (p) { try { const c = await p.conv; if (c) await c.delete(); } catch (e) { /* gone */ } }
-      const e = engine; engine = null;
+      const p = prepared, e = engine;
+      prepared = null; engine = null;        // first, so nothing picks them up while they're being freed
+      if (p) { try { const c = await p.conv; if (c) await c.delete(); } catch (err) { /* gone */ } }
       if (e) { try { await e.delete(); } catch (err) { /* gone */ } }
     }
 
@@ -201,7 +222,7 @@
 
     function prepare(req) {
       const s = settingsFor(req);
-      if (prepared && prepared.key === s.key) return;
+      if (!engine || removing || (prepared && prepared.key === s.key)) return;
       const old = prepared;
       prepared = { key: s.key, conv: engine.createConversation(s.config).catch(() => null) };
       if (old) old.conv.then((c) => c && c.delete()).catch(() => {});
@@ -225,6 +246,7 @@
 
     async function run(req) {
       if (cancelledEarly.delete(req.id)) return { error: "Cancelled", code: "CANCELLED" };
+      if (removing) return { error: notReady().message, code: "NOT_READY" };
       const mine = { conv: null, cancelled: false };
       running.set(req.id, mine);
       try {
@@ -258,7 +280,7 @@
       } finally {
         running.delete(req.id);
         if (mine.conv) mine.conv.delete().catch(() => {});
-        if (engine && req.keepReady !== false && !req.json) { try { prepare(req); } catch (e) { /* next time */ } }
+        if (req.keepReady !== false && !req.json) { try { prepare(req); } catch (e) { /* next time */ } }
         touch();
       }
     }
@@ -284,11 +306,18 @@
       return status;
     }
 
+    // Delete: stop whatever is using the file first (an answer, the download, loading), then free and delete it.
     async function remove() {
-      if (stopDownload) stopDownload();
-      await unload();
-      const cache = await d.caches.open(CACHE);
-      await cache.delete(MODEL.url);
+      if (!removing) {
+        removing = (async () => {
+          for (const id of running.keys()) cancel(id);
+          if (stopDownload) stopDownload();
+          await Promise.all([downloading, loading, queue].map((p) => p && p.catch(() => {})));
+          await unload();
+          await (await d.caches.open(CACHE)).delete(M.url);
+        })().finally(() => { removing = null; });
+      }
+      await removing;
       return refresh();
     }
 
@@ -296,7 +325,7 @@
       switch (msg && msg.cmd) {
         case "status": return refresh();
         case "download": download(); return status;
-        case "cancel-download": if (stopDownload) stopDownload(); return status;
+        case "cancel-download": if (stopDownload) stopDownload(); return downloading || status;
         case "warm": return warm(msg);
         case "generate": return generate(msg);
         case "cancel": return { cancelled: cancel(msg.id) };

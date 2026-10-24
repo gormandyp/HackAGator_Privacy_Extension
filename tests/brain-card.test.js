@@ -4,7 +4,7 @@ const test = require("node:test");
 const assert = require("node:assert");
 globalThis.window = globalThis;
 require("../dashboard/brain-card.js");
-const { view, html } = window.PrivaCBrainCard;
+const { view, html, warmAfter } = window.PrivaCBrainCard;
 
 test("before the download: one clear offer with the real size", () => {
   const v = view({ use: "browser", status: { state: "none", total: 2008432640 }, ollama: false });
@@ -49,4 +49,17 @@ test("deleting the 2 GB download asks once, right in the card (no pop-up dialog)
   const confirm = view(ready, { confirmRemove: true });
   assert.match(confirm.title, /Delete C's brain/);
   assert.deepStrictEqual(confirm.actions.map((a) => a[0]), ["remove", "keep"]);
+});
+
+test("a model file packed inside the extension isn't offered for deletion (the card can't delete it)", () => {
+  for (const state of ["ready", "downloaded"]) {
+    assert.ok(!view({ use: "browser", status: { state, where: "bundled" } }).actions.some((a) => a[0] === "ask-remove"));
+    assert.ok(view({ use: "browser", status: { state, where: "downloaded" } }).actions.some((a) => a[0] === "ask-remove"));
+  }
+});
+
+test("speed: when the download finishes, Gemma starts loading right away (but not after it was unloaded for being idle)", () => {
+  assert.strictEqual(warmAfter("downloading", "downloaded"), true);
+  assert.strictEqual(warmAfter("ready", "downloaded"), false);
+  assert.strictEqual(warmAfter("downloaded", "downloaded"), false);
 });

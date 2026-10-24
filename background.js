@@ -19,10 +19,11 @@ function askDeps(onToken, signal) {
            ask: onToken ? (q, o) => PrivaCAI.ask(q, { ...o, onToken }) : PrivaCAI.ask };
 }
 
-// Speed: load Gemma before the first question (the dashboard and popup say they're open). At most once a minute.
+// Speed: load Gemma before the first question (the dashboard and popup say they're open). At most once a minute,
+// except right after C's brain finishes downloading (force).
 let lastWarm = 0;
-function warmGemma() {
-  if (Date.now() - lastWarm < 60000) return;
+function warmGemma(force) {
+  if (!force && Date.now() - lastWarm < 60000) return;
   lastWarm = Date.now();
   PrivaCAI.warm(PrivaCAskC.SYSTEM_PROMPT);   // readies Ask C's conversation, so only the question is left to read
 }
@@ -50,7 +51,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       .catch((e) => sendResponse({ error: (e && e.message) || "C's brain isn't ready yet." }));
     return true; // keep the channel open for the async reply
   }
-  if (msg && (msg.type === "privac-warm" || msg.type === "privac-tab-site")) warmGemma();   // the popup asks for its tab's site when it opens
+  if (msg && (msg.type === "privac-warm" || msg.type === "privac-tab-site")) warmGemma(msg.force === true);   // the popup asks for its tab's site when it opens
   if (msg && msg.type === "privac-ai") {   // dashboard: C's brain status, download, remove, Ollama/browser choice
     PrivaCAI.command(msg).then(sendResponse, (e) => sendResponse({ error: String((e && e.message) || e) }));
     return true;

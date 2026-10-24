@@ -19,16 +19,18 @@
       return { tone: "quiet", title: "Ask C is using Ollama on this computer.",
         text: "", actions: [["use-browser", "Use the in-browser brain"]] };
     }
+    // A model file packed inside the extension folder can't be deleted from here, so only a download is offered.
+    const quietActions = [["use-ollama", "Use Ollama instead"]].concat(s.where === "bundled" ? [] : [["ask-remove", "Delete download"]]);
     switch (s.state) {
       case "ready":
         return { tone: "quiet", title: `${s.name || "Gemma 4 E2B"} is running in your browser.`,
-          text: "", actions: [["use-ollama", "Use Ollama instead"], ["ask-remove", "Delete download"]] };
+          text: "", actions: quietActions };
       case "loading":
         return { tone: "info", title: "Getting C's brain ready...",
           text: "Loading Gemma into your graphics chip. The very first time can take about 20 seconds.", actions: [], busy: true };
       case "downloaded":
         return { tone: "quiet", title: `${s.name || "Gemma 4 E2B"} is downloaded and loads when you ask.`,
-          text: "", actions: [["use-ollama", "Use Ollama instead"], ["ask-remove", "Delete download"]] };
+          text: "", actions: quietActions };
       case "downloading": {
         const pct = Math.max(0, Math.min(100, Math.round(((s.loaded || 0) / total) * 100)));
         return { tone: "info", title: `Downloading C's brain: ${gb(s.loaded || 0)} of ${gb(total)} GB`,
@@ -57,7 +59,12 @@
     </div>`;
   }
 
+  // Speed: when the one-time download finishes, start loading Gemma right away (the very first load takes ~20 s),
+  // so the first question doesn't wait for it. Not when it was unloaded for being idle: that would undo it.
+  const warmAfter = (was, now) => was === "downloading" && now === "downloaded";
+
   function hasRuntime() { return typeof chrome !== "undefined" && chrome.runtime && chrome.runtime.id && chrome.runtime.sendMessage; }
+  function warm(force) { try { chrome.runtime.sendMessage({ type: "privac-warm", force }).catch(() => {}); } catch (e) { /* no background */ } }
 
   async function init() {
     const host = document.getElementById("ask-c");
@@ -96,14 +103,13 @@
       info = { ...(info || {}), status: msg.status };
       render();
       if (was !== "downloaded" && msg.status.state === "downloaded") send("status");   // fresh after the download
+      if (warmAfter(was, msg.status.state)) warm(true);
     });
     await send("status");
     // Downloaded but not loaded yet: start loading now, so the first question is quick.
-    if (info && info.use !== "ollama" && info.status && info.status.state === "downloaded") {
-      try { chrome.runtime.sendMessage({ type: "privac-warm" }).catch(() => {}); } catch (e) { /* ignore */ }
-    }
+    if (info && info.use !== "ollama" && info.status && info.status.state === "downloaded") warm(false);
   }
 
-  window.PrivaCBrainCard = { view, html };
+  window.PrivaCBrainCard = { view, html, warmAfter };
   if (typeof document !== "undefined") init();
 })();
