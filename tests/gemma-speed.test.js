@@ -85,3 +85,18 @@ test("Ask C goes first: a background policy read pauses, then finishes after the
   assert.deepStrictEqual(await policy, { answers: [] });
   assert.deepStrictEqual(order, ["start policy", "start question", "end question", "start policy", "end policy"]);
 });
+
+test("a slightly broken JSON reply still yields the answers (quotes are checked against the policy later)", () => {
+  const messy = '```json\n{"answers": [\n{"id": "sells", "answer": "no", "quote": "We do not sell your \\"data\\"."}\n},\n{"id": "shares", "answer": "yes", "quote": "We share it."}\n}\n]\n```';
+  assert.deepStrictEqual(G.parseJsonReply(messy), { answers: [
+    { id: "sells", answer: "no", quote: 'We do not sell your "data".' },
+    { id: "shares", answer: "yes", quote: "We share it." }] });
+  assert.throws(() => G.parseJsonReply("Sorry, I can't."), /valid JSON/);
+});
+
+test("a stalled stream is hung up with a clear message", async () => {
+  const stalled = async (url, init) => ({ ok: true, status: 200, body: { getReader: () => ({
+    read: () => new Promise((resolve, reject) => init.signal.addEventListener("abort", () => reject(Object.assign(new Error("aborted"), { name: "AbortError" })))),
+    cancel: async () => {} }) } });
+  await assert.rejects(G.ask("Hi", { fetch: stalled, onToken: () => {}, timeoutMs: 30 }), /took too long/);
+});

@@ -75,8 +75,10 @@
   async function send(question, opts, controller) {
     const fetchFn = opts.fetch || globalThis.fetch;
     const wait = opts.timeoutMs || TIMEOUT_MS;
-    let timer = setTimeout(() => controller.abort(), wait);
-    const stillAlive = () => { clearTimeout(timer); timer = setTimeout(() => controller.abort(), wait); };
+    let timedOut = false;
+    const expire = () => { timedOut = true; controller.abort(); };
+    let timer = setTimeout(expire, wait);
+    const stillAlive = () => { clearTimeout(timer); timer = setTimeout(expire, wait); };
     try {
       let res;
       try {
@@ -88,18 +90,45 @@
         });
       } catch (e) {
         if (controller.preempted) throw e;
+        if (timedOut) throw new Error("Gemma took too long to answer. Try again in a moment.");
         throw new Error("C can't reach Gemma. Is the Ollama app running? (see docs/OLLAMA.md)");
       }
       if (res.status === 403) throw new Error("Ollama blocked the extension. Set OLLAMA_ORIGINS (see docs/OLLAMA.md).");
       if (!res.ok) throw new Error(`Gemma error ${res.status}`);
       let text;
-      if (opts.onToken && res.body && res.body.getReader) text = await readStream(res.body, opts.onToken, stillAlive);
-      else { const data = await res.json(); text = (data.message && data.message.content) || ""; }
+      try {
+        if (opts.onToken && res.body && res.body.getReader) text = await readStream(res.body, opts.onToken, stillAlive);
+        else { const data = await res.json(); text = (data.message && data.message.content) || ""; }
+      } catch (e) {
+        if (timedOut && !controller.preempted) throw new Error("Gemma took too long to answer. Try again in a moment.");
+        throw e;
+      }
       text = text.trim();
-      if (!opts.json) return text;
-      try { return JSON.parse(text); } catch (e) { throw new Error("Gemma did not return valid JSON"); }
+      return opts.json ? parseJsonReply(text) : text;
+    } catch (e) {
+      controller.abort();   // hang up, so Ollama stops writing an answer nobody will read
+      throw e;
     } finally {
       clearTimeout(timer);
+    }
+  }
+
+  // JSON answers (policy reader). Ollama's format:"json" is valid JSON; small models without it sometimes wrap it
+  // in ``` fences or add a stray brace, so each {"id","answer","quote"} is pulled out directly as a fallback.
+  // (Quotes are checked against the policy text afterwards, so a bad pull-out becomes "unknown", never a fact.)
+  function parseJsonReply(text) {
+    const s = String(text || "").replace(/```(?:json)?/gi, "");
+    const a = s.indexOf("{"), b = s.lastIndexOf("}");
+    try { return JSON.parse(a >= 0 && b > a ? s.slice(a, b + 1) : s); } catch (e) {
+      const answers = [];
+      const re = /"id"\s*:\s*"([^"]+)"[^{}]*?"answer"\s*:\s*"([a-z]+)"(?:[^{}]*?"quote"\s*:\s*"((?:[^"\\]|\\.)*)")?/gi;
+      for (let m; (m = re.exec(s)); ) {
+        let quote = "";
+        try { quote = m[3] ? JSON.parse(`"${m[3]}"`) : ""; } catch (err) { quote = ""; }
+        answers.push({ id: m[1], answer: m[2], quote });
+      }
+      if (!answers.length) throw new Error("Gemma did not return valid JSON");
+      return { answers };
     }
   }
 
@@ -111,37 +140,46 @@
     const line = (raw) => {
       const s = raw.trim();
       if (!s) return;
-      const msg = JSON.parse(s);
+      let msg;
+      try { msg = JSON.parse(s); } catch (e) { return; }   // skip a garbled line instead of losing the answer
       if (msg.error) throw new Error(`Gemma error: ${msg.error}`);
       const piece = (msg.message && msg.message.content) || "";
       if (!piece) return;
       text += piece;
       try { onToken(piece, text); } catch (e) { /* a display problem must not stop the answer */ }
     };
-    for (;;) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      onChunk();
-      buf += decoder.decode(value, { stream: true });
-      for (let nl = buf.indexOf("\n"); nl >= 0; nl = buf.indexOf("\n")) { line(buf.slice(0, nl)); buf = buf.slice(nl + 1); }
+    try {
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        onChunk();
+        buf += decoder.decode(value, { stream: true });
+        for (let nl = buf.indexOf("\n"); nl >= 0; nl = buf.indexOf("\n")) { line(buf.slice(0, nl)); buf = buf.slice(nl + 1); }
+      }
+      line(buf + decoder.decode());
+      return text;
+    } catch (e) {
+      try { reader.cancel().catch(() => {}); } catch (err) { /* already closed */ }
+      throw e;
     }
-    line(buf + decoder.decode());
-    return text;
   }
 
   // Load Gemma into memory ahead of time (no question asked), e.g. when the dashboard opens, so the first
   // answer doesn't wait ~4 s for the model to load. Never throws; resolves true when Ollama answered.
   async function warm(opts = {}) {
     const fetchFn = opts.fetch || globalThis.fetch;
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), opts.timeoutMs || TIMEOUT_MS);
     try {
       const res = await fetchFn(OLLAMA_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ model: opts.model || MODEL, messages: [], keep_alive: KEEP_ALIVE, options: { num_ctx: NUM_CTX } })
+        body: JSON.stringify({ model: opts.model || MODEL, messages: [], keep_alive: KEEP_ALIVE, options: { num_ctx: NUM_CTX } }),
+        signal: controller.signal
       });
       return !!(res && res.ok);
-    } catch (e) { return false; }
+    } catch (e) { return false; } finally { clearTimeout(timer); }
   }
 
-  (typeof window !== "undefined" ? window : self).PrivaCGemma = { ask, warm, buildRequest, MODEL, OLLAMA_URL, KEEP_ALIVE, NUM_CTX };
+  (typeof window !== "undefined" ? window : self).PrivaCGemma = { ask, warm, buildRequest, parseJsonReply, MODEL, OLLAMA_URL, KEEP_ALIVE, NUM_CTX };
 })();

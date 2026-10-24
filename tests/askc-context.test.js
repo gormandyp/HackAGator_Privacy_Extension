@@ -76,3 +76,14 @@ test("cookie purposes that share a name are counted together", () => {
   const ctx = buildContext({ sites: [{ ...site(1), cookies }] }, "2026-10-24", []);
   assert.match(ctx, /cookies stored: 3 \(2 needed for the site to work, 1 advertising and profiling\)/);
 });
+
+test("odd saved data (an empty site entry, a missing tracker) never stops C from answering", () => {
+  const ctx = buildContext({ sites: [null, { domain: "odd.example", trackers: [null, T("Criteo")] }, { domain: "bare.example" }] }, "2026-10-24", [], null, "Who is Criteo?");
+  assert.match(ctx, /odd\.example/);
+  assert.match(ctx, /bare\.example/);
+});
+
+test("each site's own privacy policy is labeled as the site's, so a tracker company isn't credited with it", () => {
+  const ctx = buildContext({ sites: [{ ...site(1), policy: { sells: true } }] }, "2026-10-24", []);
+  assert.match(ctx, /this site's own privacy policy says it sells personal info \[Privacy policy\]/);
+});

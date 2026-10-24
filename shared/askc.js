@@ -132,7 +132,7 @@ Steps the person can take (no tag needed):
     const fp = (s.trackers || []).filter(x => (x.fingerprinting || 0) >= 2).map(x => x.company);
     const smText = stateMediaText(s.owner);
     const fpText = fp.length ? `; trackers that read device details to recognize you without cookies (fingerprinting): ${[...new Set(fp)].join(", ")} [Tracker Radar]` : "";
-    return `- ${s.domain}, visited ${day}: grade ${s.grade}, exposure ${s.score}/100, cookies ${s.cookieChoice || "none"} [Seen on your visit]; trackers seen [Seen on your visit]: ${t}; privacy policy ${pol}${br}${ck}${fpText}${smText}`;
+    return `- ${s.domain}, visited ${day}: grade ${s.grade}, exposure ${s.score}/100, cookies ${s.cookieChoice || "none"} [Seen on your visit]; trackers seen [Seen on your visit]: ${t}; this site's own privacy policy ${pol}${br}${ck}${fpText}${smText}`;
   }
 
   // Tracker Radar totals per company (domains, main category, country, biggest reach). Built once per Atlas.
@@ -219,15 +219,16 @@ Steps the person can take (no tag needed):
       const nq = " " + L.norm(question) + " ";
       const asked = new Set();
       for (const s of sites) for (const t of s.trackers || []) {
-        const n = t.company && L.norm(t.company);
+        const n = t && t.company && L.norm(t.company);
         if (n && n.length >= 4 && nq.includes(" " + n + " ")) asked.add(t.company);
       }
-      if (asked.size) byCompany = sites.filter(s => (s.trackers || []).some(t => asked.has(t.company)));
+      if (asked.size) byCompany = sites.filter(s => (s.trackers || []).some(t => t && asked.has(t.company)));
     }
     return [...new Set([...named, ...byCompany])];
   }
 
   const yearOf = (b) => String(b.breachDate || b.addedDate || "").slice(0, 4);
+  const ADVERSARY = new Set(["CN", "HK", "RU", "IR", "CU", "KP", "VE"]);   // 15 CFR 7.4 (same list as shared/data.js)
   const countryName = (c) => COUNTRY_NAMES[c] || (c === "HK" ? "Hong Kong (China)" : c);
   const more = (list, max) => (list.length > max ? `; and ${list.length - max} more` : "");
 
@@ -242,7 +243,7 @@ Steps the person can take (no tag needed):
       choices[s.cookieChoice in choices ? s.cookieChoice : "none"]++;
       const why = new Map();
       for (const t of s.trackers || []) {
-        if (!t.company) continue;
+        if (!t || !t.company) continue;
         let x = byCo.get(t.company);
         if (!x) byCo.set(t.company, (x = { sites: new Set(), category: t.category, country: t.country }));
         x.sites.add(s.domain);
@@ -252,11 +253,11 @@ Steps the person can take (no tag needed):
           if (!b.sites.includes(s.domain)) b.sites.push(s.domain);
         }
         const listed = t.listed || listedCompany(t.company, extra);
-        const inCountry = COUNTRY_NAMES[t.country] || t.country === "HK";
+        const inCountry = ADVERSARY.has(t.country);
         if (inCountry || listed) why.set(t.company, `${t.company} (${[inCountry ? countryName(t.country) : null, listed ? "Section 1260H list" : null].filter(Boolean).join("; ")})`);
       }
-      for (const t of s.flagged || []) if (t.company && !why.has(t.company)) why.set(t.company, `${t.company} (${countryName(t.country)})`);
-      if (s.owner && (COUNTRY_NAMES[s.owner.country] || s.owner.country === "HK")) why.set("owner", `the site belongs to ${s.owner.company} (${countryName(s.owner.country)}${s.owner.stateMedia ? ", state-run media" : ""})`);
+      for (const t of s.flagged || []) if (t && t.company && !why.has(t.company)) why.set(t.company, `${t.company} (${countryName(t.country)})`);
+      if (s.owner && ADVERSARY.has(s.owner.country)) why.set("owner", `the site belongs to ${s.owner.company} (${countryName(s.owner.country)}${s.owner.stateMedia ? ", state-run media" : ""})`);
       if (s.addressFlag) why.set("address", `web address ends in ${s.addressFlag.ending} (${countryName(s.addressFlag.country)})`);
       if (s.serverFlag) why.set("server", `server registered in ${countryName(s.serverFlag.country)}`);
       if (why.size) flagged.push(`${s.domain}: ${[...why.values()].join(", ")}`);
@@ -284,7 +285,8 @@ Steps the person can take (no tag needed):
   // extra = { flagged, regtrack }: the checked fact files (optional; context still builds without them).
   // question (optional): sites it names, and sites where companies it names were seen, are shown in full.
   function buildContext(data, today, facts, extra, question) {
-    const sites = [...((data && data.sites) || [])].sort((a, b) => (b.score || 0) - (a.score || 0));
+    const tidy = (s) => (Array.isArray(s.trackers) && s.trackers.some(t => !t) ? { ...s, trackers: s.trackers.filter(Boolean) } : s);
+    const sites = ((data && data.sites) || []).filter(Boolean).map(tidy).sort((a, b) => (b.score || 0) - (a.score || 0));
     // Unchanging background first, then everything about this question: Ollama can reuse the start of the last prompt.
     const date = `Today is ${today || new Date().toISOString().slice(0, 10)}.`;
     const bg = BACKGROUND + regtrackLines(extra) + (facts && facts.length ? `\n\nFacts about what you asked:\n${facts.join("\n")}` : "");
