@@ -123,3 +123,19 @@ test("the background hands Ask C the word-by-word callback, so askc.js can hide 
   const bg = require("node:fs").readFileSync(__dirname + "/../background.js", "utf8");
   assert.match(bg, /function askDeps\(onToken, signal, history\) \{[^}]*history, onToken,\s*ask: PrivaC(Gemma|AI)\.ask \};/);
 });
+
+// Max (IDEA.md, Oct 24) again: the steps were only part of it. Gemma sometimes says the same sentence twice or writes a
+// source tag it has no evidence for; both were removed only when the answer finished, so the paragraph shrank. Now
+// the text is cleaned the same way while C is writing.
+test("while C is writing, a repeated sentence or an unsupported tag never shows, so the answer doesn't shrink at the end", async () => {
+  const one = "Criteo is an ad company. [Tracker Radar]";
+  const pieces = [`${one} It`, `${one} It follows you across sites.`, `${one} It follows you across sites. Criteo is an ad`,
+    `${one} It follows you across sites. Criteo is an ad company. [HIBP]`];
+  const { shown, final } = await streamed("Who is Criteo?", pieces);
+  for (const t of shown) {
+    assert.ok(!/Criteo is an ad[\s\S]*Criteo is an ad/.test(t), "repeat shown: " + JSON.stringify(t));
+    assert.ok(!/\[HIBP\]/.test(t), "unsupported tag shown: " + JSON.stringify(t));
+  }
+  assert.strictEqual(final, `${one} It follows you across sites.`);
+  assert.strictEqual(shown[shown.length - 1].trim(), final, "what was shown is what stays");
+});

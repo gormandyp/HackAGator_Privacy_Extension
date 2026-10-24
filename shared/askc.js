@@ -763,6 +763,16 @@ Steps the person can take (no tag needed):
     return t.replace(/[ \t]+([.,;])/g, "$1").replace(/[ \t]{2,}/g, " ").trim();
   }
 
+  // A half-written last sentence that starts like one C already said stays hidden: if it turns out to be a repeat,
+  // it would be removed when the answer finishes; if not, it shows a word or two later.
+  function hideHalfRepeat(text) {
+    const m = text.match(/^([\s\S]*[.!?\]])\s+([^.!?\]]+)$/);
+    if (!m) return text;
+    const key = (s) => s.replace(/\[[^\]]*\]?/g, "").replace(/\s+/g, " ").trim().toLowerCase();
+    const tail = key(m[2]);
+    return tail && m[1].split(/(?<=[.!?])\s+/).some((s) => key(s).startsWith(tail)) ? m[1] : text;
+  }
+
   // The same question with the same evidence gets the same answer: Gemma picks its words with a fixed seed
   // (with a random one, asking twice gave two different answers).
   const SEED = 7;
@@ -799,12 +809,16 @@ Steps the person can take (no tag needed):
       const context = buildContext(data, null, facts, extra, q, standalone ? [] : deps.history) +
         (steps ? "" : `\n\nFor this question: Don't add a "What you can do" line; just answer it.`) +
         (breachNames ? `\n\nFor this question: they want more about ${breachNames}'s breach record. Answer only about ${breachNames}, from its [HIBP] facts; don't bring up other sites' breaches.` : "");
-      const raw = await deps.ask(q, { system: SYSTEM_PROMPT, context, options: { temperature: 0.2, seed: SEED },
-                                      ...(deps.signal ? { signal: deps.signal } : {}),
-                                      ...(deps.onToken ? { onToken: (piece, so) => deps.onToken(piece, steps ? so : hideSteps(so)) } : {}) });
       // A source tag needs evidence behind it: Gemma wrote [HIBP] with no breach facts (2026-10-24), which also showed a
       // "Have I Been Pwned" check mark C never made. Tags that aren't in the evidence are removed, so their chips don't show.
-      const sourced = dropUnbackedBreaches(cleanAnswer(raw), lists).replace(/\s*\[([^\]]+)\]/g, (m, tag) => (TAGS.includes(tag) && !context.includes(`[${tag}]`) ? "" : m));
+      const sourcedOnly = (t) => dropUnbackedBreaches(t, lists).replace(/\s*\[([^\]]+)\]/g, (m, tag) => (TAGS.includes(tag) && !context.includes(`[${tag}]`) ? "" : m));
+      // While C is writing, his words get the same clean-up as the finished answer (repeats, unsupported tags, steps),
+      // so nothing he showed is taken away at the end (Max, IDEA.md).
+      const writing = (so) => hideHalfRepeat(sourcedOnly(cleanAnswer(steps ? so : hideSteps(so))));
+      const raw = await deps.ask(q, { system: SYSTEM_PROMPT, context, options: { temperature: 0.2, seed: SEED },
+                                      ...(deps.signal ? { signal: deps.signal } : {}),
+                                      ...(deps.onToken ? { onToken: (piece, so) => deps.onToken(piece, writing(so)) } : {}) });
+      const sourced = sourcedOnly(cleanAnswer(raw));
       const text = steps ? sourced : dropSteps(sourced);
       if (/\[Government list\]/.test(text)) trace.push({ tool: "background_facts", label: "Government lists" });
       if (/\[Tracker Radar\]/.test(text)) trace.push({ tool: "lookup_company", label: "Tracker Radar" });
