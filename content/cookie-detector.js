@@ -37,7 +37,10 @@
         /^continue without consent$/i,
         /^save necessary cookies only$/i,
         /^reject all optional cookies$/i,
-        /^reject all non-essential cookies$/i
+        /^reject all non-essential cookies$/i,
+        /^deny cookies$/i,                     // Superdrug
+        /^reject additional cookies$/i,        // gov.uk
+        /^allow recommended cookies only$/i
     ];
 
   let promptedFor = null;
@@ -369,6 +372,9 @@
     childList: true,
     subtree: true
   });
+
+  // Lets the tests run a re-check (tests/cookie-detector.test.js).
+  window.PrivaCCookieCheck = checkForCookieBanner;
 
   checkForCookieBanner();
   setTimeout(checkForCookieBanner, 1500);
