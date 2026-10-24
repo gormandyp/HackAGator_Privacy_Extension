@@ -36,6 +36,20 @@ body { width: 392px; margin: 0; padding: 8px 9px 0; font-size: 13px; }
 .btn-main[hidden], .btn-quiet[hidden], .sample-badge[hidden] { display: none; }
 .bar.bottom .btn-main[hidden] + .btn-quiet { flex: 1 1 auto; }
 
+/* ---- In Chrome's own window (Chrome's pages like the new tab page, or Settings > Toolbar pop-up > Chrome's) ----
+   Chrome draws that window as a plain rectangle and extensions can't round it, so rounded bars floating inside its
+   square edges looked rough. Here the bars run edge to edge with a hairline toward the content, like a Mac menu. */
+:root:not(.in-panel) body { padding: 0; }
+:root:not(.in-panel) .bar.top { top: 0; border-radius: 0; }
+:root:not(.in-panel) .bar.bottom { bottom: 0; margin-top: 8px; border-radius: 0; }
+:root:not(.in-panel) .bar::before { display: none; }
+:root:not(.in-panel) main { margin: 8px 9px 0; }
+:root:not(.in-panel)[data-style="glass"] .bar.top { box-shadow: 0 .5px 0 var(--hair-strong); }
+:root:not(.in-panel)[data-style="glass"] .bar.bottom { box-shadow: 0 -.5px 0 var(--hair-strong); }
+:root:not(.in-panel)[data-style="clean"] .bar { border-width: 0; box-shadow: none; }
+:root:not(.in-panel)[data-style="clean"] .bar.top { border-bottom-width: 1px; }
+:root:not(.in-panel)[data-style="clean"] .bar.bottom { border-top-width: 1px; }
+
 /* ---- Panes ---- */
 main { display: grid; gap: 8px; margin-top: 8px; }
 .card { padding: 13px 14px 14px; border-radius: 18px; }
