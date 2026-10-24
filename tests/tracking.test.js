@@ -5,7 +5,7 @@ const fs = require("node:fs");
 const vm = require("node:vm");
 
 // Load background/tracking.js with a fake Chrome so we can drive it.
-function load(openTabs = []) {
+function load(openTabs = [], frames = null) {
   let store = {}, writes = 0;
   const listeners = {};
   const on = (name) => ({ addListener: (fn) => { listeners[name] = fn; } });
@@ -14,7 +14,8 @@ function load(openTabs = []) {
       get: async (k) => ({ [k]: store[k] && JSON.parse(JSON.stringify(store[k])) }),
       set: async (o) => { writes++; Object.assign(store, JSON.parse(JSON.stringify(o))); }
     } },
-    webNavigation: { onCommitted: on("nav") },
+    // frames (optional): what each tab shows right now, as Chrome's webNavigation.getFrame reports it.
+    webNavigation: { onCommitted: on("nav"), ...(frames ? { getFrame: async ({ tabId }) => (frames[tabId] ? { url: frames[tabId] } : null) } : {}) },
     webRequest: { onBeforeRequest: on("req"), onResponseStarted: on("resp") },
     tabs: { onRemoved: on("closed"), query: async () => openTabs },
     runtime: { onMessage: on("msg") }
@@ -209,3 +210,22 @@ test("the popup can ask which site a tab is on (when Chrome hides the tab's addr
   assert.strictEqual(answer.domain, "google.com");
 });
 
+
+test("once a tab shows one of Chrome's own pages (new tab, settings), the popup isn't told the website it showed before", async () => {
+  const frames = {};
+  const t = load([], frames);
+  t.listeners.nav({ frameId: 0, tabId: 41, url: "https://mlh.com/" });
+  await t.flush();
+  frames[41] = "chrome://new-tab-page/";   // Chrome sends extensions no navigation event for its own pages
+  const answer = await new Promise((r) => t.listeners.msg({ type: "privac-tab-site", tabId: 41 }, {}, r));
+  assert.strictEqual(answer.domain, null);
+});
+
+test("the popup is told the website the tab really shows right now", async () => {
+  const frames = { 42: "https://www.google.com/search?q=mlh" };
+  const t = load([], frames);
+  t.listeners.nav({ frameId: 0, tabId: 42, url: "https://mlh.com/" });   // an older record for this tab
+  await t.flush();
+  const answer = await new Promise((r) => t.listeners.msg({ type: "privac-tab-site", tabId: 42 }, {}, r));
+  assert.strictEqual(answer.domain, "google.com");
+});

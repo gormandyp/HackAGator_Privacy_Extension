@@ -256,14 +256,18 @@
     return { sample: !!data.sample, sites };
   }
 
-  // Domain of the tab the user is looking at (popup only). Falls back to the first site.
+  // Domain of the website in the tab the user is looking at (popup only), or null when the tab isn't showing a
+  // website (the new-tab page, Chrome's settings, PrivaC's own pages).
   async function currentDomain() {
     // The popup is open, so "Ask C about this site" may be next: start loading Gemma now (background.js).
     try { if (typeof chrome !== "undefined" && chrome.runtime && chrome.runtime.sendMessage) chrome.runtime.sendMessage({ type: "privac-warm" }).catch(() => {}); } catch (e) { /* no background */ }
     if (typeof chrome !== "undefined" && chrome.tabs && chrome.tabs.query) {
       try {
         const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-        if (tab && tab.url) return new URL(tab.url).hostname.replace(/^www\./, "");
+        if (tab && tab.url) {
+          const u = new URL(tab.url);
+          return u.protocol === "http:" || u.protocol === "https:" ? u.hostname.replace(/^www\./, "") : null;
+        }
         // Chrome can hide the address; the background knows which site that tab is on.
         if (tab && tab.id != null && chrome.runtime && chrome.runtime.sendMessage) {
           const r = await chrome.runtime.sendMessage({ type: "privac-tab-site", tabId: tab.id });
