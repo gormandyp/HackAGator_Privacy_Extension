@@ -10,13 +10,17 @@
   Messages it answers (msg.cmd):
     status                 -> current status (below)
     download               -> starts the one-time download (progress arrives as status messages); answers at once
-    cancel-download        -> stops a download
-    warm { system }        -> loads Gemma into GPU memory and readies a conversation for that system prompt
+    cancel-download        -> stops a download (back to "none", nothing kept)
+    warm { system, temperature, maxTokens } -> loads Gemma into GPU memory and readies a conversation like that
     generate { id, system, user, json, temperature, maxTokens, stream } -> { text } (or { error, code })
+                              codes: NOT_READY, DOWNLOADING, UNSUPPORTED, CANCELLED, FAILED
     cancel { id }          -> stops that generation (it answers { error, code: "CANCELLED" })
+    unload                 -> frees the graphics memory now (keeps the download)
     remove                 -> unloads Gemma and deletes the downloaded file
   Status: { state: "unsupported" | "none" | "downloading" | "downloaded" | "loading" | "ready" | "error",
-            model, loaded, total, error, reason, loadMs }
+            model, loaded, total, error, reason, where, loadMs }
+  Also posted: { type: "privac-brain-token", id, text } while answering, and { type: "privac-brain-busy" } every
+  10 s during a job, so Chrome keeps the background awake.
 */
 (function () {
   // Pinned to the exact file PrivaC was tested with (Hugging Face commit), Apache 2.0, not gated.
@@ -31,6 +35,8 @@
   const CONTEXT_TOKENS = 6144;          // Ask C's summary is ~4,000 tokens; policy questions ~2,000
   const IDLE_UNLOAD_MS = 20 * 60000;    // free the ~2 GB of GPU memory after 20 idle minutes
   const POST_EVERY_MS = 60;             // streamed text is sent at most this often
+  const AWAKE_EVERY_MS = 10000;         // Chrome stops an idle background after ~30 s: a message keeps it listening
+  const RETRY_AFTER_MS = 10 * 60000;    // after Gemma fails to load, background work waits this long to try again
 
   const REASONS = {
     "no-webgpu": "This browser can't run C's brain: it needs WebGPU (Chrome 113 or newer on a computer with a graphics chip).",
@@ -39,11 +45,12 @@
   };
 
   function friendly(e) {
-    const m = String((e && e.message) || e || "");
-    if (/quota|space/i.test(m)) return "Not enough free disk space for C's brain (it needs about 2 GB).";
-    if (/abort/i.test(m)) return "The download was stopped.";
-    if (/Failed to fetch|NetworkError|network/i.test(m)) return "The download couldn't reach the internet. Check your connection and try again.";
+    const m = String((e && e.message) || e || ""), name = e && e.name;
     if (/device.*lost|out of memory|OOM/i.test(m)) return "C's brain ran out of graphics memory. Close a few tabs and try again.";
+    if (/context window/i.test(m)) return "That was more text than C's in-browser brain can read at once.";
+    if (name === "QuotaExceededError" || /quota|disk/i.test(m)) return "Not enough free disk space for C's brain (it needs about 2 GB).";
+    if (name === "AbortError") return "The download was stopped.";
+    if (/Failed to fetch|NetworkError|network/i.test(m)) return "The download couldn't reach the internet. Check your connection and try again.";
     return m || "Something went wrong.";
   }
 
@@ -59,8 +66,9 @@
     const now = d.now || (() => Date.now());
     const later = d.setTimeout || setTimeout, cancelLater = d.clearTimeout || clearTimeout;
     let status = { state: "unknown", model: M.id, name: M.name, loaded: 0, total: M.bytes, error: null, reason: null };
-    let engine = null, loading = null, downloading = null, stopDownload = null, runtimeReady = null;
+    let engine = null, loading = null, downloading = null, stopDownload = null;
     let removing = null;                  // a Delete in progress: nothing new loads or answers meanwhile
+    let failedAt = 0;                     // when Gemma last failed to load or answer (0: it didn't)
     let gpuOk = false;                    // the graphics chip worked once: no need to ask Chrome again
     let bundled = undefined;              // true/false once checked: is the model file packed inside the extension?
     let prepared = null;                  // { key, conv: Promise } a conversation with its system prompt already read
@@ -103,6 +111,8 @@
     }
 
     const notReady = () => Object.assign(new Error("C's brain isn't downloaded yet."), { code: "NOT_READY" });
+    const stillDownloading = () => Object.assign(new Error("C's brain is still downloading. Ask again when it's done."), { code: "DOWNLOADING" });
+    const failedRecently = () => failedAt && now() - failedAt < RETRY_AFTER_MS;
 
     // What's true right now: can this browser run Gemma, and is the model here (packed in, or downloaded)?
     async function check() {
@@ -169,6 +179,7 @@
       if (engine) return Promise.resolve(engine);
       if (loading) return loading;
       if (removing) return Promise.reject(notReady());
+      if (downloading) return Promise.reject(stillDownloading());   // (and leave the download's progress on screen)
       loading = (async () => {
         const why = await unsupportedReason();
         if (why) { set({ state: "unsupported", reason: why, error: REASONS[why] }); throw Object.assign(new Error(REASONS[why]), { code: "UNSUPPORTED" }); }
@@ -178,17 +189,29 @@
         if (!stream) { set({ state: "none" }); throw notReady(); }
         set({ state: "loading", error: null });
         const t0 = now();
-        if (!runtimeReady) runtimeReady = d.lm.getOrLoadGlobalLiteRtLm(d.wasmUrl);   // our own copy, never a CDN
-        await runtimeReady;
+        await d.lm.getOrLoadGlobalLiteRtLm(d.wasmUrl);   // our own copy, never a CDN (the library retries after a failure)
         engine = await d.lm.Engine.create({ model: stream, mainExecutorSettings: { maxNumTokens: CONTEXT_TOKENS } });
+        failedAt = 0;
         set({ state: "ready", where, loadMs: now() - t0, error: null });
         return engine;
       })().catch((e) => {
         engine = null;
-        if (!e.code) set({ state: "error", error: friendly(e) });
+        if (!e.code) { failedAt = now(); set({ state: "error", error: friendly(e) }); }
         throw e;
       }).finally(() => { loading = null; });
       return loading;
+    }
+
+    // Chrome stops an idle background page after ~30 s. While a job runs (a slow first load, or a long answer on a
+    // weaker computer), a small message every 10 s keeps it listening for the answer.
+    function keepAwake(id) {
+      let timer = null;
+      const beat = () => {
+        timer = later(() => { try { d.post({ type: "privac-brain-busy", id }); } catch (e) { /* ignore */ } beat(); }, AWAKE_EVERY_MS);
+        if (timer && timer.unref) timer.unref();
+      };
+      beat();
+      return () => cancelLater(timer);
     }
 
     async function unload() {
@@ -247,8 +270,11 @@
     async function run(req) {
       if (cancelledEarly.delete(req.id)) return { error: "Cancelled", code: "CANCELLED" };
       if (removing) return { error: notReady().message, code: "NOT_READY" };
+      // Background reading (json) doesn't reload 2 GB again and again after a failure; a question someone asked still tries.
+      if (req.json && !engine && failedRecently()) return { error: status.error || "C's brain had a problem a moment ago.", code: "FAILED" };
       const mine = { conv: null, cancelled: false };
       running.set(req.id, mine);
+      const stopBeat = keepAwake(req.id);
       try {
         await load();
         touch();
@@ -274,13 +300,15 @@
       } catch (e) {
         if (e && e.code) return { error: e.message, code: e.code };
         // A failed generation can leave the GPU engine unusable: start fresh next time.
+        failedAt = now();
         await unload();
         set({ state: "error", error: friendly(e) });
         return { error: friendly(e), code: "FAILED" };
       } finally {
+        stopBeat();
         running.delete(req.id);
         if (mine.conv) mine.conv.delete().catch(() => {});
-        if (req.keepReady !== false && !req.json) { try { prepare(req); } catch (e) { /* next time */ } }
+        if (!req.json) { try { prepare(req); } catch (e) { /* next time */ } }   // ready for the next Ask C question
         touch();
       }
     }
@@ -298,6 +326,7 @@
     }
 
     async function warm(req) {
+      if (!engine && failedRecently()) return status;   // don't keep reloading 2 GB after a failure
       try {
         await load();
         if (req && req.system) prepare({ ...req, json: false });
@@ -321,6 +350,14 @@
       return refresh();
     }
 
+    // "Use Ollama instead": give the graphics memory back now instead of after 20 idle minutes (keeps the download).
+    async function release() {
+      for (const id of running.keys()) cancel(id);
+      await Promise.all([loading, queue].map((p) => p && p.catch(() => {})));
+      await unload();
+      return refresh();
+    }
+
     async function handle(msg) {
       switch (msg && msg.cmd) {
         case "status": return refresh();
@@ -329,12 +366,13 @@
         case "warm": return warm(msg);
         case "generate": return generate(msg);
         case "cancel": return { cancelled: cancel(msg.id) };
+        case "unload": return release();
         case "remove": return remove();
         default: return { error: "Unknown request" };
       }
     }
 
-    return { handle, status: () => status, _internal: { load, download, unload } };
+    return { handle, status: () => status };
   }
 
   (typeof window !== "undefined" ? window : self).PrivaCBrainCore = { create, MODEL, CACHE, CONTEXT_TOKENS, REASONS, textOf };

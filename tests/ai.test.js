@@ -147,3 +147,45 @@ test("hanging up is reported as stopped (not as 'took too long')", async () => {
   hangUp.abort();
   await assert.rejects(p, (e) => e.code === "STOPPED" && !/too long/.test(e.message));
 });
+
+// ---------- fixes from the independent Claude review ----------
+
+test("speed: the warm-up readies the same conversation Ask C will use (same temperature, length and instructions)", async () => {
+  const { AI, sent } = load({ brain: readyBrain({ state: "downloaded" }) });
+  await AI.warm("You are C.");
+  await AI.ask("Who is Criteo?", { system: "You are C.", context: "E", options: { temperature: 0.2 } });
+  const warm = sent.find((m) => m.cmd === "warm"), gen = sent.find((m) => m.cmd === "generate");
+  assert.strictEqual(warm.temperature, gen.temperature);
+  assert.strictEqual(warm.maxTokens, gen.maxTokens);
+  assert.strictEqual(warm.system, gen.system);
+});
+
+test("if C's brain fails or is still downloading and Ollama is running, Ollama answers", async () => {
+  for (const code of ["FAILED", "DOWNLOADING"]) {
+    const brain = async (msg) => (msg.cmd === "generate" ? { error: "x", code } : { state: "ready" });
+    const { AI, ollamaCalls } = load({ brain, ollamaUp: true });
+    assert.strictEqual(await AI.ask("Hi", {}), "from Ollama");
+    assert.strictEqual(ollamaCalls.length, 1);
+  }
+});
+
+test("while C's brain downloads and Ollama isn't running, C says it's still downloading", async () => {
+  const brain = async (msg) => (msg.cmd === "generate" ? { error: "C's brain is still downloading. Ask again when it's done.", code: "DOWNLOADING" } : { state: "downloading" });
+  const { AI } = load({ brain, ollamaUp: false });
+  await assert.rejects(AI.ask("Hi", {}), /still downloading/);
+});
+
+test("choosing Ollama gives the in-browser brain's graphics memory back right away", async () => {
+  const { AI, sent } = load({ brain: readyBrain() });
+  await AI.command({ cmd: "use", use: "ollama" });
+  assert.ok(sent.some((m) => m.cmd === "unload"));
+});
+
+test("if the brain page restarts mid-answer, C says so plainly, or Ollama answers", async () => {
+  const brain = async (msg) => {
+    if (msg.cmd === "generate") throw new Error("A listener indicated an asynchronous response by returning true, but the message channel closed before a response was received");
+    return { state: "ready" };
+  };
+  await assert.rejects(load({ brain, ollamaUp: false }).AI.ask("Hi", {}), /restarted/);
+  assert.strictEqual(await load({ brain, ollamaUp: true }).AI.ask("Hi", {}), "from Ollama");
+});

@@ -3,3 +3,6 @@ node_modules/
 .env
 *.log
 *.zip
+
+# The in-browser AI model file (about 2 GB) if you put it in the extension folder (docs/IN-BROWSER-AI.md): never commit it
+models/

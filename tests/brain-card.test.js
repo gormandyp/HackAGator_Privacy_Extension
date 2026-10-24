@@ -4,7 +4,7 @@ const test = require("node:test");
 const assert = require("node:assert");
 globalThis.window = globalThis;
 require("../dashboard/brain-card.js");
-const { view, html, warmAfter } = window.PrivaCBrainCard;
+const { view, html, warmAfter, sameShape } = window.PrivaCBrainCard;
 
 test("before the download: one clear offer with the real size", () => {
   const v = view({ use: "browser", status: { state: "none", total: 2008432640 }, ollama: false });
@@ -62,4 +62,12 @@ test("speed: when the download finishes, Gemma starts loading right away (but no
   assert.strictEqual(warmAfter("downloading", "downloaded"), true);
   assert.strictEqual(warmAfter("ready", "downloaded"), false);
   assert.strictEqual(warmAfter("downloaded", "downloaded"), false);
+});
+
+test("during the download only the numbers change, so a focused Cancel button keeps keyboard focus", () => {
+  const a = view({ use: "browser", status: { state: "downloading", loaded: 1e9, total: 2008432640 } });
+  const b = view({ use: "browser", status: { state: "downloading", loaded: 1.2e9, total: 2008432640 } });
+  assert.strictEqual(sameShape(a, b), true);
+  assert.strictEqual(sameShape(a, view({ use: "browser", status: { state: "downloaded" } })), false);
+  assert.strictEqual(sameShape(view({ status: { state: "none" } }), view({ status: { state: "none" }, ollama: true })), false);
 });

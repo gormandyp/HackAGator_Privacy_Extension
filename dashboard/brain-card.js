@@ -63,6 +63,11 @@
   // so the first question doesn't wait for it. Not when it was unloaded for being idle: that would undo it.
   const warmAfter = (was, now) => was === "downloading" && now === "downloaded";
 
+  // Same card with new numbers (the download's progress)? Then only the title and bar change, so the Cancel button
+  // keeps keyboard focus and screen readers aren't sent the whole card again every 0.4 s.
+  const sameShape = (a, b) => !!(a && b) && a.tone === b.tone && !!a.busy === !!b.busy && a.text === b.text &&
+    typeof a.progress === typeof b.progress && JSON.stringify(a.actions) === JSON.stringify(b.actions);
+
   function hasRuntime() { return typeof chrome !== "undefined" && chrome.runtime && chrome.runtime.id && chrome.runtime.sendMessage; }
   function warm(force) { try { chrome.runtime.sendMessage({ type: "privac-warm", force }).catch(() => {}); } catch (e) { /* no background */ } }
 
@@ -77,9 +82,20 @@
     const thread = document.getElementById("ask-thread");
     if (thread && thread.parentNode) thread.parentNode.insertBefore(box, thread); else host.prepend(box);
 
-    let info = null;
+    let info = null, shown = null;
     const ui = { confirmRemove: false };
-    const render = () => { if (info) box.innerHTML = html(view(info, ui)); };
+    const render = () => {
+      if (!info) return;
+      const v = view(info, ui);
+      const title = box.querySelector(".brain-text b"), bar = box.querySelector(".brain-bar");
+      if (sameShape(shown, v) && title) {
+        title.textContent = v.title;
+        if (bar) { bar.setAttribute("aria-valuenow", v.progress); bar.firstElementChild.style.width = v.progress + "%"; }
+      } else {
+        box.innerHTML = html(v);
+      }
+      shown = v;
+    };
     const send = async (cmd, extra) => {
       try { info = { ...(info || {}), ...(await chrome.runtime.sendMessage({ type: "privac-ai", cmd, ...extra })) }; }
       catch (e) { info = { ...(info || {}), status: { state: "error", error: "PrivaC's background isn't answering. Reload the extension." } }; }
@@ -110,6 +126,6 @@
     if (info && info.use !== "ollama" && info.status && info.status.state === "downloaded") warm(false);
   }
 
-  window.PrivaCBrainCard = { view, html, warmAfter };
+  window.PrivaCBrainCard = { view, html, warmAfter, sameShape };
   if (typeof document !== "undefined") init();
 })();

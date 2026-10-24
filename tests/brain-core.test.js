@@ -9,8 +9,8 @@ const { create, MODEL, REASONS } = window.PrivaCBrainCore;
 
 const SIZE = 1000;   // the tests' stand-in for the 2 GB model file (create({ model }) below)
 
-function fakeLM({ failCreate, chunks = ["Criteo is ", "an ad company."], delay = 0, createDelay = 0 } = {}) {
-  const calls = { engines: 0, convs: [], deleted: 0, wasm: null, settings: null };
+function fakeLM({ failCreate, chunks = ["Criteo is ", "an ad company."], delay = 0, createDelay = 0, streamError, runtimeFails = 0 } = {}) {
+  const calls = { engines: 0, convs: [], deleted: 0, wasm: null, settings: null, runtimeStarts: 0 };
   class Conv {
     constructor(cfg) { this.cfg = cfg; this.cancelled = false; calls.convs.push(this); }
     sendMessageStreaming(msg) {
@@ -20,6 +20,7 @@ function fakeLM({ failCreate, chunks = ["Criteo is ", "an ad company."], delay =
         for (const text of chunks) {
           await new Promise((r) => setTimeout(r, delay));
           if (self.cancelled) throw new Error("CANCELLED");
+          if (streamError) throw new Error(streamError);
           yield { role: "assistant", content: [{ type: "text", text }] };
         }
       })();
@@ -30,7 +31,7 @@ function fakeLM({ failCreate, chunks = ["Criteo is ", "an ad company."], delay =
   return {
     calls,
     SamplerType: { TOP_P: 2, GREEDY: 3 },
-    getOrLoadGlobalLiteRtLm: async (url) => { calls.wasm = url; },
+    getOrLoadGlobalLiteRtLm: async (url) => { calls.wasm = url; if (++calls.runtimeStarts <= runtimeFails) throw new Error("Aborted(OOM)"); },
     Engine: {
       create: async (settings) => {
         calls.engines++; calls.settings = settings;
@@ -84,7 +85,9 @@ function brainWith(opts = {}) {
     fetch: opts.fetch || (async (url, init) => { if (url === MODEL.url) return download(SIZE, { signal: init && init.signal }); throw new TypeError("Failed to fetch"); }),
     gpu: "gpu" in opts ? opts.gpu : { requestAdapter: async () => ({ info: {} }) },
     jspi: "jspi" in opts ? opts.jspi : true,
-    post: (m) => posts.push(m)
+    post: (m) => posts.push(m),
+    now: opts.now,
+    setTimeout: opts.setTimeout
   });
   return { brain, lm, caches, posts };
 }
@@ -289,4 +292,72 @@ test("speed: whether the graphics chip works is checked once, not on every statu
   await brain.handle({ cmd: "status" });
   await brain.handle({ cmd: "status" });
   assert.strictEqual(asked, 1);
+});
+
+// ---------- fixes from the independent Claude review ----------
+
+test("while C's brain is downloading, a question says so and the download's progress stays on screen", async () => {
+  const { brain } = brainWith({ fetch: async (url, init) => { if (url === MODEL.url) return download(SIZE, { pause: 15, signal: init.signal }); throw new TypeError("Failed to fetch"); } });
+  await brain.handle({ cmd: "download" });
+  await new Promise((r) => setTimeout(r, 30));
+  const r = await brain.handle({ cmd: "generate", id: "p", system: "s", user: "u", json: true });
+  assert.strictEqual(r.code, "DOWNLOADING");
+  assert.match(r.error, /still downloading/);
+  assert.strictEqual(brain.status().state, "downloading");
+  await brain.handle({ cmd: "cancel-download" });
+});
+
+test("if the runtime fails to start once, the next question tries again (not stuck until a reload)", async () => {
+  const caches = fakeCaches(); caches.store.set(MODEL.url, SIZE);
+  const { brain, lm } = brainWith({ caches, runtimeFails: 1 });
+  const first = await brain.handle({ cmd: "generate", id: "1", system: "s", user: "u" });
+  assert.strictEqual(first.code, "FAILED");
+  const second = await brain.handle({ cmd: "generate", id: "2", system: "s", user: "u" });
+  assert.strictEqual(second.text, "Criteo is an ad company.");
+  assert.strictEqual(lm.calls.runtimeStarts, 2);
+});
+
+test("after Gemma fails to load, background reading doesn't reload 2 GB for 10 minutes; Ask C still tries", async () => {
+  const caches = fakeCaches(); caches.store.set(MODEL.url, SIZE);
+  let t = 1000;
+  const { brain, lm } = brainWith({ caches, failCreate: "WebGPU device was lost", now: () => t });
+  await brain.handle({ cmd: "generate", id: "a", system: "p", user: "u", json: true });
+  assert.strictEqual(lm.calls.engines, 1);
+  const again = await brain.handle({ cmd: "generate", id: "b", system: "p", user: "u", json: true });
+  assert.strictEqual(again.code, "FAILED");
+  await brain.handle({ cmd: "warm", system: "s" });
+  assert.strictEqual(lm.calls.engines, 1, "no reload for policy reading or warm-ups");
+  await brain.handle({ cmd: "generate", id: "c", system: "s", user: "q", temperature: 0.2 });
+  assert.strictEqual(lm.calls.engines, 2, "a question someone asked still tries");
+  t += 11 * 60000;
+  await brain.handle({ cmd: "generate", id: "d", system: "p", user: "u", json: true });
+  assert.strictEqual(lm.calls.engines, 3);
+});
+
+test("error messages tell the truth: graphics memory and too much text aren't called download or disk problems", async () => {
+  const c1 = fakeCaches(); c1.store.set(MODEL.url, SIZE);
+  const oom = await brainWith({ caches: c1, streamError: "Aborted(OOM)" }).brain.handle({ cmd: "generate", id: "1", system: "s", user: "u" });
+  assert.match(oom.error, /graphics memory/);
+  const c2 = fakeCaches(); c2.store.set(MODEL.url, SIZE);
+  const long = await brainWith({ caches: c2, streamError: "Not enough space left in the context window" }).brain.handle({ cmd: "generate", id: "2", system: "s", user: "u" });
+  assert.match(long.error, /more text than/);
+  assert.doesNotMatch(long.error, /disk/);
+});
+
+test("'Use Ollama instead' gives the graphics memory back right away and keeps the download", async () => {
+  const caches = fakeCaches(); caches.store.set(MODEL.url, SIZE);
+  const { brain, lm } = brainWith({ caches });
+  await brain.handle({ cmd: "warm", system: "s" });
+  const s = await brain.handle({ cmd: "unload" });
+  assert.ok(lm.calls.engineDeleted);
+  assert.strictEqual(s.state, "downloaded");
+  assert.strictEqual(caches.store.size, 1);
+});
+
+test("a slow first load or answer keeps the background listening (a message at least every 10 s)", async () => {
+  const caches = fakeCaches(); caches.store.set(MODEL.url, SIZE);
+  const fast = (f, ms) => setTimeout(f, ms === 10000 ? 5 : ms);   // in this test, "10 s" passes every 5 ms
+  const { brain, posts } = brainWith({ caches, delay: 30, setTimeout: fast });
+  await brain.handle({ cmd: "generate", id: "slow", system: "p", user: "u", json: true });
+  assert.ok(posts.filter((m) => m.type === "privac-brain-busy").length >= 3);
 });

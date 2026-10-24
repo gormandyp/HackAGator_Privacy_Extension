@@ -25,10 +25,13 @@ folder before step 2. PrivaC then uses that file and never goes online for the m
 ## Speed (measured on the demo MacBook Pro, Oct 24 2026)
 | | In the browser (this branch, Gemma 4 E2B) | Ollama (main, Gemma 4 E4B) |
 |---|---|---|
-| Ask C, first words on screen | ~1.4 s | ~2.4 s |
-| Ask C, whole answer | ~2.5-3.5 s | ~3.7 s |
+| Ask C, first words on screen | ~0.8-1.1 s | ~2.4 s |
+| Ask C, whole answer | ~2.2-2.6 s | ~3.7 s |
 | Reading one privacy policy (8 questions, in the background) | ~7.7 s | ~4.7 s |
-| Loading the model | ~2 s (first time ever: ~20 s) | ~4 s |
+| Loading the model | ~1-2 s (first time ever: ~20 s) | ~4 s |
+
+If you ask C while a privacy policy is being read in the background, C answers first (first words ~1 s) and the
+policy reading picks up right after (checked on the Mac with the real model).
 
 Both read the test policy's 8 questions correctly, with exact quotes. The in-browser model is smaller (E2B), so it is a
 little less careful in long answers; it is the right choice when nothing can be installed. Ollama's E4B is sharper.
