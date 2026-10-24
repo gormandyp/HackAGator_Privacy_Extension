@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "PrivaC (in-browser AI)",
+  "name": "PrivaC",
   "version": "0.1.0",
-  "description": "See which companies watch your browsing, get a privacy grade for every site, and let C decline the extra cookies. C's AI (Gemma 4) runs right in Chrome.",
+  "description": "See which companies track you on each site, get an A-F privacy grade, and let C decline extra cookies. Its AI runs on your computer.",
   "icons": {
     "16": "icons/icon16.png",
     "32": "icons/icon32.png",
@@ -18,7 +18,6 @@
   },
   "permissions": [
     "storage",
-    "activeTab",
     "webRequest",
     "webNavigation",
     "alarms",

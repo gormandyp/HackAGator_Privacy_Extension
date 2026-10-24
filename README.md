@@ -24,7 +24,7 @@ Judges: the dashboard's **About** tab lists each one with its date, a link to pr
 - **Ask C**: questions answered by Gemma from the evidence, with a source label on every fact.
 
 ## Privacy
-PrivaC downloads whole public lists and matches them on your computer. It never sends what you visit to anyone. It stores site names and cookie names only (never full addresses or cookie contents) and deletes history after 7 days. Daily totals (numbers only, no site names) are kept 90 days for the week and month views. "Clear my PrivaC data" erases everything.
+PrivaC downloads whole public lists and matches them on your computer. It never sends what you visit to anyone. It stores site names and cookie names only (never full addresses or cookie contents) and deletes history after 7 days. Daily totals (numbers only, no site names) are kept 90 days for the week and month views. "Clear my PrivaC data" erases your history and daily totals. Full details: [PRIVACY.md](PRIVACY.md) and [TERMS.md](TERMS.md).
 
 ## Download
 | Version | C's AI runs on | Download |
