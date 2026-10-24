@@ -38,6 +38,7 @@ Answer: Criteo is an advertising company based in France. [Tracker Radar] Its tr
 
   // Short, checked facts Gemma may use for general questions. Each one carries its source tag.
   const BACKGROUND = `Background facts:
+- About you, C: your answers are written by Gemma 4 (Google's open AI model, released March 31, 2026), running on the person's own computer, inside Chrome or in the Ollama app. Their questions and browsing never leave the computer. If asked, say so; never say you aren't made with Gemma.
 - The U.S. Commerce Department lists 'foreign adversary' countries in 15 CFR 7.4: China (including Hong Kong), Cuba, Iran, North Korea, Russia and Venezuela. [Government list]
 - China's 2017 National Intelligence Law (Article 7) says organizations must support and cooperate with state intelligence work, so Chinese companies may be legally unable to refuse a government request for data they hold. [Government list]
 - Russia's 2016 "Yarovaya" laws require internet and phone companies to store users' data and hand it to security services on request, and a 2015 law requires Russians' personal data to be stored inside Russia. [Government list]
@@ -550,10 +551,29 @@ Steps the person can take (no tag needed):
   const ABOUT_ANSWER = "I'm C, PrivaC's privacy guide. I explain what PrivaC found on the sites you visit: each site's grade and why, " +
     "which tracker companies followed you, what cookies were stored and what they're for, data breaches, registered data brokers, " +
     "links to companies in foreign-adversary countries, and what privacy policies say about selling your data. On websites, I can " +
-    "also decline extra cookies for you. Try asking: \"Which sites I visited are the riskiest?\"";
+    "also decline extra cookies for you. My answers are written by Gemma 4, running on this computer, so your questions stay here. " +
+    "Try asking: \"Which sites I visited are the riskiest?\"";
   const OFF_TOPIC_ANSWER = "I stick to your privacy, so I can't help with that one. Try asking me about a site you visited, " +
     "a tracker company, or whether to accept cookies.";
+  // "Are you made with gemma" got "You are not made with Gemma" (real Gemma, 2026-10-24). Questions about what C is or runs on
+  // get this fixed answer. Each pattern needs C ("you", "C", "PrivaC", "Ask C") or the model itself, so "Is my data sent to
+  // Google?" or "What can you tell me about Google?" (questions about trackers) still go to Gemma.
+  const MODEL_WORDS = /\b(gemma|llms?|large language models?|language models?|ai models?|litert)\b/i;
+  const ABOUT_MODEL = [
+    /\b(?:are|were)\s+you\s+(?:an?\s+)?(?:ai|a\.i\.|bot|chatbot|robot|human|real(?:\s+person)?|chatgpt|gpt|gemini|claude|llama|model|llm)\b/i,
+    /\b(?:are|were)\s+you\s+(?:made|built|powered|trained|running|created)\b/i,
+    /\b(?:who|what)\s+(?:made|built|created|trained|powers|runs)\s+(?:you|c|privac|ask\s+c)\b/i,
+    /\bwhat\s+(?:ai|model|llm|brain)\s+(?:are|is|runs|powers|do)\b/i,
+    /\b(?:do|does)\s+(?:you|c|privac|ask\s+c)\s+(?:use|run\s+on|send|share|upload|store)\b[^?.!]*\b(?:ai|model|google|openai|my\s+(?:questions?|data|browsing|chats?)|anywhere|online|cloud)\b/i,
+    /\b(?:is|are)\s+my\s+(?:data|questions?|browsing|chats?)\s+(?:sent|shared|uploaded|stored)\b[^?.!]*\b(?:when\s+i\s+ask\s+you|to\s+you|ask\s+c|privac|gemma|the\s+ai)\b/i
+  ];
+  const MODEL_ANSWER = "I'm C, PrivaC's privacy guide, and my answers are written by Gemma 4, Google's open AI model (released March 31, 2026), " +
+    "running on this computer: inside Chrome on your graphics chip (Gemma 4 E2B with Google's LiteRT-LM), or in the Ollama app if you picked it. " +
+    "I'm not an online chatbot: your questions and browsing never leave this computer, and nothing is sent to Google or any AI company. " +
+    "Gemma only writes the words. The grades, tracker lists, breach records and government lists come from PrivaC's own code and public data, " +
+    "and each fact shows its source.";
   function cannedAnswer(q) {
+    if (MODEL_WORDS.test(q) || ABOUT_MODEL.some((re) => re.test(q))) return MODEL_ANSWER;
     if (ABOUT_C.test(q)) return ABOUT_ANSWER;
     if (OFF_TOPIC_THING.test(q) && OFF_TOPIC_ASK.test(q) && !PRIVACY_WORDS.test(q)) return OFF_TOPIC_ANSWER;
     return null;

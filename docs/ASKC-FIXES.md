@@ -135,6 +135,15 @@ About 150 wordings of 19 everyday questions, plus follow-ups, through the real `
 Also added: a "Who tracked me the most this week?" example in the prompt (counts sites, uses [Seen on your visit]); "what are you able
 to do" gets C's intro. Still needs the real-Gemma check on the Mac: wording quality can only be judged with Gemma itself.
 
+## Fix 8 (seen live 2026-10-24 7:30 PM): "Are you made with gemma" got "You are not made with Gemma" (branch `askc-model`)
+Gemma 4 is our headline "recent technology", so this answer contradicted the pitch. Gemma's evidence never said what C runs on.
+**Fix:** questions about what C is or runs on ("Are you made with Gemma?", "What AI are you?", "Are you ChatGPT?", "Who made you?",
+"Is my data sent to Google when I ask you?", "What is Gemma?") get a fixed, true answer: Gemma 4 (Mar 31, 2026) on this computer, in
+Chrome (E2B, LiteRT-LM) or Ollama; questions and browsing never leave the computer; Gemma writes the words, the facts come from
+PrivaC's code and public lists. Each pattern needs C ("you", "C", "PrivaC", "Ask C") or the model itself, so tracker questions like
+"Is my data sent to Google?" or "What can you tell me about Google?" still go to Gemma. C's intro ("Who are you?") and Gemma's
+background facts now say it too. Tests: `tests/askc-model.test.js`. (`askc-breach` isn't needed any more: main already has Fix 7.)
+
 ## Also seen live (add to PLAN R13's list of bad answers; no code fix yet)
 - "Who tracked me the most this week?" got one sentence, "Google tracked you the most. [Tracker Radar]", with no count of sites,
   and labeled [Tracker Radar] instead of [Seen on your visit]. The evidence already has "on N of M sites" in the "Companies seen
@@ -160,4 +169,5 @@ those go in PLAN R13's list of bad answers.
 - [x] Fix 6: brackets rule in the prompt, branch `askc-fixes`
 - [x] Fix 7: breach questions (LinkedIn, then Google and any known company or site), branch `askc-breach` (built on `askc-fixes`, so merging it brings fixes 1-6 too)
 - [x] Backtest root causes 1-9 (above), on every branch
+- [x] Fix 8: questions about C's AI, branch `askc-model`
 - [ ] Real-Gemma check on the Mac
