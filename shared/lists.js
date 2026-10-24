@@ -26,7 +26,8 @@
     // Newest breach per site, with the site's earlier breaches (up to 5) under "earlier" so all can be listed.
     for (const d of Object.keys(byDomain)) {
       const [newest, ...rest] = byDomain[d].sort((a, b) => (a.addedDate < b.addedDate ? 1 : -1));
-      if (rest.length) newest.earlier = rest.slice(0, 5).map(({ name, title, breachDate, addedDate, pwnCount }) => ({ name, title, breachDate, addedDate, pwnCount }));
+      if (rest.length) newest.earlier = rest.slice(0, 5).map(({ name, title, breachDate, addedDate, pwnCount, dataClasses }) =>
+        ({ name, title, breachDate, addedDate, pwnCount, dataClasses: (dataClasses || []).slice(0, 4) }));
       byDomain[d] = newest;
     }
     return byDomain;

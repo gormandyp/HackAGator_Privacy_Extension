@@ -18,7 +18,8 @@ How to answer:
 - Put a source tag right after each fact, copied exactly from the evidence line it came from: [Seen on your visit], [Tracker Radar], [Privacy policy], [HIBP], [CA Broker Registry], [Cookie Database], [RegTrack], [State Media Monitor] or [Government list]. Never invent other tags.
 - Write button and menu names in quotes ("Reject all"), never in square brackets: square brackets are only for the source tags above.
 - When asked what a site collects, list the cookies by purpose, name 2 or 3 advertising cookies with their company and how long they last, say which ones the site doesn't need to work, and mention device fingerprinting if present.
-- If a site had a data breach [HIBP], say when, how many accounts and what kind of data, and tell the person to change that password. No backticks, no markdown, no lists with symbols.
+- If a site had a data breach [HIBP], say when, how many accounts and what kind of data, and tell the person to change that password. Scraped or leaked data listed with [HIBP] counts as a breach too: never say you have no information about it.
+- If the person says yes to something you offered earlier, give it now from the evidence. Never claim you already told them something that isn't in your earlier answer. No backticks, no markdown, no lists with symbols.
 - When cookies or cookie banners come up, you may quote one RegTrack fact. RegTrack only compared doing nothing with clicking accept-all, so never say rejecting removes a number of trackers.
 - Never say data was sent to a government. A tracker loading means the company could collect data; it doesn't prove the data was sold or shared.
 - Don't mention sample data; the dashboard already says so.
@@ -47,7 +48,8 @@ Steps the person can take (no tag needed):
 - Avoid entering personal details (name, email, phone, payment) on sites with an F grade or a foreign-adversary flag.
 - Use a tracker-blocking browser extension.
 - Clear a site's cookies after visiting: click the icon left of the address bar > Cookies and site data.
-- Check the site's privacy policy for "sell" or "share" before creating an account.`;
+- Check the site's privacy policy for "sell" or "share" before creating an account.
+- After a site's data breach: change that password, and the same password anywhere else you used it; turn on two-step sign-in; watch for emails that pretend to be that site.`;
 
   function fmtCount(n) { return n >= 1e6 ? `${(n / 1e6).toFixed(1)} million` : n >= 1e3 ? `${Math.round(n / 1e3)} thousand` : String(n); }
   function breachText(b) {
@@ -185,6 +187,83 @@ Steps the person can take (no tag needed):
     return byCo;
   }
 
+  // ---------- Data breaches (Have I Been Pwned), docs/ASKC-FIXES.md ----------
+  // "Was linkedin.com hacked?" (real Gemma, 2026-10-24): C only ever saw a site's newest breach, matched only by its
+  // web address or breach name, so "Was LinkedIn hacked?" or "linked in" found nothing and the 2012 hack was missed.
+  const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const MONTHS_LONG = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+  function monthYear(iso) { const [y, m] = String(iso || "").split("-"); return m ? `${MONTHS_LONG[+m - 1]} ${y}` : (y || "date unknown"); }
+  // Words that are also the names of breached sites but almost always mean the word itself.
+  const BREACH_STOP = new Set(["data", "cookie", "cookies", "privacy", "tracker", "trackers", "account", "accounts", "email", "password",
+    "passwords", "game", "games", "chat", "mail", "news", "online", "best", "free", "shop", "phone", "info", "home", "music", "video",
+    "social", "dating", "forum", "health", "money", "bank", "cloud", "site", "sites", "website", "breach", "hacked", "leak", "past",
+    "tell", "about", "what", "which", "have", "been", "them", "their", "with", "from", "this", "that", "yes", "okay"]);
+
+  // Sites in the breach list that the question means: by web address ("linkedin.com"), by name ("LinkedIn",
+  // "linked in", "Ashley Madison"). At most 3, in the order found.
+  function breachSites(question, lists) {
+    const by = lists && lists.hibp && lists.hibp.byDomain;
+    if (!by) return [];
+    const q = String(question || "").toLowerCase();
+    const domains = (q.match(/[a-z0-9-]+(?:\.[a-z0-9-]+)+/g) || []).map((d) => d.replace(/^www\./, ""));
+    const words = q.replace(/[a-z0-9-]+(?:\.[a-z0-9-]+)+/g, (d) => d.replace(/^www\./, "").split(".")[0]).match(/[a-z0-9]+/g) || [];
+    const names = new Set(words);
+    // "linked in" -> "linkedin", "my space" -> "myspace": only when the second word is short, so ordinary words never fuse.
+    for (let i = 0; i + 1 < words.length; i++) if (words[i + 1].length <= 3) names.add(words[i] + words[i + 1]);
+    const L = (typeof window !== "undefined" ? window : self).PrivaCLists;
+    const nq = L ? " " + L.norm(question) + " " : "";
+    const named = (n) => { const x = L ? L.norm(n) : ""; return x.length >= 5 && !BREACH_STOP.has(x) && nq.includes(" " + x + " "); };
+    const hits = [];
+    for (const [d, b] of Object.entries(by)) {
+      const n = siteName(d);
+      if (domains.includes(d) || (n.length >= 4 && !BREACH_STOP.has(n) && !COMMON_WORDS.has(n) && names.has(n)) || named(b.title) ||
+          [b, ...(b.earlier || [])].some((x) => named(x.name))) hits.push([d, b]);
+      if (hits.length >= 3) break;
+    }
+    return hits;
+  }
+
+  // Every breach on record for a site, newest first: [{ when, title, count, kinds }].
+  function breachList(b) {
+    return [b, ...(b.earlier || [])].sort((x, y) => (String(x.breachDate) < String(y.breachDate) ? 1 : -1)).map((x) => ({
+      when: monthYear(x.breachDate), title: x.title || x.name,
+      count: x.pwnCount ? `${fmtCount(x.pwnCount)} accounts` : "number of accounts not given",
+      kinds: (x.dataClasses || []).join(", ").toLowerCase()
+    }));
+  }
+  function siteLabel(d, b) {   // the shortest title is usually the company itself ("LinkedIn", not "LinkedIn Scraped Data (2021)")
+    const titles = [b, ...(b.earlier || [])].map((x) => x.title || x.name).filter(Boolean).sort((x, y) => x.length - y.length);
+    return `${titles[0] || d} (${d})`;
+  }
+  function breachHead(d, b) {
+    const n = 1 + ((b.earlier && b.earlier.length) || 0);
+    return `${siteLabel(d, b)} has ${n} data breach${n > 1 ? "es" : ""} on record in Have I Been Pwned`;
+  }
+  // "Was X hacked?" answered from the list itself (like grade questions): every breach, exact numbers, no guessing.
+  const BREACH_Q = /\b(hack\w*|breach\w*|leak\w*|pwn\w*|compromis\w*|stolen)\b/i;
+  const FOLLOW_UP = /\b(it|its|it's|they|them|their|that|this|those|yes|yeah|yep|ok|okay|sure|please)\b/i;
+  function breachAnswer(q, lists, history) {
+    if (!BREACH_Q.test(q) || !(lists && lists.hibp && lists.hibp.byDomain)) return null;
+    let hits = breachSites(q, lists);
+    if (!hits.length && FOLLOW_UP.test(q)) {   // "yes, tell me about its breaches": the site from the last question
+      const last = recent(history).slice(-1)[0];
+      if (last) hits = breachSites(last.question, lists);
+    }
+    if (hits.length) {
+      const parts = hits.map(([d, b]) => `${breachHead(d, b)} [HIBP]:\n` +
+        breachList(b).map((x) => `- ${x.when}, ${x.title}: ${x.count}${x.kinds ? `; exposed ${x.kinds}` : ""}.`).join("\n"));
+      const who = hits.length === 1 ? siteLabel(hits[0][0], hits[0][1]).replace(/ \(.*$/, "") : "one of these sites";
+      return parts.join("\n\n") + `\n\nWhat you can do: if you have a ${who} account, change its password and the same password anywhere ` +
+        `else you used it, turn on two-step sign-in, and watch for emails pretending to be ${hits.length === 1 ? who : "these sites"}.`;
+    }
+    const domain = (q.toLowerCase().match(/[a-z0-9-]+(?:\.[a-z0-9-]+)+/) || [])[0];
+    if (!domain) return null;   // a name we don't know: Gemma answers from the rest of the evidence
+    const at = String(lists.hibp.fetchedAt || "").slice(0, 10).split("-");
+    const updated = at.length === 3 ? ` (updated ${MONTHS[+at[1] - 1]} ${+at[2]}, ${at[0]})` : "";
+    return `Have I Been Pwned's list${updated} has no breach on record for ${domain.replace(/^www\./, "")} [HIBP]. ` +
+      "That doesn't prove it was never breached: the list only has breaches that became public.";
+  }
+
   // Facts about companies or sites named in the question, looked up in the local lists.
   function lookupFacts(question, lists, atlas) {
     const L = (typeof window !== "undefined" ? window : self).PrivaCLists;
@@ -210,11 +289,12 @@ Steps the person can take (no tag needed):
       const hit = [b.name, b.dba].find(n => n && has(n) && !seen.has(L.norm(n)));
       if (hit) { seen.add(L.norm(hit)); facts.push(`- ${b.name} is registered as a data broker in California [CA Broker Registry]`); }
     }
-    const by = (lists && lists.hibp && lists.hibp.byDomain) || {};
-    const mentioned = (question.toLowerCase().match(/[a-z0-9-]+(\.[a-z0-9-]+)+/g) || []).map(d => d.replace(/^www\./, ""));
-    for (const [d, b] of Object.entries(by)) {
+    for (const [d, b] of breachSites(question, lists)) {
       if (facts.length >= 10) break;
-      if (mentioned.includes(d) || has(b.name) || has(b.title)) facts.push(`- ${b.title} (${d}) had a ${breachText(b)}`);
+      // Same first part as before (the newest breach), then every earlier one, so Gemma sees the whole record.
+      const older = breachList(b).filter((x) => x.title !== (b.title || b.name) || x.when !== monthYear(b.breachDate));
+      facts.push(`- ${b.title} (${d}) had a ${breachText(b)}` +
+        (older.length ? `; earlier breaches on record: ${older.map((x) => `${x.when}, ${x.title}: ${x.count}${x.kinds ? `; exposed ${x.kinds}` : ""}`).join(". ")} [HIBP]` : ""));
     }
     return facts;
   }
@@ -515,16 +595,22 @@ Steps the person can take (no tag needed):
     const graded = gradeAnswer(q, ((data && data.sites) || []).filter(Boolean));
     if (graded) return { answer: graded, trace: [{ tool: "get_site_report", label: "Your browsing" }] };
     const lists = deps.lists ? await deps.lists() : null;
+    const breach = breachAnswer(q, lists, deps.history);
+    if (breach) return { answer: breach, trace: [{ tool: "breaches", label: "Have I Been Pwned" }] };
     const atlas = deps.atlas ? deps.atlas() : null;
     const facts = lookupFacts(q, lists, atlas);
     const extra = deps.facts ? await deps.facts() : FACT_FILES;
     const trace = [{ tool: "get_site_report", label: "Your browsing" }];
     try {
-      const raw = await deps.ask(q, { system: SYSTEM_PROMPT, context: buildContext(data, null, facts, extra, q, deps.history) +
-        (steps ? "" : `\n\nFor this question: Don't add a "What you can do" line; just answer it.`), options: { temperature: 0.2 },
+      const context = buildContext(data, null, facts, extra, q, deps.history) +
+        (steps ? "" : `\n\nFor this question: Don't add a "What you can do" line; just answer it.`);
+      const raw = await deps.ask(q, { system: SYSTEM_PROMPT, context, options: { temperature: 0.2 },
                                       ...(deps.signal ? { signal: deps.signal } : {}),
                                       ...(deps.onToken ? { onToken: (piece, so) => deps.onToken(piece, steps ? so : hideSteps(so)) } : {}) });
-      const text = steps ? cleanAnswer(raw) : dropSteps(cleanAnswer(raw));
+      // A source tag needs evidence behind it: Gemma wrote [HIBP] with no breach facts (2026-10-24), which also showed a
+      // "Have I Been Pwned" check mark C never made. Tags that aren't in the evidence are removed, so their chips don't show.
+      const sourced = cleanAnswer(raw).replace(/\s*\[([^\]]+)\]/g, (m, tag) => (TAGS.includes(tag) && !context.includes(`[${tag}]`) ? "" : m));
+      const text = steps ? sourced : dropSteps(sourced);
       if (/\[Government list\]/.test(text)) trace.push({ tool: "background_facts", label: "Government lists" });
       if (/\[Tracker Radar\]/.test(text)) trace.push({ tool: "lookup_company", label: "Tracker Radar" });
       if (/\[Cookie Database\]/.test(text)) trace.push({ tool: "cookies", label: "Cookie Database" });
