@@ -105,3 +105,41 @@ test("every tracker category has a purpose, and unknown ones count as unlabelled
   assert.strictEqual(purposeOf("Measuring your visits").key, "measure", "the dashboard's labels map back too");
   assert.strictEqual(purposeOf("Something new").key, "other");
 });
+
+// Range, coverage and label (Justin's grade-scale doc, repo owner 2026-10-24): shown next to the score, in words.
+test("checked: Fully checked names what stays unknown; Partly checked names what's missing and how high it could go", () => {
+  const full = summarize(cnn, { now: NOW });
+  assert.strictEqual(full.checked.full, true);
+  assert.strictEqual(full.checked.label, "Fully checked");
+  assert.strictEqual(full.checked.coverage, 100);
+  assert.match(full.checked.note, /Every line of the grade has an answer\. What companies do with data on their own servers is still unknown\./);
+  const part = summarize(scored({ domain: "news.example", trackers: [T.gAds, T.fb, T.amzn], cookieChoice: "accepted", policy: {} }), { now: NOW });
+  assert.strictEqual(part.score, 40);
+  assert.strictEqual(part.checked.full, false);
+  assert.strictEqual(part.checked.label, "Partly checked");
+  assert.strictEqual(part.checked.coverage, 87);
+  assert.deepStrictEqual(part.checked.range, { min: 40, max: 55 });
+  assert.strictEqual(part.checked.note, "The privacy policy isn't read yet, so this could be as high as 55 of 100 (C).");
+  const same = summarize(scored({ domain: "q.example", trackers: [], cookieChoice: "none", policy: { sells: false, source: "https://q.example/privacy" } }), { now: NOW });
+  assert.strictEqual(same.checked.note, "The privacy policy doesn't say whether it shares, so this could be as high as 8 of 100 (still an A).");
+});
+
+// "How this grade was calculated" for judges (Justin's grade-scale doc, section 5): numbered steps with this site's numbers.
+test("steps: the site's own points add up, then the letter, the unknowns and the label", () => {
+  const { steps } = window.PrivaCSiteSummary;
+  const site = scored({ domain: "news.example", trackers: [T.gAds, T.fb, T.amzn], cookieChoice: "accepted", policy: {} });
+  const s = steps(site);
+  assert.strictEqual(s.length, 5);
+  assert.match(s[0], /news\.example/);
+  assert.match(s[1], /15 \+ 15 \+ 10 = 40/);
+  assert.match(s[2], /40 is a B \(B is 21-40\)/);
+  assert.match(s[3], /privacy policy isn't read yet: up to \+15 more, so the range is 40-55/);
+  assert.match(s[4], /Partly checked: 87% of the grade's 115 possible points have an answer/);
+  const clean = steps(scored({ domain: "q.example", trackers: [], cookieChoice: "declined", policy: { sells: false, shares: false } }));
+  assert.match(clean[1], /Nothing added points, so the score is 0/);
+  assert.match(clean[3], /Nothing is unknown, so the range is just 0/);
+  assert.match(clean[4], /Fully checked: 100%/);
+  const capped = steps(scored({ domain: "c.example", trackers: Array.from({ length: 12 }, () => T.gAds), cookieChoice: "accepted", policy: { sells: true }, owner: { company: "Y", country: "RU" },
+    breach: { name: "X", breachDate: "2026-06-01", addedDate: "2026-07-01" } }));
+  assert.match(capped[1], /= 115, capped at 100/);
+});
