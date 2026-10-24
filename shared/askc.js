@@ -121,7 +121,9 @@ Steps the person can take (no tag needed):
     let ck = "";
     if (s.cookies && s.cookies.length && C) {
       const sum = C.summarize(s.cookies);
-      const parts = Object.entries(sum.byCategory).map(([k, n]) => `${n} ${C.KIND[k] ? C.KIND[k].label : "purpose unknown"}`);
+      const byLabel = new Map();   // "Functional" and "Necessary" share a label: count them together
+      for (const [k, n] of Object.entries(sum.byCategory)) { const label = C.KIND[k] ? C.KIND[k].label : "purpose unknown"; byLabel.set(label, (byLabel.get(label) || 0) + n); }
+      const parts = [...byLabel].map(([label, n]) => `${n} ${label}`);
       const ads = sum.marketing.slice(0, 4).map(c => `${c.name} (${c.company || c.domain}, kept ${C.lifetime(c.days)}${c.firstParty ? "" : ", third-party"})`).join(", ");
       ck = `; cookies stored: ${sum.total} (${parts.join(", ")}) [Seen on your visit] [Cookie Database]` +
         (ads ? `; advertising cookies: ${ads} [Cookie Database]` : "") +

@@ -5,6 +5,7 @@ const test = require("node:test");
 const assert = require("node:assert");
 globalThis.window = globalThis;
 require("../shared/lists.js");
+require("../shared/cookies.js");
 require("../shared/askc.js");
 const { buildContext, answer } = window.PrivaCAskC;
 
@@ -68,4 +69,10 @@ test("a site with many trackers keeps its foreign-adversary and broker links in 
   assert.match(ctx, /Baidu \(Analytics, based in CN\) \[Tracker Radar\], on the Pentagon's Section 1260H list/);
   assert.match(ctx, /LiveRamp \(Data broker, based in US\) \[Tracker Radar\], registered California data broker/);
   assert.match(ctx, /and \d+ more tracker companies/);
+});
+
+test("cookie purposes that share a name are counted together", () => {
+  const cookies = [{ name: "a", category: "Functional" }, { name: "b", category: "Necessary" }, { name: "c", category: "Marketing", company: "X", days: 30 }];
+  const ctx = buildContext({ sites: [{ ...site(1), cookies }] }, "2026-10-24", []);
+  assert.match(ctx, /cookies stored: 3 \(2 needed for the site to work, 1 advertising and profiling\)/);
 });
