@@ -26,6 +26,9 @@
     </button>`;
   }).join("") || `<p class="hint" style="padding:12px">No sites yet. Browse with PrivaC on and they'll appear here.</p>`;
 
+  const I = window.PrivaCIcons || { tile: () => "" };
+  const PS = window.PrivaCSiteSummary;
+  const pkey = (cat) => (PS ? PS.purposeOf(cat).key : "other");
   function detailHtml(s) {
     const uniq = new Set(s.trackers.map((t) => t.company)).size;
     const when = new Date(s.lastVisit).toLocaleString([], { weekday: "short", hour: "numeric", minute: "2-digit" });
@@ -39,12 +42,12 @@
       <div class="detail-actions"><button type="button" class="pill-btn" data-ask-pill data-ask="Why did ${esc(s.domain)} get ${an(s.grade)} ${s.grade}, and what can I do about it?">Ask C why it got ${an(s.grade)} ${s.grade}</button></div>
       <div class="detail-cols">
         <section>
-          <h3>Why it got ${an(s.grade)} ${s.grade}</h3>
+          <h3 class="col-head">${I.tile("list", "grade", "sm")}Why it got ${an(s.grade)} ${s.grade}</h3>
           <ul>${s.parts.map((p) => `<li><span>${esc(p.label)}</span><span class="end"><span class="pts ${p.points ? "" : "zero"}">+${p.points}</span>${ask(`On ${s.domain}: what does "${p.label}" mean, and why is it worth ${p.points} points?`, p.label)}</span></li>`).join("")}</ul>
         </section>
         <section>
-          <h3>Tracker connections</h3>
-          <ul>${s.trackers.length ? s.trackers.map((t) => `<li><span class="co">${esc(t.company)}<small>${esc(t.domain)}</small></span><span class="end"><span class="where">${esc(t.category)}${ADV[t.country] ? ` <strong>${esc(ADV[t.country])}</strong>` : ""}</span>${ask(`What does ${t.company} (${t.domain}) do on ${s.domain}, and should I worry?`, t.company)}</span></li>`).join("") : "<li><span>None on this site</span></li>"}</ul>
+          <h3 class="col-head">${I.tile("radar", "blue", "sm")}Tracker connections</h3>
+          <ul>${s.trackers.length ? s.trackers.map((t) => `<li><span class="co">${esc(t.company)}<small>${esc(t.domain)}</small></span><span class="end"><span class="where p-${pkey(t.category)}"><i class="p-dot"></i>${esc(t.category)}${ADV[t.country] ? ` <strong>${esc(ADV[t.country])}</strong>` : ""}</span>${ask(`What does ${t.company} (${t.domain}) do on ${s.domain}, and should I worry?`, t.company)}</span></li>`).join("") : "<li><span>None on this site</span></li>"}</ul>
         </section>
       </div>`;
   }
@@ -78,6 +81,13 @@
   const ranges = { A: "0–20", B: "21–40", C: "41–60", D: "61–80", F: "81–100" };
   $("grades-key").innerHTML = Object.keys(ranges).map((g) =>
     `<div class="k grade-${g}"><b>${g}</b><span>${PrivaCData.GRADE_WORDS[g]}</span><span>${ranges[g]}</span></div>`).join("");
+  const RULE_TILES = [["radar", "blue"], ["eye", "purple"], ["cookie", "orange"], ["globe", "red"], ["news", "indigo"], ["breach", "pink"]];
+  [...document.querySelectorAll("#rubric tbody tr")].forEach((tr, i) => {
+    const [g, c] = RULE_TILES[i] || ["list", "gray"];
+    tr.cells[0].innerHTML = `<div class="rule">${I.tile(g, c, "sm")}<span>${tr.cells[0].innerHTML}</span></div>`;
+  });
+  const EVIDENCE_TILES = [["eye", "blue"], ["news", "indigo"], ["server", "gray"]];
+  document.querySelectorAll(".evidence > div h3").forEach((h, i) => h.insertAdjacentHTML("afterbegin", I.tile(...(EVIDENCE_TILES[i] || ["list", "gray"]), "sm")));
   for (const tr of document.querySelectorAll("#rubric tbody tr")) {
     const rule = tr.cells[0].textContent.trim();
     const td = document.createElement("td");

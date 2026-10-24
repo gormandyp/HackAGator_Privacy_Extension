@@ -119,5 +119,8 @@
     }
   });
 
+  // The popup's gear opens the dashboard with ?settings: show the sheet right away.
+  if (new URLSearchParams(location.search).has("settings")) openSettings();
+
   window.PrivaCTabs = { show, openSettings };
 })();
