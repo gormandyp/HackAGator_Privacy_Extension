@@ -68,3 +68,31 @@ test("the store package includes every file the manifest, pages and scripts load
   for (const f of needed) assert.ok(packed.has(f), `missing from the store zip: ${f}`);
   for (const f of packed) assert.ok(!/^(tests|docs|scripts|models)\//.test(f), `shouldn't ship: ${f}`);
 });
+
+test("the privacy policy names every outside address the extension's code contacts", () => {
+  const dirs = ["background.js", "background", "shared", "offscreen"];
+  const hosts = new Set();
+  for (const d of dirs) {
+    const full = path.join(root, d);
+    const files = fs.statSync(full).isDirectory() ? fs.readdirSync(full).filter((f) => f.endsWith(".js")).map((f) => path.join(full, f)) : [full];
+    for (const f of files) {
+      for (const m of fs.readFileSync(f, "utf8").matchAll(/["'`](https?:\/\/([^/"'`]+)[^"'`]*)["'`]/g)) {
+        if (/w3\.org$/.test(m[2])) continue;   // XML namespaces, never fetched
+        hosts.add(m[2].replace(/^www\./, ""));
+      }
+    }
+  }
+  assert.ok(hosts.size >= 4, [...hosts].join(", "));
+  const p = read("PRIVACY.md");
+  for (const h of hosts) assert.ok(p.includes(h), `PRIVACY.md doesn't mention ${h}`);
+  assert.match(p, /IP address/, "says that any download shows the server your IP address");
+});
+
+test("terms of use exist, point to the privacy policy and keep the data licenses' rules", () => {
+  const t = read("TERMS.md");
+  assert.match(t, /PRIVACY\.md/);
+  assert.match(t, /as is/i);
+  assert.match(t, /not legal advice/i);
+  assert.match(t, /non-commercial/i, "Tracker Radar is CC BY-NC-SA: PrivaC must stay free");
+  assert.match(read("welcome/welcome.html"), /TERMS\.md/);
+});
