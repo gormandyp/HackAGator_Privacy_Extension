@@ -192,3 +192,14 @@ test("an accept-only banner inside a shadow root still gets the warning", () => 
   const host = { shadowRoot: { querySelectorAll: (sel) => (sel === "*" ? [] : controls) } };
   assert.deepStrictEqual(load([], { hosts: [host] }).kinds(), ["acceptOnly"]);
 });
+
+test("c-placement.js's copy of the Reject labels matches cookie-detector.js, so C lines up with the same button", () => {
+  const patterns = (text) => new Set(text.match(/\/\^[^/]+\$\/i/g));
+  const detector = patterns(SRC.slice(SRC.indexOf("const REJECT_LABELS"), SRC.indexOf("];", SRC.indexOf("const REJECT_LABELS"))));
+  const placementSrc = fs.readFileSync(__dirname + "/../content/c-placement.js", "utf8");
+  const start = placementSrc.indexOf("const REJECT = [");
+  const placement = patterns(placementSrc.slice(start, placementSrc.indexOf("];", start)));
+  assert.ok(detector.size >= 25);
+  assert.deepStrictEqual([...detector].filter((p) => !placement.has(p)), [], "missing from c-placement.js");
+  assert.deepStrictEqual([...placement].filter((p) => !detector.has(p)), [], "only in c-placement.js");
+});

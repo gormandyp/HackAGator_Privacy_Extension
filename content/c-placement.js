@@ -180,7 +180,8 @@
     /^only essential(?: cookies)?$/i, /^essential cookies only$/i, /^necessary cookies only$/i, /^accept only essential cookies$/i,
     /^accept only necessary cookies$/i, /^use essential cookies only$/i, /^use necessary cookies only$/i,
     /^continue without accepting$/i, /^continue without consent$/i, /^save necessary cookies only$/i,
-    /^reject all optional cookies$/i, /^reject all non-essential cookies$/i];       // same as cookie-detector.js
+    /^reject all optional cookies$/i, /^reject all non-essential cookies$/i, /^deny cookies$/i,
+    /^reject additional cookies$/i, /^allow recommended cookies only$/i];       // same as cookie-detector.js
   const label = (e) => String(e.innerText || e.value || (e.getAttribute && e.getAttribute("aria-label")) || "").trim().replace(/\s+/g, " ");
   const shown = (e) => { const r = e.getBoundingClientRect(); return r.width > 0 && r.height > 0; };
   function rejectButtonIn(el) {
