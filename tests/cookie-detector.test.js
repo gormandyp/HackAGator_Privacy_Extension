@@ -312,3 +312,44 @@ test("every Accept wording c-events.js knows also counts as Accept in the detect
     assert.deepStrictEqual(load(bannerWith([label, "Cookie settings"]).controls).kinds(), ["acceptOnly"], label);
   }
 });
+
+// A "no" button whose wording isn't in REJECT_LABELS yet. The "Beware!" check already treated it as a way to
+// say no, so C said nothing at all. Inside a cookie pop-up, a short label starting with reject/decline/deny/
+// refuse/disagree, or saying necessary/essential "only", now counts as the Reject button. (PLAN.md lists
+// "Deny" on Usercentrics as wording to check on the real site.)
+for (const [labels, no, tool] of [
+  [["Deny", "Allow selection", "Allow all"], "Deny", "a Deny button"],
+  [["Accept All", "Deny", "More Information"], "Deny", "Deny between Accept and More"],
+  [["Agree and close", "Disagree and close", "Learn more"], "Disagree and close", "Disagree and close"],
+  [["Accept", "Decline"], "Decline", "two plain buttons"],
+  [["Allow all", "Strictly necessary only"], "Strictly necessary only", "necessary-only wording"]
+]) {
+  test(`${tool} (${labels.join(" + ")}): C offers to decline, and "Protect me" clicks "${no}"`, async () => {
+    const { controls } = bannerWith(labels);
+    const page = load(controls);
+    assert.deepStrictEqual(page.kinds(), ["cookie"]);
+    const target = controls.find((c) => c.innerText === no);
+    target.click = () => { target.clicks++; target.isConnected = false; };
+    await page.calls[0][1].onDecline();
+    assert.deepStrictEqual(controls.map((c) => c.clicks), controls.map((c) => (c === target ? 1 : 0)));
+  });
+}
+
+test("a known Reject label wins over other no-words on the page", () => {
+  const { controls } = bannerWith(["Decline", "Reject all", "Accept all"]);
+  const page = load(controls);
+  page.calls[0][1].onDecline();
+  assert.strictEqual(controls[1].clicks, 1);
+  assert.strictEqual(controls[0].clicks, 0);
+});
+
+test("a Decline button outside any cookie pop-up (a calendar invite) isn't mistaken for Reject", () => {
+  const invite = control("Decline", { banner: null });
+  assert.deepStrictEqual(load([invite, control("Accept", { banner: null })]).kinds(), []);
+});
+
+test("settings-style no-words aren't a one-click Reject: C warns instead of staying silent", () => {
+  for (const labels of [["Accept all cookies", "Manage necessary cookies"], ["Accept all", "Reject or customise settings"]]) {
+    assert.deepStrictEqual(load(bannerWith(labels).controls).kinds(), ["acceptOnly"], labels.join(" + "));
+  }
+});
