@@ -34,6 +34,7 @@
         "shared/mascot.js",
         "content/regtrack-line.js",
         "content/c-prompt.js",
+        "content/c-events.js",
         "content/cookie-detector.js",
         "content/alerts.js",
         "content/policy-link.js"
@@ -55,6 +56,15 @@
       ],
       "matches": [
         "<all_urls>"
+      ]
+    },
+    {
+      "resources": [
+        "c-poses/*.svg"
+      ],
+      "matches": [
+        "http://*/*",
+        "https://*/*"
       ]
     }
   ]
