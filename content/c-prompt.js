@@ -287,7 +287,8 @@
     setTimeout(() => h.remove(), 230);
   }
 
-  function cookie({ onDecline, onChoose } = {}) {
+  // auto: Settings > "Protect me automatically" is on, so C declines right away instead of asking first.
+  function cookie({ onDecline, onChoose, auto } = {}) {
     const root = mount(`
       <p class="who">C from PrivaC</p>
       <p>This site wants to use cookies that can track you. Want me to decline the extra ones?</p>
@@ -298,10 +299,19 @@
     
     root.querySelector(".card").classList.add("intro");
 
-    root.querySelector('[data-a="decline"]').addEventListener("click", async () => {
+    const declineButton = root.querySelector('[data-a="decline"]');
+    declineButton.addEventListener("click", async () => {
+      if (celebrating) return;   // already declining
       root.querySelector(".card").classList.remove("intro");
 
       celebrating = true;
+
+      // While the site's Reject is clicked and checked (up to 3 s), say what's happening instead of
+      // leaving the question and its buttons up.
+      root.querySelector(".card").innerHTML = `
+        <p class="who">C from PrivaC</p>
+        <p>${auto ? "Protecting you: I'm declining this site's extra cookies." : "On it! Declining the extra cookies..."}</p>
+      `;
       
       let result = "failed";
 
@@ -384,6 +394,8 @@
       setTimeout(() => hide(), 2200);
     });
 
+    // Protect me automatically: start declining once C is in place (content/c-placement.js places him first).
+    if (auto) setTimeout(() => declineButton.click(), 0);
   }
 
   function acceptOnly() {

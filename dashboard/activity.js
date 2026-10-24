@@ -97,7 +97,7 @@
     ];
     const most = Math.max(1, ...kinds.map((k) => n(k.key)));
     const responses = [
-      ["Pressed \"Protect me\"", n("decline-click"), "What changes when C declines the extra cookies for me?"],
+      ["Protected by C (\"Protect me\" or automatic)", n("decline-click"), "What changes when C declines the extra cookies for me?"],
       ["C confirmed the site accepted it", n("decline-confirmed"), "How does C check that a site really accepted my 'decline'?", "sub"],
       ["Opened the site's own cookie choices", n("choose-click"), "What should I switch off when I open a site's own cookie choices?"],
       ["Said no on the site yourself", n("rejected-on-site"), "Is clicking Reject on a cookie banner as good as letting C decline?"],

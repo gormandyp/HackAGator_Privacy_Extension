@@ -17,3 +17,8 @@ test("no page people see still says \"Decline extras\"", () => {
     assert.ok(!/decline extras/i.test(read(f)), f);
   }
 });
+
+test("Settings has a \"Protect me automatically\" switch, and C's pop-up knows the auto mode", () => {
+  assert.match(read("dashboard/dashboard.html"), /Protect me automatically[\s\S]{0,300}data-setting-bool="autoDecline"/);
+  assert.match(read("content/c-prompt.js"), /function cookie\(\{ onDecline, onChoose, auto \} = \{\}\)/);
+});
