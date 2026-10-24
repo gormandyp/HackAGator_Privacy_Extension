@@ -1,0 +1,46 @@
+HTTP/2 302 
+content-type: text/plain; charset=utf-8
+content-length: 1086
+location: https://us.aws.cdn.hf.co/xet-bridge-us/69c476dababacb9018e97cfa/769c60390eae4510a3123e54a0154408acbf203d8f58ac2ea1fe6604abead19b?xip=Jz6glJX8uP4&user_id=public&response-content-disposition=inline%3B+filename*%3DUTF-8%27%27gemma-4-E2B-it-web.litertlm%3B+filename%3D%22gemma-4-E2B-it-web.litertlm%22%3B&X-Xet-Cas-Uid=public&Expires=1792835918&Policy=eyJTdGF0ZW1lbnQiOlt7IlJlc291cmNlIjoiaHR0cHM6Ly91cy5hd3MuY2RuLmhmLmNvL3hldC1icmlkZ2UtdXMvNjljNDc2ZGFiYWJhY2I5MDE4ZTk3Y2ZhLzc2OWM2MDM5MGVhZTQ1MTBhMzEyM2U1NGEwMTU0NDA4YWNiZjIwM2Q4ZjU4YWMyZWExZmU2NjA0YWJlYWQxOWJcXD94aXA9Sno2Z2xKWDh1UDQmdXNlcl9pZD1wdWJsaWMmcmVzcG9uc2UtY29udGVudC1kaXNwb3NpdGlvbj1pbmxpbmUlM0IrZmlsZW5hbWUlMkElM0RVVEYtOCUyNyUyN2dlbW1hLTQtRTJCLWl0LXdlYi5saXRlcnRsbSUzQitmaWxlbmFtZSUzRCUyMmdlbW1hLTQtRTJCLWl0LXdlYi5saXRlcnRsbSUyMiUzQiZYLVhldC1DYXMtVWlkPXB1YmxpYyIsIkNvbmRpdGlvbiI6eyJEYXRlTGVzc1RoYW4iOnsiRXBvY2hUaW1lIjoxNzkyODM1OTE4fX19XX0_&Signature=MEUCIQDx53dog4-jtLClmYscaoP-jANuYa5UVntgdnhVUQ9AGwIgH3YEvnANT-y-B7mHYTrbPRZwTu5OSzLWoFdOwTN5jcM_&Key-Pair-Id=01KXEF4KZ1B6FV465MAWR4M21F&Hash-Algorithm=SHA256
+date: Sat, 24 Oct 2026 08:58:38 GMT
+x-powered-by: huggingface-moon
+x-request-id: Root=1-6adc733e-1d852461011b1bd75f2944ea
+ratelimit: "resolvers";r=2999;t=252
+ratelimit-policy: "fixed window";"resolvers";q=3000;w=300
+cross-origin-opener-policy: same-origin
+referrer-policy: strict-origin-when-cross-origin
+access-control-max-age: 86400
+access-control-allow-origin: https://huggingface.co
+vary: Origin, Accept
+access-control-expose-headers: X-Repo-Commit,X-Request-Id,X-Error-Code,X-Error-Message,X-Total-Count,ETag,Link,Accept-Ranges,Content-Range,X-Linked-Size,X-Linked-ETag,X-Xet-Hash
+x-repo-commit: 1caa527c1e88b55f046fcd8d2b4265606680663d
+accept-ranges: bytes
+x-hf-warning: unauthenticated; Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+x-hub-cache: MISS
+x-linked-size: 2008432640
+x-linked-etag: "3a08e8d94e23b814ae5414469c370c503813949acb8ceaa17e4ebf8a35af35b5"
+cache-control: no-store
+x-xet-hash: 769c60390eae4510a3123e54a0154408acbf203d8f58ac2ea1fe6604abead19b
+link: <https://huggingface.co/api/models/litert-community/gemma-4-E2B-it-litert-lm/xet-read-token/1caa527c1e88b55f046fcd8d2b4265606680663d>; rel="xet-auth", <https://cas-server.xethub.hf.co/v1/reconstructions/769c60390eae4510a3123e54a0154408acbf203d8f58ac2ea1fe6604abead19b>; rel="xet-reconstruction-info"
+x-cache: Miss from cloudfront
+via: 1.1 e401756dd494b6bbc4d871b5300eb096.cloudfront.net (CloudFront)
+x-amz-cf-pop: IAD55-P8
+alt-svc: h3=":443"; ma=86400
+x-amz-cf-id: Xrt1y35c0pGqVjVOMU7bBkJkMTM2l4TqR_GOezeFqs245PVnVgWUOw==
+strict-transport-security: max-age=31536000
+
+HTTP/2 200 
+content-type: application/octet-stream
+accept-ranges: bytes
+content-disposition: inline; filename*=UTF-8''gemma-4-E2B-it-web.litertlm; filename="gemma-4-E2B-it-web.litertlm";
+etag: "769c60390eae4510a3123e54a0154408acbf203d8f58ac2ea1fe6604abead19b"
+content-security-policy: default-src 'none'; media-src 'self'; sandbox allow-same-origin
+access-control-allow-headers: Content-Range, Content-Type, Content-Disposition, ETag
+access-control-expose-headers: *
+content-length: 2008432640
+vary: origin, access-control-request-method, access-control-request-headers
+access-control-allow-origin: *
+x-request-id: 01M5PJ4BCH3JBCHS1YC6J3Z57B
+x-hf-cdn-pop: aws-us-east-1
+date: Sat, 24 Oct 2026 08:58:38 GMT
+

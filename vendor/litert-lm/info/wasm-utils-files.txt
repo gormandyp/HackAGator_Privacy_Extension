@@ -1,0 +1,9 @@
+       121 ./README.md
+      1514 ./dist/bundle-metafile.json
+      1496 ./dist/bundle.js
+      6975 ./dist/bundle.js.map
+      3670 ./dist/index.d.ts
+      1494 ./dist/index.js
+      6951 ./dist/index.js.map
+       916 ./dist/metafile-esm.json
+      1050 ./package.json

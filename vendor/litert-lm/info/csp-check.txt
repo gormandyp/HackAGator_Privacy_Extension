@@ -1,0 +1,2 @@
+/home/runner/work/HackAGator_Privacy_Extension/HackAGator_Privacy_Extension/vendor/litert-lm/litert-lm.mjs:89:  if (typeof importScripts === "function") {
+/home/runner/work/HackAGator_Privacy_Extension/HackAGator_Privacy_Extension/vendor/litert-lm/litert-lm.mjs:90:    importScripts(scriptUrl.toString());
