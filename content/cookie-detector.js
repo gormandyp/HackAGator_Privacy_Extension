@@ -184,6 +184,29 @@
     }
 
 
+    // "By continuing to use our website, you agree..." strips with no buttons at all (McDonald's US, PLAN R19a).
+    // There is no way to say no, so C warns like any accept-only banner. "By continuing, you agree to the Terms"
+    // on a sign-in page doesn't count: the sentence must be about using the site, and the box must be short
+    // and have no form fields in it.
+    const NOTICE =
+        BANNER + ', [id*="privacy" i], [class*="privacy" i], [id*="notice" i], [class*="notice" i], ' +
+        '[id*="banner" i], [class*="banner" i], [id*="notif" i], [class*="notif" i], [role="region"], [role="alert"]';
+    const BY_CONTINUING = /\bby (continuing to (use|browse|visit)|using|browsing|visiting|staying on)( on)? (this|our|the) (web)?site\b[^.]{0,80}?\b(agree|accept|consent)/i;
+
+    function findContinueNotice() {
+        let best = null;
+        for (const element of queryAll(NOTICE)) {
+            const rect = element.getBoundingClientRect();
+            if (!rect.width || !rect.height) continue;
+            const text = (element.innerText || "").trim();
+            if (text.length > 600 || !BY_CONTINUING.test(text)) continue;
+            if (element.querySelectorAll('input[type="password"], input[type="email"]').length) continue;
+            if (!best || text.length < best.innerText.trim().length) best = element;
+        }
+        return best;
+    }
+
+
     function findPrivacyOptOutButton() {
         const buttons = queryAll(
             'button, [role="button"], input[type="button"]'
@@ -409,6 +432,15 @@
             promptedFor = acceptOnly.button;
             PrivaCPrompt.acceptOnly();
             PrivaCPrompt.positionAtBanner(acceptOnly.banner);
+            return;
+        }
+
+        const strip = !acceptOnly && findContinueNotice();
+        if (strip && !handled.has(strip)) {
+            handled.add(strip);
+            promptedFor = strip;
+            PrivaCPrompt.acceptOnly();
+            PrivaCPrompt.positionAtBanner(strip);
         }
 
         return;

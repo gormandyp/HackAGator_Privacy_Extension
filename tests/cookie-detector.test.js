@@ -40,7 +40,7 @@ function bannerWith(labels, text = "We use cookies to improve your experience an
 }
 
 // Loads the detector on a page whose buttons are `controls`. `hosts` are elements with open shadow roots.
-function load(controls, { hosts = [], cookie = "" } = {}) {
+function load(controls, { hosts = [], cookie = "", notices = [] } = {}) {
   const calls = [];
   const P = {
     cookie(opts) { calls.push(["cookie", opts]); },
@@ -71,6 +71,7 @@ function load(controls, { hosts = [], cookie = "" } = {}) {
     documentElement: {},
     querySelectorAll(sel) {
       if (sel === "*") { clock.checks++; return hosts; }
+      if (sel.includes('[class*="notice" i]')) return notices;   // "by continuing" strips (R19a)
       return controls.filter((c) => fits(c.kind, sel));
     }
   };
@@ -414,4 +415,46 @@ test("after PrivaC is reloaded, the old detector stops: no new pop-ups, no messa
   assert.deepStrictEqual(page.kinds(), ["hide"]);
   assert.strictEqual(page.ctx.observer.disconnected, true, "stops watching the page");
   assert.deepStrictEqual(page.sent, []);
+});
+
+// R19a (Max, checked live on mcdonalds.com/us, Oct 24): a strip at the top with no buttons at all, "By continuing to
+// use our website, you agree to the revised Terms...", and only a link to opt out. C used to stay silent; now he
+// warns "Beware!" like any banner with no way to say no.
+function notice(text, links = []) {
+  const el = { innerText: text, isConnected: true,
+    getBoundingClientRect: () => ({ top: 0, bottom: 60, left: 0, right: 1440, width: 1440, height: 60 }) };
+  const inside = links.map((l) => control(l, { kind: "link", banner: el }));
+  el.querySelectorAll = (sel) => (/input/.test(sel) && el.form ? [{}] : sel.includes("input") ? [] : inside);
+  return el;
+}
+
+test("McDonald's \"By continuing to use our website, you agree\" strip with no buttons: C warns once", () => {
+  const strip = notice("By continuing to use our website, you agree to the revised Terms of Use and Privacy Statement. McDonald's Privacy Rights Center", ["McDonald's Privacy Rights Center"]);
+  const page = load([], { notices: [strip] });
+  page.ctx.window.PrivaCCookieCheck();
+  assert.deepStrictEqual(page.kinds(), ["acceptOnly"]);
+});
+
+test("other real \"by using this site\" wordings warn too", () => {
+  for (const text of ["By using this site, you agree to our use of cookies.", "By continuing to browse the site you are agreeing to our use of cookies.", "By browsing our website you consent to our cookie policy."]) {
+    assert.deepStrictEqual(load([], { notices: [notice(text)] }).kinds(), ["acceptOnly"], text);
+  }
+});
+
+test("a sign-in page's \"By continuing, you agree to the Terms\" is not a cookie notice", () => {
+  assert.deepStrictEqual(load([], { notices: [notice("By continuing, you agree to Google's Terms of Service and Privacy Policy.")] }).kinds(), []);
+  const form = notice("By using this site you agree to our Terms. Email Password Sign in");
+  form.form = true;
+  assert.deepStrictEqual(load([], { notices: [form] }).kinds(), [], "a notice with a sign-in form inside is left alone");
+});
+
+test("a whole page that happens to contain the sentence isn't treated as a notice", () => {
+  const long = notice("By using this site you agree to our cookie policy. " + "News story text. ".repeat(80));
+  assert.deepStrictEqual(load([], { notices: [long] }).kinds(), []);
+});
+
+test("a \"by continuing\" notice that also has a Reject button gets the decline offer, not the warning", () => {
+  const { controls } = bannerWith(["Reject all"], "By continuing to use our website, you agree to our use of cookies.");
+  const strip = notice("By continuing to use our website, you agree to our use of cookies.");
+  assert.deepStrictEqual(load(controls, { notices: [strip] }).kinds(), ["cookie"]);
 });
