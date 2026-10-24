@@ -96,13 +96,25 @@ h1, h2, h3 { font-family: var(--font-display); color: var(--text); font-weight: 
   background: url("wallpaper-light.svg") center / cover no-repeat, var(--bg-1);
 }
 :root[data-theme="dark"] .backdrop { background: url("wallpaper-dark.svg") center / cover no-repeat, var(--bg-1); }
+/* Glass color (Settings > Appearance; scripts/build-wallpapers.js). Aurora is the original wallpaper above. */
+:root[data-tint="ocean"] .backdrop { background: url("wallpapers/ocean-light.svg") center / cover no-repeat, var(--bg-1); }
+:root[data-tint="ocean"][data-theme="dark"] .backdrop { background: url("wallpapers/ocean-dark.svg") center / cover no-repeat, var(--bg-1); }
+:root[data-tint="forest"] .backdrop { background: url("wallpapers/forest-light.svg") center / cover no-repeat, var(--bg-1); }
+:root[data-tint="forest"][data-theme="dark"] .backdrop { background: url("wallpapers/forest-dark.svg") center / cover no-repeat, var(--bg-1); }
+:root[data-tint="sunset"] .backdrop { background: url("wallpapers/sunset-light.svg") center / cover no-repeat, var(--bg-1); }
+:root[data-tint="sunset"][data-theme="dark"] .backdrop { background: url("wallpapers/sunset-dark.svg") center / cover no-repeat, var(--bg-1); }
+:root[data-tint="rose"] .backdrop { background: url("wallpapers/rose-light.svg") center / cover no-repeat, var(--bg-1); }
+:root[data-tint="rose"][data-theme="dark"] .backdrop { background: url("wallpapers/rose-dark.svg") center / cover no-repeat, var(--bg-1); }
+:root[data-tint="graphite"] .backdrop { background: url("wallpapers/graphite-light.svg") center / cover no-repeat, var(--bg-1); }
+:root[data-tint="graphite"][data-theme="dark"] .backdrop { background: url("wallpapers/graphite-dark.svg") center / cover no-repeat, var(--bg-1); }
+.backdrop { transition: background 300ms ease; }
 /* A whisper of grain so large gradients don't band; it also gives the glass something to diffuse. */
 .backdrop::after {
   content: ""; position: absolute; inset: 0; opacity: .04; mix-blend-mode: multiply;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 [data-theme="dark"] .backdrop::after { mix-blend-mode: screen; opacity: .03; }
-[data-style="clean"] .backdrop, :root[data-style="clean"][data-theme="dark"] .backdrop { background: var(--bg-2); }
+[data-style="clean"] .backdrop, :root[data-style="clean"][data-theme="dark"] .backdrop, :root[data-style="clean"][data-tint] .backdrop { background: var(--bg-2); }
 [data-style="clean"] .backdrop::after { display: none; }
 
 /* ============ Materials ============ */

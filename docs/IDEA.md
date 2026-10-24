@@ -84,7 +84,7 @@ Supporting (older, so NOT the theme answer): DuckDuckGo Tracker Radar (domain to
 - Make sure that the suggested Ask C topics adjust to your browsing trends.
   - **Status:** not started; small (PLAN R6).
 - Make it so we are able to customize the liquid glass (i.e., green hue background, blue hue background, etc).
-  - **Status:** not started (PLAN R15). Liquid glass and Clean, light and dark exist (Settings > Appearance).
+  - **Status: done 2026-10-24 (branch `max/glass-tint`).** Settings > Appearance > Glass color: Aurora (original), Ocean (blue), Forest (green), Sunset, Rose, Graphite, each in light and dark.
 
 ## Smiley
 - Clear cache button within PrivaC, with explanation on what it means to clear ur cache and how its good
