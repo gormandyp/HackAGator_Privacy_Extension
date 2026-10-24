@@ -55,5 +55,5 @@
     try { return JSON.parse(text); } catch (e) { throw new Error("Gemma did not return valid JSON"); }
   }
 
-  window.PrivaCGemma = { ask, buildRequest, MODEL, OLLAMA_URL };
+  (typeof window !== "undefined" ? window : self).PrivaCGemma = { ask, buildRequest, MODEL, OLLAMA_URL };
 })();
