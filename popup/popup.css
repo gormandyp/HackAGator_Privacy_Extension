@@ -108,3 +108,18 @@ main { display: grid; gap: 8px; margin-top: 8px; }
 .empty p { margin: 6px 0 0; color: var(--text-2); font-size: 12.5px; }
 
 @keyframes pop { from { transform: scale(.6) rotate(-8deg); opacity: 0; } to { transform: none; opacity: 1; } }
+
+/* ---- In the rounded panel over a website (content/panel.js, popup/panel-mode.js) ----
+   The panel is the glass: it blurs the real page behind it, so Liquid glass drops its wallpaper here.
+   Width comes from the panel; a matching gap under the button bar. */
+:root.in-panel body { width: auto; padding-bottom: 8px; }
+:root.in-panel[data-style="glass"] body { background: transparent; }
+:root.in-panel[data-style="glass"] .backdrop { display: none; }
+/* The panel already blurs the page behind it. A second blur inside the frame only adds seams, so panes and
+   bars here are tinted glass without their own blur, and the bars are a little more solid so rows that
+   scroll under them stay out of the way. */
+:root.in-panel[data-style="glass"] .glass,
+:root.in-panel[data-style="glass"] [data-liquid],
+:root.in-panel[data-style="glass"] .alerts { -webkit-backdrop-filter: none; backdrop-filter: none; }
+:root.in-panel[data-style="glass"][data-theme="light"] { --glass-bar: rgba(255, 255, 255, .72); }
+:root.in-panel[data-style="glass"][data-theme="dark"] { --glass-bar: rgba(26, 30, 40, .8); }

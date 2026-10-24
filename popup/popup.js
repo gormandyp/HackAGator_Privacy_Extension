@@ -119,4 +119,7 @@
   ask.innerHTML = `${I.icon("c", 16)}<span>Ask C why it got ${an(s.grade)} ${s.grade}</span>`;
   ask.hidden = false;
   ask.addEventListener("click", () => openDashboard("?ask=" + encodeURIComponent(`Why did ${s.domain} get ${an(s.grade)} ${s.grade}?`)));
-})();
+})().finally(() => {
+  // The rounded panel on a website (popup/panel-mode.js) waits for this before it appears.
+  document.dispatchEvent(new Event("privac-popup-ready"));
+});

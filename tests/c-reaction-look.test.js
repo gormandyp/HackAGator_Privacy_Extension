@@ -52,3 +52,19 @@ test("a cookie pop-up that's turned off in Settings adds nothing, and the advers
   P.adversary({ companies: [] });
   assert.strictEqual(observers.length, 0);
 });
+
+test("the still pose matches where C is: hanging under a top pop-up, or peeking over a lower one", () => {
+  const { P, hosts, observers } = setup();
+  P.cookie({});
+  const h = hosts[0];
+  const wrap = { dataset: { edge: "below" } };
+  const q = h.shadowRoot.querySelector;
+  h.shadowRoot.querySelector = (sel) => (sel === ".wrap" ? wrap : q(sel));
+  h.img.src = "chrome-extension://x/c-poses/mascot-push-up-uneasy.svg";   // c-prompt.js after a decline that didn't work
+  observers[0].cb([]);
+  assert.strictEqual(h.img.src, "chrome-extension://x/c-poses/mascot-cliff-hang-uneasy-still.svg", "hanging under the banner, so he keeps hanging");
+  wrap.dataset.edge = "above";
+  h.img.src = "chrome-extension://x/c-poses/mascot-cliff-hang-uneasy.svg";
+  observers[0].cb([]);
+  assert.strictEqual(h.img.src, "chrome-extension://x/c-poses/mascot-push-up-uneasy-still.svg");
+});

@@ -11,7 +11,6 @@
   },
   "action": {
     "default_title": "PrivaC",
-    "default_popup": "popup/popup.html",
     "default_icon": {
       "16": "icons/icon16.png",
       "32": "icons/icon32.png"
@@ -24,6 +23,7 @@
     "webNavigation",
     "alarms",
     "cookies",
+    "scripting",
     "offscreen",
     "unlimitedStorage"
   ],
@@ -39,9 +39,11 @@
         "content/c-events.js",
         "content/c-alert-look.js",
         "content/c-reaction-look.js",
+        "content/c-placement.js",
         "content/cookie-detector.js",
         "content/alerts.js",
-        "content/policy-link.js"
+        "content/policy-link.js",
+        "content/panel.js"
       ],
       "run_at": "document_idle"
     }
@@ -73,6 +75,16 @@
         "http://*/*",
         "https://*/*"
       ]
+    },
+    {
+      "resources": [
+        "popup/popup.html"
+      ],
+      "matches": [
+        "http://*/*",
+        "https://*/*"
+      ],
+      "use_dynamic_url": true
     }
   ]
 }

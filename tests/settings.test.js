@@ -1,4 +1,4 @@
-// shared/settings.js: appearance, style and which of C's pop-ups may show.
+// shared/settings.js: appearance, style, which of C's pop-ups may show, and how the toolbar pop-up opens.
 // Run with: node --test
 const test = require("node:test");
 const assert = require("node:assert");
@@ -6,13 +6,13 @@ globalThis.window = globalThis;
 require("../shared/settings.js");
 const S = window.PrivaCSettings;
 
-test("defaults: follow the Mac, liquid glass, every pop-up on, policy reading on", () => {
-  assert.deepStrictEqual(S.merge(null), { appearance: "system", style: "glass", popups: { cookie: true, acceptOnly: true, adversary: true }, policyReader: true });
+test("defaults: follow the Mac, liquid glass, every pop-up on, policy reading on, rounded toolbar pop-up", () => {
+  assert.deepStrictEqual(S.merge(null), { appearance: "system", style: "glass", popups: { cookie: true, acceptOnly: true, adversary: true }, policyReader: true, toolbar: "panel" });
 });
 
 test("saved choices are kept; unknown or broken values fall back to defaults", () => {
   const s = S.merge({ appearance: "dark", style: "clean", popups: { adversary: false, cookie: "no", made_up: false }, policyReader: false, extra: 1 });
-  assert.deepStrictEqual(s, { appearance: "dark", style: "clean", popups: { cookie: true, acceptOnly: true, adversary: false }, policyReader: false });
+  assert.deepStrictEqual(s, { appearance: "dark", style: "clean", popups: { cookie: true, acceptOnly: true, adversary: false }, policyReader: false, toolbar: "panel" });
   assert.strictEqual(S.merge({ appearance: "purple", style: "neon" }).appearance, "system");
 });
 
@@ -33,4 +33,11 @@ test("save merges into what's stored (outside Chrome it uses localStorage)", asy
   const s = await S.save({ popups: { adversary: false } });
   assert.strictEqual(s.style, "clean");
   assert.deepStrictEqual(s.popups, { cookie: true, acceptOnly: true, adversary: false });
+});
+
+test("toolbar pop-up: the rounded panel unless Chrome's own window was chosen; anything else falls back to the panel", () => {
+  assert.strictEqual(S.merge({ toolbar: "window" }).toolbar, "window");
+  assert.strictEqual(S.merge({ toolbar: "panel" }).toolbar, "panel");
+  assert.strictEqual(S.merge({ toolbar: "sidebar" }).toolbar, "panel");
+  assert.strictEqual(S.merge({ toolbar: true }).toolbar, "panel");
 });
