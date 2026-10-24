@@ -36,3 +36,24 @@ test("an older background without streaming resolves null, so the panel asks the
   assert.strictEqual(await askStreaming("Hi", () => {}), null);
   delete globalThis.chrome;
 });
+
+test("if PrivaC restarts mid-answer, the panel says so instead of asking Gemma a second time", async () => {
+  globalThis.chrome = { runtime: fakeRuntime((m, port) => {
+    port.listeners.forEach((f) => f({ type: "start" }));
+    port.listeners.forEach((f) => f({ type: "token", text: "Criteo is" }));
+    port.gone.forEach((f) => f());
+  }) };
+  const res = await askStreaming("Who is Criteo?", () => {});
+  assert.match(res.error, /stopped answering/);
+  delete globalThis.chrome;
+});
+
+test("a finished answer with no text shows a message instead of 'the AI isn't connected'", async () => {
+  globalThis.chrome = { runtime: fakeRuntime((m, port) => {
+    port.listeners.forEach((f) => f({ type: "start" }));
+    port.listeners.forEach((f) => f({ type: "done", result: { trace: [] } }));
+  }) };
+  const res = await askStreaming("Hi", () => {});
+  assert.match(res.error, /didn't find an answer/);
+  delete globalThis.chrome;
+});

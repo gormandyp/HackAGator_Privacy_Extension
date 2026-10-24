@@ -48,7 +48,7 @@ test("brokers, breaches and foreign-adversary links are summarized from every si
   sites.push({ ...site(95), domain: "watched.example", score: 3, grade: "A", trackers: [T("Yandex", "Analytics", "RU")], flagged: [T("Yandex", "Analytics", "RU")] });
   const ctx = buildContext({ sites }, "2026-10-24", [], null, "Should I accept cookies?");
   assert.match(ctx, /data brokers[^\n]*\[CA Broker Registry\][^\n]*LiveRamp[^\n]*broker\.example/i);
-  assert.match(ctx, /data breach[^\n]*\[HIBP\][^\n]*hacked\.example \(Hacked, 2025\)/i);
+  assert.match(ctx, /data breach[^\n]*\[HIBP\][^\n]*hacked\.example \(Hacked, 2025, 5\.0 million accounts: email addresses\)/i);
   assert.match(ctx, /foreign-adversary[^\n]*watched\.example: Yandex \(Russia\)/i);
   assert.match(ctx, /Companies seen on the most sites[^\n]*Company\d+ \(Advertising, US\) on \d+ of 63 sites/);
 });
@@ -86,4 +86,52 @@ test("odd saved data (an empty site entry, a missing tracker) never stops C from
 test("each site's own privacy policy is labeled as the site's, so a tracker company isn't credited with it", () => {
   const ctx = buildContext({ sites: [{ ...site(1), policy: { sells: true } }] }, "2026-10-24", []);
   assert.match(ctx, /this site's own privacy policy says it sells personal info \[Privacy policy\]/);
+});
+
+// ---------- from the independent review (Claude reviewer, 2026-10-24) ----------
+
+test("'no data brokers seen' is only said when the broker registry was actually downloaded", () => {
+  const sites = [{ ...site(1), trackers: [T("LiveRamp", "Data broker")] }];
+  assert.doesNotMatch(buildContext({ sites }, "2026-10-24", []), /No registered California data brokers/);
+  assert.match(buildContext({ sites, lists: { brokersAsOf: "2026-10-24T08:00:00Z" } }, "2026-10-24", []), /No registered California data brokers seen/);
+});
+
+test("asking about cnn.com finds the edition.cnn.com page you visited", () => {
+  const sites = Array.from({ length: 8 }, (_, i) => ({ ...site(i), score: 90 - i }));
+  sites.push({ ...site(50), domain: "edition.cnn.com", grade: "A", score: 10 });
+  assert.match(buildContext({ sites }, "2026-10-24", [], null, "What is cnn.com collecting about me?"), /- edition\.cnn\.com, visited/);
+});
+
+test("which sites sell or share your data, and breach details, cover sites outside the full-detail ones", () => {
+  const sites = Array.from({ length: 10 }, (_, i) => ({ ...site(i), score: 90 - i }));
+  sites[6] = { ...sites[6], policy: { sells: true } };
+  sites[7] = { ...sites[7], policy: { shares: true } };
+  sites[8] = { ...sites[8], breach: { name: "Leak", breachDate: "2024-03-01", addedDate: "2024-04-01", pwnCount: 1200000, dataClasses: ["Passwords", "Email addresses"] } };
+  const ctx = buildContext({ sites }, "2026-10-24", [], null, "Which sites sell my data?");
+  assert.match(ctx, /own privacy policy says they sell personal information \[Privacy policy\]: site6\.example/);
+  assert.match(ctx, /share personal information with partners \[Privacy policy\]: site7\.example/);
+  assert.match(ctx, /site8\.example \(Leak, 2024, 1\.2 million accounts: passwords, email addresses\)/);
+});
+
+test("even a very heavy week stays within Gemma's context (rules are never pushed out)", () => {
+  const heavy = Array.from({ length: 300 }, (_, i) => ({
+    ...site(i), score: 100 - (i % 50), owner: { company: "StateCo" + i, country: "RU" }, addressFlag: { ending: ".ru", country: "RU" },
+    serverFlag: { country: "RU" }, flagged: [T("Yandex", "Analytics", "RU"), T("Baidu", "Analytics", "CN"), T("Mail.ru", "Analytics", "RU")],
+    trackers: Array.from({ length: 40 }, (_, k) => T(`Co${k}`, "Advertising", k % 5 ? "US" : "CN", { fingerprinting: 3 })),
+    policy: { sells: true, shares: true, optOut: true, gpc: false, retention: false, preciseLocation: true, sensitive: true, otherSources: true,
+      quotes: Object.fromEntries(["sells", "shares", "optOut", "gpc", "retention", "preciseLocation", "sensitive", "otherSources"].map(f => [f, "x".repeat(300)])),
+      checkedAt: "2026-10-24T00:00:00Z" },
+    breach: { name: "B" + i, breachDate: "2025-01-01", addedDate: "2025-02-01", pwnCount: 3e6, dataClasses: ["Email addresses", "Passwords"] }
+  }));
+  const ctx = buildContext({ sites: heavy }, "2026-10-24", ["- fact".repeat(20)], { flagged: require("../shared/flagged-companies.json"), regtrack: require("../shared/regtrack-facts.json") }, "What is site3.example collecting about me?");
+  assert.ok(ctx.length <= 15000, `context is ${ctx.length} characters`);
+  assert.match(ctx, /- site3\.example, visited/, "the site you asked about is kept");
+});
+
+test("asking about a company shows where it followed you, not only its own sites", () => {
+  const own = ["google.com", "mail.google.com", "docs.google.com", "maps.google.com"].map((d, i) => ({ ...site(i), domain: d, score: 95 - i, trackers: [] }));
+  const followed = [0, 1, 2].map((i) => ({ ...site(20 + i), domain: `blog${i}.example`, score: 20 - i, trackers: [T("Google", "Advertising")] }));
+  const ctx = buildContext({ sites: [...own, ...followed] }, "2026-10-24", [], null, "Who is Google and should I worry?");
+  const detailed = (ctx.match(/^- [^:\n]+, visited/gm) || []).map((l) => l.slice(2, l.indexOf(",")));
+  assert.ok(followed.every((s) => detailed.includes(s.domain)), `full details: ${detailed.join(", ")}`);
 });

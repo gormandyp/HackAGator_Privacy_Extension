@@ -131,14 +131,21 @@
     return new Promise((resolve) => {
       let port;
       try { port = chrome.runtime.connect({ name: "privac-ask" }); } catch (e) { resolve(null); return; }
-      let settled = false, timer = 0;
+      let settled = false, started = false, timer = 0;
       const finish = (v) => { if (settled) return; settled = true; clearTimeout(timer); try { port.disconnect(); } catch (e) { /* closed */ } resolve(v); };
       timer = setTimeout(() => finish({ error: "I took too long to answer. Try a shorter question." }), 90000);
       port.onMessage.addListener((m) => {
-        if (m && m.type === "token") onText(m.text);
-        else if (m && m.type === "done") finish(m.result);
+        if (!m) return;
+        if (m.type === "start") started = true;
+        else if (m.type === "token") { started = true; onText(m.text); }
+        else if (m.type === "done") {
+          const r = m.result || {};
+          finish(r.answer || r.error ? r : { ...r, error: "C didn't find an answer. Try asking another way." });
+        }
       });
-      port.onDisconnect.addListener(() => finish(null));
+      // Gone before it started: this background can't stream, so the panel asks the normal way (null).
+      // Gone after it started: say so instead of asking Gemma a second time.
+      port.onDisconnect.addListener(() => finish(started ? { error: "C stopped answering (PrivaC restarted). Ask again." } : null));
       try { port.postMessage({ type: "ask", question }); } catch (e) { finish(null); }
     });
   }
@@ -146,7 +153,7 @@
   async function askBackground(question, onText) {
     if (hasRuntime() && onText && chrome.runtime.connect) {
       const res = await askStreaming(question, onText);
-      if (res && (res.answer || res.error)) return { ...res, sample: false };
+      if (res) return { ...res, sample: false };
     }
     if (hasRuntime()) {
       try {

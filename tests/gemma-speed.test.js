@@ -100,3 +100,46 @@ test("a stalled stream is hung up with a clear message", async () => {
     cancel: async () => {} }) } });
   await assert.rejects(G.ask("Hi", { fetch: stalled, onToken: () => {}, timeoutMs: 30 }), /took too long/);
 });
+
+// ---------- from the independent review (Claude reviewer, 2026-10-24) ----------
+
+test("a policy read that wakes up just as someone asks C still waits its turn", async () => {
+  // Reproduction from the review: the urgent question starts in the same instant the policy read gets past its wait.
+  // The policy read may start, but it must be stopped, and it may only finish after C's answer.
+  const log = [];
+  const slow = async (url, init) => {
+    const who = JSON.parse(init.body).messages.at(-1).content;
+    log.push("start " + who);
+    await new Promise((resolve, reject) => {
+      const t = setTimeout(resolve, 30);
+      init.signal.addEventListener("abort", () => { clearTimeout(t); log.push("stopped " + who); reject(Object.assign(new Error("aborted"), { name: "AbortError" })); });
+    });
+    log.push("end " + who);
+    return { ok: true, status: 200, json: async () => ({ message: { content: who === "policy" ? "{}" : "answer" } }) };
+  };
+  const urgent = Promise.resolve().then(() => G.ask("urgent", { fetch: slow }));
+  const policy = G.ask("policy", { priority: "low", json: true, fetch: slow });
+  await Promise.all([urgent, policy]);
+  const i = (x) => log.indexOf(x);
+  const during = log.slice(i("start urgent") + 1, i("end urgent"));
+  assert.ok(!during.includes("start policy"), "policy read started while C was answering: " + log.join(" | "));
+  const runningAtStart = log.slice(0, i("start urgent")).filter((x) => x === "start policy").length >
+    log.slice(0, i("start urgent")).filter((x) => x === "stopped policy").length;
+  assert.ok(!runningAtStart, "policy read kept running while C answered: " + log.join(" | "));
+  assert.ok(log.lastIndexOf("end policy") > i("end urgent"), log.join(" | "));
+});
+
+test("hanging up (closing the Ask C tab) stops Gemma", async () => {
+  const hangUp = new AbortController();
+  let aborted = false;
+  const fakeFetch = async (url, init) => new Promise((resolve, reject) => init.signal.addEventListener("abort", () => { aborted = true; reject(Object.assign(new Error("aborted"), { name: "AbortError" })); }));
+  const p = G.ask("Hi", { fetch: fakeFetch, signal: hangUp.signal });
+  hangUp.abort();
+  await assert.rejects(p);
+  assert.ok(aborted);
+});
+
+test("an empty answer is an error, not a blank bubble", async () => {
+  const empty = async () => ({ ok: true, status: 200, json: async () => ({ message: { content: "  " } }) });
+  await assert.rejects(G.ask("Hi", { fetch: empty }), /empty answer/);
+});

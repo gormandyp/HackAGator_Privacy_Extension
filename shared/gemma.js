@@ -59,7 +59,7 @@
   async function ask(question, opts = {}) {
     if (opts.priority === "low") {
       for (let attempt = 0; ; attempt++) {
-        await whenFree();
+        while (urgent) await whenFree();      // re-check: an answer may have started while we were waking up
         const controller = new AbortController();
         lowRunning.add(controller);
         try { return await send(question, opts, controller); }
@@ -75,6 +75,11 @@
   async function send(question, opts, controller) {
     const fetchFn = opts.fetch || globalThis.fetch;
     const wait = opts.timeoutMs || TIMEOUT_MS;
+    // opts.signal: whoever asked can hang up (e.g. the Ask C tab was closed), so Gemma stops writing.
+    if (opts.signal) {
+      if (opts.signal.aborted) controller.abort();
+      else opts.signal.addEventListener("abort", () => controller.abort(), { once: true });
+    }
     let timedOut = false;
     const expire = () => { timedOut = true; controller.abort(); };
     let timer = setTimeout(expire, wait);
@@ -104,6 +109,7 @@
         throw e;
       }
       text = text.trim();
+      if (!text && !opts.json) throw new Error("Gemma sent back an empty answer. Try asking again.");
       return opts.json ? parseJsonReply(text) : text;
     } catch (e) {
       controller.abort();   // hang up, so Ollama stops writing an answer nobody will read

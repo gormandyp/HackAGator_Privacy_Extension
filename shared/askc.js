@@ -109,10 +109,13 @@ Steps the person can take (no tag needed):
       count.set(text, (count.get(text) || 0) + 1);
     }
     // Long lists are cut to the ones that matter most (foreign-adversary or 1260H links, brokers, advertising first).
-    const rank = (text) => (/1260H|based in (CN|HK|RU|IR|CU|KP|VE)\)/.test(text) ? 0 : /data broker/i.test(text) ? 1 : /\((Advertising|Data broker|Session recording),/.test(text) ? 2 : 3);
-    const entries = [...count].map(([text, n], i) => ({ text: n > 1 ? `${text} (${n} tracker addresses)` : text, r: rank(text), i }));
+    const rank = (text) => (/1260H|based in (CN|HK|RU|IR|CU|KP|VE)\)/.test(text) ? 0
+      : /data broker|\((High-risk|Malware),/i.test(text) ? 1 : /\((Advertising|Data broker|Session recording),/.test(text) ? 2 : 3);
+    const entries = [...count].map(([text, n], i) => ({ text: n > 1 ? `${text} (${n} tracker addresses)` : text, co: text.slice(0, text.indexOf(" (")), r: rank(text), i }));
     const kept = entries.length > TRACKERS_SHOWN ? [...entries].sort((a, b) => a.r - b.r || a.i - b.i).slice(0, TRACKERS_SHOWN).sort((a, b) => a.i - b.i) : entries;
-    const t = kept.map(e => e.text).join("; ") + (entries.length > kept.length ? `; and ${entries.length - kept.length} more tracker companies` : "") || "none";
+    const keptCos = new Set(kept.map(e => e.co));
+    const leftOut = new Set(entries.filter(e => !keptCos.has(e.co)).map(e => e.co)).size;
+    const t = kept.map(e => e.text).join("; ") + (leftOut ? `; and ${leftOut} more tracker compan${leftOut === 1 ? "y" : "ies"}` : "") || "none";
     const p = s.policy || {};
     const pol = policyText(p);
     const day = s.lastVisit ? String(s.lastVisit).slice(0, 10) : "unknown date";
@@ -189,7 +192,8 @@ Steps the person can take (no tag needed):
   // only for the few sites that matter to the question, and one short line for the next riskiest ones.
   const DETAIL_SITES = 4;     // full detail lines (trackers, cookies, policy, breach)
   const SHORT_SITES = 10;     // then one short line each
-  const LIST_MAX = 15;        // entries per cross-site list (brokers, breaches, foreign-adversary links)
+  const LIST_MAX = 15;        // entries per cross-site list (brokers, foreign-adversary links, policies)
+  const MAX_CONTEXT_CHARS = 15000;   // ~4,000 tokens: fits Ollama's 8,192 and the in-browser model with room to answer
   const COMMON_WORDS = new Set(["the", "and", "you", "your", "who", "why", "how", "what", "was", "are", "can", "did", "does", "has",
     "get", "got", "see", "use", "new", "web", "app", "all", "any", "not", "now", "our", "out", "way", "site", "sites", "news", "mail", "shop", "store", "home", "help"]);
 
@@ -200,18 +204,19 @@ Steps the person can take (no tag needed):
     return p[p.length - (sld ? 3 : 2)] || "";
   }
 
-  // Sites the question names ("cnn.com", "edition.cnn.com", or just "flightdeals"), then sites where a company
-  // the question names was seen. Both lists keep the riskiest-first order of `sites`.
+  // Sites the question names ("cnn.com" also finds edition.cnn.com; "flightdeals" alone works too), and sites where
+  // a tracker company the question names was seen. When the question is about a company, at most one of its own
+  // sites (google.com, mail.google.com...) is shown in full, so the rest show where that company followed you.
   function focusSites(sites, question) {
     if (!question) return [];
     const q = String(question).toLowerCase();
-    const tokens = new Set((q.match(/[a-z0-9-]+(?:\.[a-z0-9-]+)*/g) || []).map(t => t.replace(/^www\./, "")));
+    const tokens = [...new Set((q.match(/[a-z0-9-]+(?:\.[a-z0-9-]+)*/g) || []).map(t => t.replace(/^www\./, "")))];
     const named = sites.filter(s => {
       const d = String(s.domain || "").toLowerCase();
       if (!d) return false;
-      if (tokens.has(d) || [...tokens].some(t => t.endsWith("." + d))) return true;
+      if (tokens.some(t => t === d || t.endsWith("." + d) || (t.includes(".") && d.endsWith("." + t)))) return true;
       const name = siteName(d);
-      return name.length >= 3 && !COMMON_WORDS.has(name) && tokens.has(name);
+      return name.length >= 3 && !COMMON_WORDS.has(name) && tokens.includes(name);
     });
     const L = (typeof window !== "undefined" ? window : self).PrivaCLists;
     let byCompany = [];
@@ -224,7 +229,8 @@ Steps the person can take (no tag needed):
       }
       if (asked.size) byCompany = sites.filter(s => (s.trackers || []).some(t => t && asked.has(t.company)));
     }
-    return [...new Set([...named, ...byCompany])];
+    const ownSites = byCompany.length ? named.slice(0, 1) : named;
+    return [...new Set([...ownSites, ...byCompany, ...named])];
   }
 
   const yearOf = (b) => String(b.breachDate || b.addedDate || "").slice(0, 4);
@@ -232,12 +238,15 @@ Steps the person can take (no tag needed):
   const countryName = (c) => COUNTRY_NAMES[c] || (c === "HK" ? "Hong Kong (China)" : c);
   const more = (list, max) => (list.length > max ? `; and ${list.length - max} more` : "");
 
-  // Totals and cross-site lists over every site, so questions like "which data brokers have seen me?"
-  // are answered from all of your browsing, not only the sites shown in full.
-  function overview(sites, extra) {
+  // Totals and cross-site lists over every site, so questions like "which data brokers have seen me?" or
+  // "which sites sell my data?" are answered from all of your browsing, not only the sites shown in full.
+  // lists = data.lists from PrivaCData.load(): when the broker registry was never downloaded, nothing is said
+  // about brokers (an unknown is never shown as safe: docs/SPEC.md Honesty rules).
+  function overview(sites, extra, lists) {
     const grades = { A: 0, B: 0, C: 0, D: 0, F: 0 };
     const choices = { declined: 0, accepted: 0, "no-reject": 0, none: 0 };
-    const byCo = new Map(), brokers = new Map(), breached = [], flagged = [];
+    const byCo = new Map(), brokers = new Map(), fingerprint = new Map();
+    const breached = [], flagged = [], sells = [], shares = [];
     for (const s of sites) {
       if (grades[s.grade] !== undefined) grades[s.grade]++;
       choices[s.cookieChoice in choices ? s.cookieChoice : "none"]++;
@@ -252,6 +261,7 @@ Steps the person can take (no tag needed):
           if (!b) brokers.set(t.broker, (b = { company: t.company, sites: [] }));
           if (!b.sites.includes(s.domain)) b.sites.push(s.domain);
         }
+        if ((t.fingerprinting || 0) >= 2) { let f = fingerprint.get(t.company); if (!f) fingerprint.set(t.company, (f = new Set())); f.add(s.domain); }
         const listed = t.listed || listedCompany(t.company, extra);
         const inCountry = ADVERSARY.has(t.country);
         if (inCountry || listed) why.set(t.company, `${t.company} (${[inCountry ? countryName(t.country) : null, listed ? "Section 1260H list" : null].filter(Boolean).join("; ")})`);
@@ -259,21 +269,33 @@ Steps the person can take (no tag needed):
       for (const t of s.flagged || []) if (t && t.company && !why.has(t.company)) why.set(t.company, `${t.company} (${countryName(t.country)})`);
       if (s.owner && ADVERSARY.has(s.owner.country)) why.set("owner", `the site belongs to ${s.owner.company} (${countryName(s.owner.country)}${s.owner.stateMedia ? ", state-run media" : ""})`);
       if (s.addressFlag) why.set("address", `web address ends in ${s.addressFlag.ending} (${countryName(s.addressFlag.country)})`);
-      if (s.serverFlag) why.set("server", `server registered in ${countryName(s.serverFlag.country)}`);
-      if (why.size) flagged.push(`${s.domain}: ${[...why.values()].join(", ")}`);
-      if (s.breach) breached.push(`${s.domain} (${s.breach.name}, ${yearOf(s.breach)})`);
+      if (s.serverFlag) why.set("server", `server address registered in ${countryName(s.serverFlag.country)} (regional internet registry)`);
+      if (why.size) { const w = [...why.values()]; flagged.push(`${s.domain}: ${w.slice(0, 3).join(", ")}${w.length > 3 ? ` and ${w.length - 3} more` : ""}`); }
+      if (s.breach) {
+        const b = s.breach, kinds = (b.dataClasses || []).slice(0, 3).join(", ").toLowerCase();
+        breached.push(`${s.domain} (${b.name}, ${yearOf(b)}${b.pwnCount ? `, ${fmtCount(b.pwnCount)} accounts` : ""}${kinds ? `: ${kinds}` : ""})`);
+      }
+      const p = s.policy || {};
+      if (p.sells === true) sells.push(s.domain);
+      else if (p.shares === true) shares.push(s.domain);
     }
     const lines = [];
     lines.push(`Your browsing with PrivaC on, last 7 days [Seen on your visit]: ${sites.length} sites; grades ${Object.entries(grades).map(([g, n]) => `${n} ${g}`).join(", ")}; ` +
-      `cookie banners: ${choices.declined} declined, ${choices.accepted} accepted, ${choices["no-reject"]} had no Reject button, ${choices.none} showed none.`);
+      `cookie banners: ${choices.declined} declined, ${choices.accepted} accepted, ${choices["no-reject"]} had no Reject button, ${choices.none} with no banner seen.`);
     const top = [...byCo].sort((a, b) => b[1].sites.size - a[1].sites.size).slice(0, 10);
     if (top.length) lines.push(`Companies seen on the most sites [Seen on your visit] [Tracker Radar]: ${top.map(([co, x]) => `${co} (${x.category}, ${x.country || "unknown country"}) on ${x.sites.size} of ${sites.length} sites`).join("; ")}.`);
     if (brokers.size) {
       const list = [...brokers].map(([name, b]) => `${b.company} (registered as "${name}") on ${b.sites.length} site${b.sites.length > 1 ? "s" : ""}: ${b.sites.slice(0, 4).join(", ")}${b.sites.length > 4 ? "..." : ""}`);
       lines.push(`Registered California data brokers seen [CA Broker Registry] [Seen on your visit]: ${list.slice(0, LIST_MAX).join("; ")}${more(list, LIST_MAX)}.`);
-    } else lines.push("No registered California data brokers seen [CA Broker Registry].");
+    } else if (lists && lists.brokersAsOf) lines.push("No registered California data brokers seen [CA Broker Registry].");
     if (flagged.length) lines.push(`Foreign-adversary links seen [Seen on your visit] [Government list]: ${flagged.slice(0, LIST_MAX).join("; ")}${more(flagged, LIST_MAX)}.`);
-    if (breached.length) lines.push(`Sites you visited with a known data breach [HIBP]: ${breached.slice(0, LIST_MAX).join("; ")}${more(breached, LIST_MAX)}.`);
+    if (sells.length) lines.push(`Sites whose own privacy policy says they sell personal information [Privacy policy]: ${sells.slice(0, LIST_MAX).join(", ")}${more(sells, LIST_MAX)}.`);
+    if (shares.length) lines.push(`Sites whose own privacy policy says they share personal information with partners [Privacy policy]: ${shares.slice(0, LIST_MAX).join(", ")}${more(shares, LIST_MAX)}.`);
+    if (fingerprint.size) {
+      const fp = [...fingerprint].sort((a, b) => b[1].size - a[1].size).slice(0, 8);
+      lines.push(`Trackers that read device details to recognize you without cookies (fingerprinting) [Tracker Radar]: ${fp.map(([co, set]) => `${co} on ${set.size} site${set.size > 1 ? "s" : ""}`).join(", ")}.`);
+    }
+    if (breached.length) lines.push(`Sites you visited with a known data breach [HIBP]: ${breached.slice(0, 8).join("; ")}${more(breached, 8)}.`);
     return lines.join("\n");
   }
 
@@ -284,6 +306,8 @@ Steps the person can take (no tag needed):
 
   // extra = { flagged, regtrack }: the checked fact files (optional; context still builds without them).
   // question (optional): sites it names, and sites where companies it names were seen, are shown in full.
+  // The result always fits MAX_CONTEXT_CHARS (~4,000 tokens): short lines go first, then full-detail sites from
+  // the least risky, so Gemma's rules (which come first) are never pushed out of its context window.
   function buildContext(data, today, facts, extra, question) {
     const tidy = (s) => (Array.isArray(s.trackers) && s.trackers.some(t => !t) ? { ...s, trackers: s.trackers.filter(Boolean) } : s);
     const sites = ((data && data.sites) || []).filter(Boolean).map(tidy).sort((a, b) => (b.score || 0) - (a.score || 0));
@@ -291,16 +315,27 @@ Steps the person can take (no tag needed):
     const date = `Today is ${today || new Date().toISOString().slice(0, 10)}.`;
     const bg = BACKGROUND + regtrackLines(extra) + (facts && facts.length ? `\n\nFacts about what you asked:\n${facts.join("\n")}` : "");
     if (!sites.length) return `${date}\n${bg}\n\nThe person hasn't visited any sites with PrivaC on yet.`;
-    const detail = [...new Set([...focusSites(sites, question), ...sites])].slice(0, DETAIL_SITES)
-      .sort((a, b) => (b.score || 0) - (a.score || 0));
+    const detail = [...new Set([...focusSites(sites, question), ...sites])].slice(0, DETAIL_SITES);
     const shown = new Set(detail);
     const rest = sites.filter(s => !shown.has(s));
     const short = rest.slice(0, SHORT_SITES);
-    const left = rest.length - short.length;
-    return `${date}\n${bg}\n\n${overview(sites, extra)}\n\n` +
-      `Sites you visited, riskiest first (${sites.length}${sites.length > detail.length ? `; full details for ${detail.length}` : ""}):\n${detail.map(s => siteLine(s, extra)).join("\n")}` +
-      (short.length ? `\n\nNext riskiest sites:\n${short.map(shortLine).join("\n")}` : "") +
-      (left > 0 ? `\n(and ${left} more sites with lower exposure)` : "");
+    const head = `${date}\n${bg}\n\n${overview(sites, extra, data && data.lists)}\n\n`;
+    const detailLines = detail.map(s => [s, siteLine(s, extra)]);
+    const shortLines = short.map(shortLine);
+    const build = () => {
+      const d = [...detailLines].sort((a, b) => (b[0].score || 0) - (a[0].score || 0));
+      const left = sites.length - d.length - shortLines.length;
+      return head +
+        `Sites you visited, riskiest first (${sites.length}${sites.length > d.length ? `; full details for ${d.length}` : ""}):\n${d.map(x => x[1]).join("\n")}` +
+        (shortLines.length ? `\n\nNext riskiest sites:\n${shortLines.join("\n")}` : "") +
+        (left > 0 ? `\n(and ${left} more sites with lower exposure)` : "");
+    };
+    let text = build();
+    while (text.length > MAX_CONTEXT_CHARS && (shortLines.length || detailLines.length > 1)) {
+      if (shortLines.length) shortLines.pop(); else detailLines.pop();   // the question's own sites come first, so they stay
+      text = build();
+    }
+    return text;
   }
 
   // In the extension, load the checked fact files once. Tests pass them in through deps.facts instead.
@@ -348,7 +383,8 @@ Steps the person can take (no tag needed):
     const extra = deps.facts ? await deps.facts() : FACT_FILES;
     const trace = [{ tool: "get_site_report", label: "Your browsing" }];
     try {
-      const raw = await deps.ask(q, { system: SYSTEM_PROMPT, context: buildContext(data, null, facts, extra, q), options: { temperature: 0.2 } });
+      const raw = await deps.ask(q, { system: SYSTEM_PROMPT, context: buildContext(data, null, facts, extra, q), options: { temperature: 0.2 },
+                                      ...(deps.signal ? { signal: deps.signal } : {}) });
       const text = cleanAnswer(raw);
       if (/\[Government list\]/.test(text)) trace.push({ tool: "background_facts", label: "Government lists" });
       if (/\[Tracker Radar\]/.test(text)) trace.push({ tool: "lookup_company", label: "Tracker Radar" });

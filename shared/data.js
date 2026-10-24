@@ -258,6 +258,8 @@
 
   // Domain of the tab the user is looking at (popup only). Falls back to the first site.
   async function currentDomain() {
+    // The popup is open, so "Ask C about this site" may be next: start loading Gemma now (background.js).
+    try { if (typeof chrome !== "undefined" && chrome.runtime && chrome.runtime.sendMessage) chrome.runtime.sendMessage({ type: "privac-warm" }).catch(() => {}); } catch (e) { /* no background */ }
     if (typeof chrome !== "undefined" && chrome.tabs && chrome.tabs.query) {
       try {
         const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
