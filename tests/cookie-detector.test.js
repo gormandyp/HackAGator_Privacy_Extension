@@ -179,3 +179,16 @@ test("Zara: with a \"Do not sell or share\" link and a Reject button, 5 checks c
   assert.strictEqual(reject.clickListeners, 1, "one 'you clicked Reject yourself' listener");
   assert.strictEqual(page.kinds().filter((k) => k === "cookie").length, 1, "C asks about Reject once");
 });
+
+test("Usercentrics: buttons inside an open shadow root (#usercentrics-root) are found", () => {
+  const { controls } = bannerWith(["Accept all", "Reject all"]);
+  const inner = { querySelectorAll: (sel) => (sel === "*" ? [] : controls) };
+  const host = { id: "usercentrics-root", shadowRoot: inner };
+  assert.deepStrictEqual(load([], { hosts: [host] }).kinds(), ["cookie"]);
+});
+
+test("an accept-only banner inside a shadow root still gets the warning", () => {
+  const { controls } = bannerWith(["Accept all cookies", "Cookie settings"]);
+  const host = { shadowRoot: { querySelectorAll: (sel) => (sel === "*" ? [] : controls) } };
+  assert.deepStrictEqual(load([], { hosts: [host] }).kinds(), ["acceptOnly"]);
+});

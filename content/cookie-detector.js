@@ -51,8 +51,23 @@
   // Reject button gets one click listener (Zara alternated between them and re-clicked the link).
   const handled = new WeakSet();
 
+  // Elements matching `selector` on the page and inside open shadow roots (Usercentrics puts its banner
+  // inside #usercentrics-root, where document.querySelectorAll can't see). C's own pop-up is skipped.
+  function queryAll(selector) {
+    const found = [];
+    const roots = [document];
+    while (roots.length) {
+      const root = roots.shift();
+      found.push(...root.querySelectorAll(selector));
+      for (const element of root.querySelectorAll("*")) {
+        if (element.shadowRoot && element.tagName !== "PRIVAC-PROMPT") roots.push(element.shadowRoot);
+      }
+    }
+    return found;
+  }
+
   function findRejectButton() {
-    const elements = document.querySelectorAll(
+    const elements = queryAll(
       'button, [role="button"], input[type="button"]'
     );
 
@@ -77,9 +92,9 @@
   }
 
     function findAcceptButtons() {
-        return [...document.querySelectorAll(
+        return queryAll(
             'button, [role="button"], input[type="button"]'
-        )].filter(element => {
+        ).filter(element => {
             const rect = element.getBoundingClientRect();
             if (!rect.width || !rect.height) return false;
 
@@ -135,7 +150,7 @@
 
 
     function findPrivacyOptOutButton() {
-        const buttons = document.querySelectorAll(
+        const buttons = queryAll(
             'button, [role="button"], input[type="button"]'
         );
 
