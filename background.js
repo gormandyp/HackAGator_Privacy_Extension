@@ -14,8 +14,9 @@ chrome.alarms.create("privac-lists", { periodInMinutes: 24 * 60 });
 chrome.alarms.onAlarm.addListener(a => { if (a.name === "privac-lists") refreshLists(); });
 
 // What Ask C needs to answer. onToken (optional) receives Gemma's answer while it's being written.
-function askDeps(onToken, signal) {
-  return { load: PrivaCData.load, lists: PrivaCLists.load, atlas: () => ATLAS, signal,
+// history: the last few questions and answers from the Ask C panel (C's short memory).
+function askDeps(onToken, signal, history) {
+  return { load: PrivaCData.load, lists: PrivaCLists.load, atlas: () => ATLAS, signal, history,
            ask: onToken ? (q, o) => PrivaCGemma.ask(q, { ...o, onToken }) : PrivaCGemma.ask };
 }
 
@@ -37,7 +38,7 @@ chrome.runtime.onConnect.addListener(port => {
     if (!msg || msg.type !== "ask") return;
     const post = (m) => { if (open) try { port.postMessage(m); } catch (e) { open = false; } };
     post({ type: "start" });               // tells the panel streaming works, so it never asks twice
-    PrivaCAskC.answer(msg.question, askDeps((piece, text) => post({ type: "token", text }), hangUp.signal))
+    PrivaCAskC.answer(msg.question, askDeps((piece, text) => post({ type: "token", text }), hangUp.signal, msg.history))
       .then(result => post({ type: "done", result }))
       .catch(() => post({ type: "done", result: { error: "I couldn't reach Gemma. Is Ollama running?" } }));
   });
@@ -45,7 +46,7 @@ chrome.runtime.onConnect.addListener(port => {
 
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (msg && msg.type === "askC") {
-    PrivaCAskC.answer(msg.question, askDeps())
+    PrivaCAskC.answer(msg.question, askDeps(null, null, msg.history))
       .then(sendResponse)
       .catch(() => sendResponse({ error: "I couldn't reach Gemma. Is Ollama running?" }));
     return true; // keep the channel open for the async reply

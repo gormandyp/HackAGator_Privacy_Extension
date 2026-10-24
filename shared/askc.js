@@ -9,7 +9,10 @@
 
 How to answer:
 - Talk to the person as "you". Never say "the user".
-- Plain English, no jargon. 2 to 4 short sentences, then a line starting "What you can do:" with 2 or 3 concrete steps from the Steps list.
+- Plain English, no jargon. 2 to 4 short sentences.
+- Add a last line starting "What you can do:" with 2 or 3 concrete steps from the Steps list only when the person asks for advice or about a risk (should I worry, is it safe, how do I protect myself, was it hacked). Leave it out of explanations, definitions and follow-up questions.
+- You are only PrivaC's privacy guide, not a general assistant. Don't write poems, stories, jokes, code or homework, and don't talk about topics outside privacy and the person's browsing; say in one sentence that you stick to their privacy and suggest a privacy question instead.
+- "Earlier in this conversation" shows the last questions and your answers. Use it to understand follow-ups like "what about its cookies?", but answer only the new question.
 - Answer the question that was asked first. Then connect it to their own browsing if something there is relevant.
 - Use ONLY the evidence you are given. If it doesn't answer the question, say you don't know yet.
 - Put a source tag right after each fact, copied exactly from the evidence line it came from: [Seen on your visit], [Tracker Radar], [Privacy policy], [HIBP], [CA Broker Registry], [Cookie Database], [RegTrack], [State Media Monitor] or [Government list]. Never invent other tags.
@@ -20,8 +23,11 @@ How to answer:
 - Don't mention sample data; the dashboard already says so.
 - You don't know which site the person has open right now. Don't say "you are currently visiting".
 
-Example
-Question: Who is Criteo?
+Examples
+Question: What is a tracker?
+Answer: A tracker is a piece of code from another company that a site loads, so that company can see your visit and recognize you on other sites. [Tracker Radar] On your visits, 3 of the sites you visited loaded trackers from Criteo. [Seen on your visit]
+
+Question: Who is Criteo and should I worry?
 Answer: Criteo is an advertising company based in France. [Tracker Radar] Its tracker loaded on 3 of the sites you visited, including dailynews.example. [Seen on your visit] That lets it recognize you across those sites to show you ads. What you can do: decline extra cookies when C offers, and turn on "Block third-party cookies" in Chrome settings.`;
 
   // Short, checked facts Gemma may use for general questions. Each one carries its source tag.
@@ -308,14 +314,16 @@ Steps the person can take (no tag needed):
   // question (optional): sites it names, and sites where companies it names were seen, are shown in full.
   // The result always fits MAX_CONTEXT_CHARS (~4,000 tokens): short lines go first, then full-detail sites from
   // the least risky, so Gemma's rules (which come first) are never pushed out of its context window.
-  function buildContext(data, today, facts, extra, question) {
+  function buildContext(data, today, facts, extra, question, history) {
     const tidy = (s) => (Array.isArray(s.trackers) && s.trackers.some(t => !t) ? { ...s, trackers: s.trackers.filter(Boolean) } : s);
     const sites = ((data && data.sites) || []).filter(Boolean).map(tidy).sort((a, b) => (b.score || 0) - (a.score || 0));
     // Unchanging background first, then everything about this question: Ollama can reuse the start of the last prompt.
     const date = `Today is ${today || new Date().toISOString().slice(0, 10)}.`;
-    const bg = BACKGROUND + regtrackLines(extra) + (facts && facts.length ? `\n\nFacts about what you asked:\n${facts.join("\n")}` : "");
+    const bg = BACKGROUND + regtrackLines(extra) + (facts && facts.length ? `\n\nFacts about what you asked:\n${facts.join("\n")}` : "") + memoryText(history);
     if (!sites.length) return `${date}\n${bg}\n\nThe person hasn't visited any sites with PrivaC on yet.`;
-    const detail = [...new Set([...focusSites(sites, question), ...sites])].slice(0, DETAIL_SITES);
+    // Sites the question names first, then sites named in the last few questions (for follow-ups like "its cookies").
+    const earlier = recent(history).map(t => t.question).reverse().join(" ");
+    const detail = [...new Set([...focusSites(sites, question), ...focusSites(sites, earlier), ...sites])].slice(0, DETAIL_SITES);
     const shown = new Set(detail);
     const rest = sites.filter(s => !shown.has(s));
     const short = rest.slice(0, SHORT_SITES);
@@ -336,6 +344,43 @@ Steps the person can take (no tag needed):
       text = build();
     }
     return text;
+  }
+
+  // ---------- Keeping C on topic (repo owner, 2026-10-24) ----------
+  // Steps ("What you can do:") only when the person asks for advice or about a risk; Gemma added them to almost
+  // every answer. Questions about C itself and requests that have nothing to do with privacy get C's own
+  // answer without asking Gemma, which otherwise talks like a general chatbot ("I can write a poem").
+  const WANTS_STEPS = /\b(should (i|we)|worr\w*|safe\w*|unsafe|danger\w*|risk\w*|protect\w*|stop|avoid|block\w*|remov\w*|delet\w*|opt[- ]?out|prevent\w*|what (can|should) i do|how (do|can|should) i|hack\w*|breach\w*|leak\w*|pwn\w*|scam\w*)\b/i;
+  const ABOUT_C = /^\s*(?:(?:what|how)\s+(?:else\s+)?(?:can|could|do)\s+you\s+(?:do|help)\b|what\s+(?:can|could)\s+you\s+help(?:\s+me)?\s+with\b|(?:who|what)\s+are\s+you\b|what\s+(?:can|should)\s+i\s+ask\b|how\s+do(?:es)?\s+(?:you|ask c|privac)\s+work\b|help\s*[?!.]*\s*$)/i;
+  const OFF_TOPIC_THING = /\b(poems?|poetry|haikus?|songs?|lyrics|stor(?:y|ies)|essays?|jokes?|riddles?|recipes?|homework|code|python|javascript|programs?)\b/i;
+  const OFF_TOPIC_ASK = /\b(write|compose|make|generate|tell|give|create|sing)\b/i;
+  const PRIVACY_WORDS = /privacy|data|cookie|track|site|broker|breach|grade|polic|\.[a-z]{2,}\b/i;
+  const ABOUT_ANSWER = "I'm C, PrivaC's privacy guide. I explain what PrivaC found on the sites you visit: each site's grade and why, " +
+    "which tracker companies followed you, what cookies were stored and what they're for, data breaches, registered data brokers, " +
+    "links to companies in foreign-adversary countries, and what privacy policies say about selling your data. On websites, I can " +
+    "also decline extra cookies for you. Try asking: \"Which sites I visited are the riskiest?\"";
+  const OFF_TOPIC_ANSWER = "I stick to your privacy, so I can't help with that one. Try asking me about a site you visited, " +
+    "a tracker company, or whether to accept cookies.";
+  function cannedAnswer(q) {
+    if (ABOUT_C.test(q)) return ABOUT_ANSWER;
+    if (OFF_TOPIC_THING.test(q) && OFF_TOPIC_ASK.test(q) && !PRIVACY_WORDS.test(q)) return OFF_TOPIC_ANSWER;
+    return null;
+  }
+  const dropSteps = (text) => text.replace(/\s*What you can do:[\s\S]*$/i, "").trim();
+
+  // A small memory: the last 3 questions and answers from this Ask C session, cut short (dashboard/ask-c.js).
+  const MEMORY_TURNS = 3;
+  function recent(history) {
+    return (Array.isArray(history) ? history : [])
+      .filter(t => t && typeof t.question === "string" && typeof t.answer === "string")
+      .slice(-MEMORY_TURNS);
+  }
+  function memoryText(history) {
+    const turns = recent(history);
+    if (!turns.length) return "";
+    const cut = (s, n) => { s = s.replace(/\s+/g, " ").trim(); return s.length > n ? s.slice(0, n) + "..." : s; };
+    return "\n\nEarlier in this conversation (oldest first; only to understand follow-up questions):\n" +
+      turns.map(t => `- They asked: ${cut(t.question, 200)}\n  You answered: ${cut(t.answer, 300)}`).join("\n");
   }
 
   // In the extension, load the checked fact files once. Tests pass them in through deps.facts instead.
@@ -376,6 +421,9 @@ Steps the person can take (no tag needed):
   async function answer(question, deps) {
     const q = String(question || "").trim();
     if (!q) return { error: "Type a question for C first." };
+    const canned = cannedAnswer(q);
+    if (canned) return { answer: canned, trace: [] };
+    const steps = WANTS_STEPS.test(q);
     const data = await deps.load();
     const lists = deps.lists ? await deps.lists() : null;
     const atlas = deps.atlas ? deps.atlas() : null;
@@ -383,9 +431,10 @@ Steps the person can take (no tag needed):
     const extra = deps.facts ? await deps.facts() : FACT_FILES;
     const trace = [{ tool: "get_site_report", label: "Your browsing" }];
     try {
-      const raw = await deps.ask(q, { system: SYSTEM_PROMPT, context: buildContext(data, null, facts, extra, q), options: { temperature: 0.2 },
+      const raw = await deps.ask(q, { system: SYSTEM_PROMPT, context: buildContext(data, null, facts, extra, q, deps.history) +
+        (steps ? "" : `\n\nFor this question: Don't add a "What you can do" line; just answer it.`), options: { temperature: 0.2 },
                                       ...(deps.signal ? { signal: deps.signal } : {}) });
-      const text = cleanAnswer(raw);
+      const text = steps ? cleanAnswer(raw) : dropSteps(cleanAnswer(raw));
       if (/\[Government list\]/.test(text)) trace.push({ tool: "background_facts", label: "Government lists" });
       if (/\[Tracker Radar\]/.test(text)) trace.push({ tool: "lookup_company", label: "Tracker Radar" });
       if (/\[Cookie Database\]/.test(text)) trace.push({ tool: "cookies", label: "Cookie Database" });

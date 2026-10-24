@@ -6,13 +6,13 @@ globalThis.window = globalThis;
 require("../shared/settings.js");
 const S = window.PrivaCSettings;
 
-test("defaults: follow the Mac, liquid glass, every pop-up on, policy reading on, rounded toolbar pop-up", () => {
-  assert.deepStrictEqual(S.merge(null), { appearance: "system", style: "glass", popups: { cookie: true, acceptOnly: true, adversary: true }, policyReader: true, toolbar: "panel" });
+test("defaults: follow the Mac, liquid glass, every pop-up on, policy reading on, rounded toolbar pop-up, auto-protect off", () => {
+  assert.deepStrictEqual(S.merge(null), { appearance: "system", style: "glass", popups: { cookie: true, acceptOnly: true, adversary: true }, policyReader: true, toolbar: "panel", autoDecline: false });
 });
 
 test("saved choices are kept; unknown or broken values fall back to defaults", () => {
   const s = S.merge({ appearance: "dark", style: "clean", popups: { adversary: false, cookie: "no", made_up: false }, policyReader: false, extra: 1 });
-  assert.deepStrictEqual(s, { appearance: "dark", style: "clean", popups: { cookie: true, acceptOnly: true, adversary: false }, policyReader: false, toolbar: "panel" });
+  assert.deepStrictEqual(s, { appearance: "dark", style: "clean", popups: { cookie: true, acceptOnly: true, adversary: false }, policyReader: false, toolbar: "panel", autoDecline: false });
   assert.strictEqual(S.merge({ appearance: "purple", style: "neon" }).appearance, "system");
 });
 
@@ -40,4 +40,9 @@ test("toolbar pop-up: the rounded panel unless Chrome's own window was chosen; a
   assert.strictEqual(S.merge({ toolbar: "panel" }).toolbar, "panel");
   assert.strictEqual(S.merge({ toolbar: "sidebar" }).toolbar, "panel");
   assert.strictEqual(S.merge({ toolbar: true }).toolbar, "panel");
+});
+
+test("Protect me automatically: off unless turned on; only true or false is kept", () => {
+  assert.strictEqual(S.merge({ autoDecline: true }).autoDecline, true);
+  assert.strictEqual(S.merge({ autoDecline: "yes" }).autoDecline, false);
 });

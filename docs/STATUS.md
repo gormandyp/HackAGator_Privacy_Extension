@@ -43,4 +43,5 @@ Update your row every time you push. Keep it to one line per column.
 - 2026-10-24: fixed google.com B (Google result prefetch reported as "other") and the popup showing sample data after a reload.
 - 2026-10-24 (repo owner): the in-browser AI version becomes the main download; the Ollama-only version moves to its own branch. Push only after the repo owner approves the plan.
 - 2026-10-24 (repo owner): a settings button or "Choose cookies" isn't a one-click Reject, so C still says "Beware!" there (Trainline, Argos).
+- 2026-10-24 (repo owner): "Protect me" replaces "Decline extras"; new "Protect me automatically" setting (off by default). Ask C: steps only when asked, stays on privacy, remembers the last 3 questions.
 - 2026-10-24: merged main into ui-glass (speed work); cookie-detector fixes 1-6 + Tesco slide-away decline; dashboard About tab for judges.
