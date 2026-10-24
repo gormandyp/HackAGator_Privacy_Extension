@@ -86,6 +86,9 @@ Steps the person can take (no tag needed):
     if (p.sells === true) main = `says it sells personal info${quote("sells")} [Privacy policy]`;
     else if (p.shares === true) main = `says it shares with partners${p.checkedAt ? " for advertising" : ""}${quote("shares")} [Privacy policy]`;
     else if (p.sells === false && p.shares === false) main = `says it doesn't sell or share${quote("sells")} [Privacy policy]`;
+    // The reader answers each question on its own, so one "no" with the other unknown is common: keep the quoted "no".
+    else if (p.sells === false) main = `says it doesn't sell personal info${quote("sells")}; it doesn't say clearly whether it shares [Privacy policy]`;
+    else if (p.shares === false) main = `says it doesn't share with partners${quote("shares")}; it doesn't say clearly whether it sells [Privacy policy]`;
     else if (p.checkedAt) main = `read on ${String(p.checkedAt).slice(0, 10)}, no clear answer about selling or sharing [Privacy policy]`;
     else return "not reviewed yet";
     const more = POLICY_FACTS.filter(([f]) => p[f] === true || p[f] === false)

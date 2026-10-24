@@ -91,3 +91,20 @@ test("Fix 2: swapping \"the user\" for \"you\" also fixes the verb", () => {
   ];
   for (const [raw, want] of cases) assert.strictEqual(cleanAnswer(raw), want, raw);
 });
+
+test("Fix 3: a policy that says it doesn't sell (sharing unknown) is reported, not called \"no clear answer\"", async () => {
+  const site = (domain, policy) => scored({ domain, lastVisit: "2026-10-24", cookieChoice: "declined", trackers: [], policy: { checkedAt: "2026-10-24", ...policy } });
+  const d = { sites: [
+    site("nosell.example", { sells: false, quotes: { sells: "We do not sell your personal information." } }),
+    site("noshare.example", { shares: false }),
+    site("both.example", { sells: false, shares: false }),
+    site("unclear.example", {})
+  ] };
+  const ctx = buildContext(d, "2026-10-24", [], null, "nosell.example noshare.example both.example unclear.example");
+  const line = (dom) => (ctx.match(new RegExp(`- ${dom.replace(".", "\\.")}, visited[^\\n]*`)) || [""])[0];
+  assert.match(line("nosell.example"), /says it doesn't sell personal info \("We do not sell your personal information\."\); it doesn't say clearly whether it shares \[Privacy policy\]/);
+  assert.match(line("noshare.example"), /says it doesn't share with partners; it doesn't say clearly whether it sells \[Privacy policy\]/);
+  assert.match(line("both.example"), /says it doesn't sell or share/);
+  assert.match(line("unclear.example"), /no clear answer about selling or sharing/, "a real unknown is still unknown");
+  for (const dom of ["nosell.example", "noshare.example"]) assert.doesNotMatch(line(dom), /no clear answer/);
+});
