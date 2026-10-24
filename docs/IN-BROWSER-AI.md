@@ -25,10 +25,10 @@ folder before step 2. PrivaC then uses that file and never goes online for the m
 ## Speed (measured on the demo MacBook Pro, Oct 24 2026)
 | | In the browser (this branch, Gemma 4 E2B) | Ollama (main, Gemma 4 E4B) |
 |---|---|---|
-| Ask C, first words on screen | ~0.8-1.1 s | ~2.4 s |
-| Ask C, whole answer | ~2.2-2.6 s | ~3.7 s |
+| Ask C, first words on screen | ~0.8 s | ~2.4 s |
+| Ask C, whole answer | ~2-2.5 s | ~3.7 s |
 | Reading one privacy policy (8 questions, in the background) | ~7.7 s | ~4.7 s |
-| Loading the model | ~1-2 s (first time ever: ~20 s) | ~4 s |
+| Loading the model | ~1 s (first time ever: ~20 s) | ~4 s |
 
 If you ask C while a privacy policy is being read in the background, C answers first (first words ~1 s) and the
 policy reading picks up right after (checked on the Mac with the real model).
@@ -42,8 +42,10 @@ Before the speed work on `perf`, the same Ask C question took 16 s with nothing 
 - `offscreen/brain.html` is a hidden page Chrome keeps open in the background. It holds Gemma in graphics memory
   (`shared/brain-core.js`), so answers don't wait for loading. After 20 minutes without questions it lets go of that memory.
 - `shared/ai.js` (background) sends Ask C questions and policy questions there and streams the words back to Ask C.
-  If the brain isn't downloaded or can't run, and Ollama is running, Ollama answers instead.
-- Speed tricks: Gemma reads C's instructions before you ask (the next conversation is prepared right after each answer),
+  If the brain isn't downloaded yet, is still downloading, can't run here or fails, and Ollama is running, Ollama
+  answers instead.
+- Speed tricks: Gemma reads C's instructions before you ask (when the popup or dashboard opens, and again right after
+  each answer),
   Ask C sends a short summary of your browsing (~4,000 tokens) instead of everything, and background policy reading
   pauses whenever someone is waiting for C.
 - The runtime is packed with the extension (`vendor/litert-lm/`): no code is loaded from the internet.
