@@ -37,6 +37,7 @@
         "content/c-events.js",
         "content/c-alert-look.js",
         "content/c-reaction-look.js",
+        "content/c-placement.js",
         "content/cookie-detector.js",
         "content/alerts.js",
         "content/policy-link.js"

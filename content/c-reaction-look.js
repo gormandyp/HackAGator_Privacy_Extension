@@ -21,9 +21,15 @@
     const c = root.querySelector(".c");
     const img = root.querySelector(".c img");
     if (!c || !img) return;
-    const file = String(img.getAttribute("src") || img.src || "").split("/").pop();
+    const m = /([\w-]+\.svg)$/.exec(String(img.getAttribute("src") || img.src || ""));
+    const file = m ? m[1] : "";
     if (!STILL[file]) return;
-    img.src = chrome.runtime.getURL("c-poses/" + STILL[file]);
+    // Keep the pose that fits where C is (content/c-placement.js marks the edge): c-prompt.js shows the
+    // push-up pose after a decline that didn't work, even when C is hanging under a banner at the top.
+    const wrap = root.querySelector(".wrap");
+    const edge = wrap && wrap.dataset ? wrap.dataset.edge : "";
+    const still = edge === "below" ? STILL["mascot-cliff-hang-uneasy.svg"] : edge ? STILL["mascot-push-up-uneasy.svg"] : STILL[file];
+    img.src = chrome.runtime.getURL("c-poses/" + still);
     c.classList.remove("rising", "hanging");      // and no slide-in replay
   }
 
