@@ -111,7 +111,7 @@ test("a banner with Continue and accept plus a real Reject gets the decline offe
   assert.deepStrictEqual(load(bannerWith(["Continue and accept", "Reject all"]).controls).kinds(), ["cookie"]);
 });
 
-// After "Decline extras", C reads the consent tool's own record to say "Nice!" (confirmed) or "couldn't verify".
+// After "Protect me", C reads the consent tool's own record to say "Nice!" (confirmed) or "couldn't verify".
 // Fake document.cookie strings for each tool, shaped like the real ones.
 const b64 = (o) => Buffer.from(JSON.stringify(o)).toString("base64");
 const RECORDS = {

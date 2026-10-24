@@ -292,7 +292,7 @@
       <p class="who">C from PrivaC</p>
       <p>This site wants to use cookies that can track you. Want me to decline the extra ones?</p>
       <div class="row">
-        <button class="primary" data-a="decline">Decline extras</button>
+        <button class="primary" data-a="decline">Protect me</button>
         <button class="ghost" data-a="choose">Let me choose</button>
       </div>`, "wave");
     

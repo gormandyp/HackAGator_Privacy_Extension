@@ -42,7 +42,7 @@
 },
 "modal-dialog-removed": {
 "title": "Dialog the site deletes after a choice (John Lewis)",
-"look": "Press Decline extras: the site deletes its dialog, and C's answer stays where it was.",
+"look": "Press Protect me: the site deletes its dialog, and C's answer stays where it was.",
 "html": "<div id=\"jlwrap\"><dialog id=\"cd\" data-root data-remove data-panel style=\"width:620px;border:0;border-radius:14px;padding:26px;box-shadow:0 10px 40px #0005\"><h3 style='margin:0 0 6px;font:700 18px system-ui'>We value your privacy</h3><p style='margin:0;font:14px/1.45 system-ui;color:#333'>We and our partners use cookies to personalise ads, measure performance and improve your experience.</p>\n<div style=\"display:flex;gap:10px;margin-top:16px;justify-content:flex-end\"><button data-close data-reject style=\"padding:10px 18px;border-radius:22px;font:700 14px system-ui;border:2px solid #0b3b8c;background:#fff;color:#0b3b8c;cursor:pointer\">Reject all</button><button data-close style=\"padding:10px 18px;border-radius:22px;font:700 14px system-ui;border:2px solid #0b3b8c;background:#0b3b8c;color:#fff;cursor:pointer\">Accept all</button></div></dialog></div>",
 "first": false
 },
@@ -121,7 +121,7 @@
       <main>
         <h1>C on ${keys.length} kinds of cookie pop-ups</h1>
         <p class="pv-lead">Each one is shaped like a pop-up on a real site. C's real scripts run on every page, so
-          this is what you'd see on that site. Try <b>Decline extras</b>, <b>Let me choose</b>, the <b>×</b>, or the
+          this is what you'd see on that site. Try <b>Protect me</b>, <b>Let me choose</b>, the <b>×</b>, or the
           pop-up's own buttons. Use the <b>← →</b> keys to go from one to the next.</p>
         <ol class="pv-list">${keys.map((k) => `
           <li><a href="${link(k)}"><b>${esc(TYPES[k].title)}</b><span>${esc(TYPES[k].look)}</span></a></li>`).join("")}
