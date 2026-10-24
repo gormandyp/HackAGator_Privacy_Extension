@@ -17,7 +17,7 @@
 
   --panel: #ffffff;
   /* Liquid glass */
-  --glass: rgba(255, 255, 255, .28); --glass-bar: rgba(255, 255, 255, .38); --glass-sheet: rgba(250, 251, 253, .58);
+  --glass: rgba(255, 255, 255, .28); --glass-bar: rgba(255, 255, 255, .38); --glass-sheet: rgba(250, 251, 253, .84);
   --glass-blur: 16px; --glass-sat: 190%;
   --sheen: linear-gradient(162deg, rgba(255, 255, 255, .58) 0%, rgba(255, 255, 255, .14) 28%, rgba(255, 255, 255, 0) 54%);
   --rim: linear-gradient(135deg, #fff 0%, rgba(255, 255, 255, .72) 16%, rgba(255, 255, 255, .14) 42%, rgba(255, 255, 255, .2) 68%, rgba(255, 255, 255, .9) 100%);
@@ -52,7 +52,7 @@
   --fill: rgba(255, 255, 255, .06); --fill-2: rgba(255, 255, 255, .1);
 
   --panel: #1a1d23;
-  --glass: rgba(24, 28, 40, .36); --glass-bar: rgba(22, 26, 36, .46); --glass-sheet: rgba(22, 25, 33, .7);
+  --glass: rgba(24, 28, 40, .36); --glass-bar: rgba(22, 26, 36, .46); --glass-sheet: rgba(22, 25, 33, .86);
   --glass-blur: 20px; --glass-sat: 165%;
   --sheen: linear-gradient(162deg, rgba(255, 255, 255, .11) 0%, rgba(255, 255, 255, .025) 32%, rgba(255, 255, 255, 0) 58%);
   --rim: linear-gradient(135deg, rgba(255, 255, 255, .55) 0%, rgba(255, 255, 255, .2) 18%, rgba(255, 255, 255, .04) 46%, rgba(255, 255, 255, .06) 70%, rgba(255, 255, 255, .32) 100%);

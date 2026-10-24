@@ -141,7 +141,21 @@ Steps the person can take (no tag needed):
     const fp = (s.trackers || []).filter(x => (x.fingerprinting || 0) >= 2).map(x => x.company);
     const smText = stateMediaText(s.owner);
     const fpText = fp.length ? `; trackers that read device details to recognize you without cookies (fingerprinting): ${[...new Set(fp)].join(", ")} [Tracker Radar]` : "";
-    return `- ${s.domain}, visited ${day}: grade ${s.grade}, exposure ${s.score}/100, cookies ${s.cookieChoice || "none"} [Seen on your visit]; trackers seen [Seen on your visit]: ${t}; this site's own privacy policy ${pol}${br}${ck}${fpText}${smText}`;
+    return `- ${s.domain}, visited ${day}: grade ${s.grade}, exposure ${s.score}/100, cookies ${s.cookieChoice || "none"} [Seen on your visit]; trackers seen [Seen on your visit]: ${t}; this site's own privacy policy ${pol}${br}${ck}${fpText}${smText}${scoreText(s)}`;
+  }
+
+  // What adds up to a site's exposure score (the popup's "Why it got a B" lines), from shared/data.js.
+  const PART_TAG = { observed: "Seen on your visit", disclosed: "Privacy policy", breach: "HIBP" };
+  function scoreParts(s) {
+    const D = (typeof window !== "undefined" ? window : self).PrivaCData;
+    if (!D || !D.computeScore) return null;
+    const r = D.computeScore(s);
+    return { ...r, counted: r.parts.filter(p => p.points > 0).sort((a, b) => b.points - a.points) };
+  }
+  function scoreText(s) {
+    const r = scoreParts(s);
+    if (!r) return "";
+    return `; score made of: ${r.counted.map(p => `${p.label} (+${p.points}) [${PART_TAG[p.kind] || PART_TAG.observed}]`).join(", ") || "nothing counted"}`;
   }
 
   // Tracker Radar totals per company (domains, main category, country, biggest reach). Built once per Atlas.
@@ -210,20 +224,25 @@ Steps the person can take (no tag needed):
     return p[p.length - (sld ? 3 : 2)] || "";
   }
 
-  // Sites the question names ("cnn.com" also finds edition.cnn.com; "flightdeals" alone works too), and sites where
-  // a tracker company the question names was seen. When the question is about a company, at most one of its own
-  // sites (google.com, mail.google.com...) is shown in full, so the rest show where that company followed you.
-  function focusSites(sites, question) {
+  // Sites the question names ("cnn.com" also finds edition.cnn.com; "flightdeals" alone works too).
+  function namedSites(sites, question) {
     if (!question) return [];
     const q = String(question).toLowerCase();
     const tokens = [...new Set((q.match(/[a-z0-9-]+(?:\.[a-z0-9-]+)*/g) || []).map(t => t.replace(/^www\./, "")))];
-    const named = sites.filter(s => {
+    return sites.filter(s => {
       const d = String(s.domain || "").toLowerCase();
       if (!d) return false;
       if (tokens.some(t => t === d || t.endsWith("." + d) || (t.includes(".") && d.endsWith("." + t)))) return true;
       const name = siteName(d);
       return name.length >= 3 && !COMMON_WORDS.has(name) && tokens.includes(name);
     });
+  }
+
+  // Those sites, and sites where a tracker company the question names was seen. When the question is about a company,
+  // at most one of its own sites (google.com, mail.google.com...) is shown in full, so the rest show where it followed you.
+  function focusSites(sites, question) {
+    if (!question) return [];
+    const named = namedSites(sites, question);
     const L = (typeof window !== "undefined" ? window : self).PrivaCLists;
     let byCompany = [];
     if (L) {
@@ -366,7 +385,38 @@ Steps the person can take (no tag needed):
     if (OFF_TOPIC_THING.test(q) && OFF_TOPIC_ASK.test(q) && !PRIVACY_WORDS.test(q)) return OFF_TOPIC_ANSWER;
     return null;
   }
+  // "Why did planetfitness.com get a B?" (team doc, 2026-10-24: C said "I don't know yet"). Answered from the score
+  // itself, the same lines as the popup's "Why it got a B", so the answer is always right and instant.
+  const GRADE_WORDS_Q = /\b(grade[sd]?|grading|scored?|scoring|rate[ds]?|rating)\b/i;
+  const GRADE_LETTER = /\b(?:get|gets|got|getting|has|have|had|is|was|earn|earned|receive|received|a|an)\s+(?:an?\s+)?["']?([A-F])["']?(?=[\s?.!,]|$)/;
+  const GRADE_RANGES = "A is 0-20, B is 21-40, C is 41-60, D is 61-80, F is 81-100";
+  const article = (g) => (/^[AEF]/.test(g) ? "an" : "a");
+  function gradeAnswer(q, sites) {
+    if (!/\b(why|how)\b/i.test(q) || !(GRADE_WORDS_Q.test(q) || GRADE_LETTER.test(q))) return null;
+    const named = namedSites(sites, q).slice(0, 3);
+    if (!named.length) {
+      const domain = (q.toLowerCase().match(/\b[a-z0-9-]+(?:\.[a-z0-9-]+)+\b/) || [])[0];
+      return domain ? `I haven't seen ${domain.replace(/^www\./, "")} with PrivaC on in the last 7 days, so it has no grade yet. ` +
+        "Open it with PrivaC on, then ask me again. [Seen on your visit]" : null;
+    }
+    const asked = (q.match(GRADE_LETTER) || [])[1];
+    const parts = named.map(s => [s, scoreParts(s)]);
+    if (parts.some(([, r]) => !r)) return null;
+    return parts.map(([s, r]) => {
+      const not = asked && asked !== r.grade && named.length === 1 ? `, not ${article(asked)} ${asked}` : "";
+      const head = `${s.domain} got ${article(r.grade)} ${r.grade}${not}: an exposure score of ${r.score} out of 100, ` +
+        `where higher means more of your data is exposed (${GRADE_RANGES}).`;
+      const body = r.counted.length
+        ? "What added points:\n" + r.counted.map(p => `- ${p.label} (+${p.points}) [${PART_TAG[p.kind] || PART_TAG.observed}]`).join("\n")
+        : "Nothing added points: no trackers or tracking cookies were counted, and no data breach or foreign-adversary link is on record. [Seen on your visit]";
+      return `${head}\n${body}`;
+    }).join("\n\n");
+  }
+
   const dropSteps = (text) => text.replace(/\s*What you can do:[\s\S]*$/i, "").trim();
+  // While Gemma is still writing: also hide a half-written "What you can..." at the very end, so the steps never
+  // flash up and then vanish when the answer finishes (Max, team doc).
+  const hideSteps = (text) => String(text || "").replace(/\s*What you can do\b[\s\S]*$/i, "").replace(/\s*\bWhat(?: you(?: can(?: do)?)?)?\s*$/i, "");
 
   // A small memory: the last 3 questions and answers from this Ask C session, cut short (dashboard/ask-c.js).
   const MEMORY_TURNS = 3;
@@ -425,6 +475,8 @@ Steps the person can take (no tag needed):
     if (canned) return { answer: canned, trace: [] };
     const steps = WANTS_STEPS.test(q);
     const data = await deps.load();
+    const graded = gradeAnswer(q, ((data && data.sites) || []).filter(Boolean));
+    if (graded) return { answer: graded, trace: [{ tool: "get_site_report", label: "Your browsing" }] };
     const lists = deps.lists ? await deps.lists() : null;
     const atlas = deps.atlas ? deps.atlas() : null;
     const facts = lookupFacts(q, lists, atlas);
@@ -433,7 +485,8 @@ Steps the person can take (no tag needed):
     try {
       const raw = await deps.ask(q, { system: SYSTEM_PROMPT, context: buildContext(data, null, facts, extra, q, deps.history) +
         (steps ? "" : `\n\nFor this question: Don't add a "What you can do" line; just answer it.`), options: { temperature: 0.2 },
-                                      ...(deps.signal ? { signal: deps.signal } : {}) });
+                                      ...(deps.signal ? { signal: deps.signal } : {}),
+                                      ...(deps.onToken ? { onToken: (piece, so) => deps.onToken(piece, steps ? so : hideSteps(so)) } : {}) });
       const text = steps ? cleanAnswer(raw) : dropSteps(cleanAnswer(raw));
       if (/\[Government list\]/.test(text)) trace.push({ tool: "background_facts", label: "Government lists" });
       if (/\[Tracker Radar\]/.test(text)) trace.push({ tool: "lookup_company", label: "Tracker Radar" });

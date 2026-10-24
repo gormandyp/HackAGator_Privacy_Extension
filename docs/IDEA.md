@@ -6,6 +6,7 @@ _Last reviewed 2026-10-24 (Sat, ~4 PM ET). Ideas stay as the team wrote them; **
 - In person: Newell Hall, UF. Top 10 finalists present live Mon Oct 26 (Reitz Union, 10:15-11:15 AM).
 - Team: 2-5 people, every member registered. Students only.
 - Prizes: 1st $2,000 / 2nd $1,000 / 3rd $500. Tracks: Best Beginner Hack, Best Design, Best AI Hack, Best Social Impact. Sponsor challenges + MLH prizes exist (details not on page). One project can win several.
+  - **Correction 2026-10-24:** the prize pages now list no tracks. Sponsor prizes: Best Use of Gemma (MLH), Best Open Source Project (MLH, public repo with a clear open-source license), Best Use of the Twinly API, Vobile Prize. Rules: team members from at least two UF departments; all code written during the hacking period; at least one member at the Monday 10:15 AM finals in person to win. Finalists are picked on impact, technicality, design, novelty and presentation.
 - Sponsors: Vobile, Data Science & Informatics, MLH, Twinly. No sponsor APIs listed.
 - Submit: title + description, **public GitHub repo**, **demo video <=3 min (or slides)**, team roster, tracks/challenges to be considered for. WIP demo is OK.
 
@@ -85,7 +86,8 @@ Supporting (older, so NOT the theme answer): DuckDuckGo Tracker Radar (domain to
   - **Status:** not started; small (PLAN R6).
 - Make it so we are able to customize the liquid glass (i.e., green hue background, blue hue background, etc).
   - **Status: done 2026-10-24 (branch `max/glass-tint`).** Settings > Appearance > Glass color: Aurora (original), Ocean (blue), Forest (green), Sunset, Rose, Graphite, each in light and dark.
- - Mcdonalds.com has a warning about cookies usage but C does not pop up with a warning and yield sign. 
+ - Mcdonalds.com has a warning about cookies usage but C does not pop up with a warning and yield sign.
+ - When Ask C is generating responses, often generates a big paragraph then before it can be read cuts down half of it. May be part of the solution to the "What to do next" problem we wanted fix, but this is a bad solution as it looks confusing to the user. 
 
 **Justin
 - Have a "Clear Cache" button within PrivaC to clear users chache with a possible explanation for users about what it does and how its useful.
