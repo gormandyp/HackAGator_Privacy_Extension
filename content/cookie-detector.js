@@ -13,7 +13,14 @@
         /^i agree$/i,
         /^got it$/i,
         /^ok(?:ay)?$/i,
-        /^continue and accept$/i               // Argos, Sainsbury's
+        /^continue and accept$/i,              // Argos, Sainsbury's
+        // Also counted as "you accepted" by content/c-events.js:
+        /^accept$/i,
+        /^allow(?: cookies)?$/i,
+        /^i accept$/i,
+        /^accept and (?:close|continue)$/i,
+        /^agree and close$/i,
+        /^yes,? i(?:'|’)?m happy$/i
     ];
 
   const REJECT_LABELS = [

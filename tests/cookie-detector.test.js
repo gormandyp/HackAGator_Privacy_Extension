@@ -290,3 +290,25 @@ test("C moving himself around doesn't make the detector re-check the page", () =
   page.clock.tick(400);
   assert.ok(page.clock.checks > before, "a real page change still does");
 });
+
+// Accept wording that content/c-events.js already counts as "you accepted" (from real sites), but the detector
+// didn't: a banner with one of these and only a settings button got no "Beware!" warning at all.
+for (const label of ["Accept", "Allow", "Allow cookies", "I accept", "Accept and close", "Accept and continue",
+  "Agree and close", "Yes, I'm happy", "Yes I’m happy"]) {
+  test(`"${label}" + "Cookie settings": C warns that the site may still track you`, () => {
+    assert.deepStrictEqual(load(bannerWith([label, "Cookie settings"]).controls).kinds(), ["acceptOnly"]);
+  });
+}
+
+test("every Accept wording c-events.js knows also counts as Accept in the detector", () => {
+  const events = fs.readFileSync(__dirname + "/../content/c-events.js", "utf8");
+  const list = events.slice(events.indexOf("const ACCEPT = ["), events.indexOf("];", events.indexOf("const ACCEPT = [")));
+  const samples = ["Accept", "Accept all", "Accept all cookies", "Accept cookies", "Allow", "Allow all", "Allow cookies",
+    "Allow all cookies", "Agree", "Agree and close", "Agree and continue", "I agree", "I accept", "Accept and close",
+    "Accept and continue", "Yes, I'm happy", "Yes I’m happy", "OK", "Okay", "Got it"];
+  const known = eval("[" + list.slice(list.indexOf("[") + 1) + "]");   // c-events.js's own patterns
+  for (const label of samples) {
+    assert.ok(known.some((p) => p.test(label)), `c-events.js counts "${label}"`);
+    assert.deepStrictEqual(load(bannerWith([label, "Cookie settings"]).controls).kinds(), ["acceptOnly"], label);
+  }
+});
