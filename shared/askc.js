@@ -414,6 +414,9 @@ Steps the person can take (no tag needed):
   }
 
   const dropSteps = (text) => text.replace(/\s*What you can do:[\s\S]*$/i, "").trim();
+  // While Gemma is still writing: also hide a half-written "What you can..." at the very end, so the steps never
+  // flash up and then vanish when the answer finishes (Max, team doc).
+  const hideSteps = (text) => String(text || "").replace(/\s*What you can do\b[\s\S]*$/i, "").replace(/\s*\bWhat(?: you(?: can(?: do)?)?)?\s*$/i, "");
 
   // A small memory: the last 3 questions and answers from this Ask C session, cut short (dashboard/ask-c.js).
   const MEMORY_TURNS = 3;
@@ -482,7 +485,8 @@ Steps the person can take (no tag needed):
     try {
       const raw = await deps.ask(q, { system: SYSTEM_PROMPT, context: buildContext(data, null, facts, extra, q, deps.history) +
         (steps ? "" : `\n\nFor this question: Don't add a "What you can do" line; just answer it.`), options: { temperature: 0.2 },
-                                      ...(deps.signal ? { signal: deps.signal } : {}) });
+                                      ...(deps.signal ? { signal: deps.signal } : {}),
+                                      ...(deps.onToken ? { onToken: (piece, so) => deps.onToken(piece, steps ? so : hideSteps(so)) } : {}) });
       const text = steps ? cleanAnswer(raw) : dropSteps(cleanAnswer(raw));
       if (/\[Government list\]/.test(text)) trace.push({ tool: "background_facts", label: "Government lists" });
       if (/\[Tracker Radar\]/.test(text)) trace.push({ tool: "lookup_company", label: "Tracker Radar" });

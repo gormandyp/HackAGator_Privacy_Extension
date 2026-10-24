@@ -14,11 +14,12 @@ chrome.runtime.onStartup.addListener(refreshLists);
 chrome.alarms.create("privac-lists", { periodInMinutes: 24 * 60 });
 chrome.alarms.onAlarm.addListener(a => { if (a.name === "privac-lists") refreshLists(); });
 
-// What Ask C needs to answer. onToken (optional) receives Gemma's answer while it's being written.
+// What Ask C needs to answer. onToken (optional) receives Gemma's answer while it's being written (askc.js passes
+// it on to Gemma, hiding a "What you can do" part the answer won't keep).
 // history: the last few questions and answers from the Ask C panel (C's short memory).
 function askDeps(onToken, signal, history) {
-  return { load: PrivaCData.load, lists: PrivaCLists.load, atlas: () => ATLAS, signal, history,
-           ask: onToken ? (q, o) => PrivaCAI.ask(q, { ...o, onToken }) : PrivaCAI.ask };
+  return { load: PrivaCData.load, lists: PrivaCLists.load, atlas: () => ATLAS, signal, history, onToken,
+           ask: PrivaCAI.ask };
 }
 
 // Speed: load Gemma before the first question (the dashboard and popup say they're open). At most once a minute,
