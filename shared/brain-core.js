@@ -54,6 +54,14 @@
     return m || "Something went wrong.";
   }
 
+  // The runtime prints all its lines with console.error, so chrome://extensions listed routine start-up lines
+  // ("INFO: Creating LiteRT environment") as errors. Which console method each line deserves:
+  function logLevel(line) {
+    const m = /^(?:(INFO|WARNING|ERROR|FATAL):|([IWEF])\d{4} )/.exec(String(line || ""));
+    const kind = m && (m[1] || m[2])[0];
+    return kind === "I" ? "log" : kind === "W" ? "warn" : "error";
+  }
+
   function textOf(chunk) {
     const c = chunk && chunk.content;
     if (typeof c === "string") return c;
@@ -416,5 +424,5 @@
     return { handle, status: () => status };
   }
 
-  (typeof window !== "undefined" ? window : self).PrivaCBrainCore = { create, MODEL, CACHE, CONTEXT_TOKENS, REASONS, textOf };
+  (typeof window !== "undefined" ? window : self).PrivaCBrainCore = { create, MODEL, CACHE, CONTEXT_TOKENS, REASONS, textOf, logLevel };
 })();

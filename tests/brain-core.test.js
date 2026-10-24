@@ -420,3 +420,15 @@ test("if the warm-up pass fails, Gemma still loads the usual way", async () => {
   assert.strictEqual(brain.status().error, null);
   assert.strictEqual(lm.calls.engines, 2);
 });
+
+test("the runtime's routine start-up lines aren't reported as extension errors; real errors still are", () => {
+  // The runtime prints everything with console.error, so chrome://extensions listed "INFO: ..." lines as errors.
+  const { logLevel } = window.PrivaCBrainCore;
+  assert.strictEqual(logLevel("INFO: [environment.cc:36] Creating LiteRT environment with options"), "log");
+  assert.strictEqual(logLevel("I1024 20:31:56.416999 2378752 engine.cc:12] Loaded"), "log");
+  assert.strictEqual(logLevel("WARNING: [npu_registry.cc:34] NPU accelerator could not be loaded and registered"), "warn");
+  assert.strictEqual(logLevel("W1024 20:31:56.416999 2378752 mel_filterbank.cc:137] Missing 10 bands"), "warn");
+  assert.strictEqual(logLevel("ERROR: [engine.cc:80] Failed to create engine"), "error");
+  assert.strictEqual(logLevel("E1024 20:31:56.416999 2378752 gpu.cc:9] Device lost"), "error");
+  assert.strictEqual(logLevel("Aborted(OOM)"), "error");
+});
