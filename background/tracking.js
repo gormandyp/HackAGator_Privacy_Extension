@@ -281,12 +281,19 @@ if (chrome.tabs && chrome.tabs.query) {
   }).catch(() => {});
 }
 
-// The popup asks which site a tab is on (Chrome can hide a tab's address from the popup).
+// The popup asks which site a tab is on (Chrome can hide a tab's address from the popup). Chrome's webNavigation
+// says what the tab shows right now, even one of Chrome's own pages (the new-tab page), which sends extensions no
+// navigation event: so the website the tab showed before is never passed off as the current one.
 if (chrome.runtime && chrome.runtime.onMessage) {
   chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     if (!msg || msg.type !== "privac-tab-site") return;
-    const site = tabSites.get(msg.tabId);
-    sendResponse({ domain: site ? site.domain : null });
+    const known = tabSites.get(msg.tabId);
+    const recorded = { domain: known ? known.domain : null };
+    if (!chrome.webNavigation.getFrame) { sendResponse(recorded); return; }
+    chrome.webNavigation.getFrame({ tabId: msg.tabId, frameId: 0 })
+      .then((frame) => sendResponse(frame && frame.url ? { domain: cleanDomain(frame.url) } : recorded))
+      .catch(() => sendResponse(recorded));
+    return true;   // answers once Chrome replies
   });
 }
 
