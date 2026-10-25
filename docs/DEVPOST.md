@@ -29,7 +29,7 @@ One website visit can quietly hand you to dozens of companies. Cookie banners ar
 - **Gemma 4 E2B runs inside Chrome** on the computer's graphics chip with Google's LiteRT-LM web runtime (WebGPU). On our MacBook Pro the first words of an answer appear in about 0.8 seconds (about 1.7 seconds on a Windows gaming laptop). Ollama with Gemma 4 E4B is the fallback. Nothing leaves the computer.
 - The grade is computed by code, not by the AI, so it is the same every time and every point can be traced to evidence. Gemma explains and reads; it never sets the score.
 - Questions with a factual answer (grades, "Is this site safe?", breaches, "Does this site sell my data?", where a dashboard item came from) are answered from PrivaC's own records by code, in a tenth of a second; Gemma explains everything else, from the same evidence.
-- 799 automated tests (Node's built-in test runner), plus real-browser checks on a MacBook Pro and a Windows gaming laptop with the in-browser Gemma (docs/DEMO.md lists the sites and questions).
+- 813 automated tests (Node's built-in test runner), plus real-browser checks on a MacBook Pro and a Windows gaming laptop with the in-browser Gemma (docs/DEMO.md lists the sites and questions).
 
 ## What's new (Fresh off the frontier)
 Each of these was first made public in the 12 months before the hackathon and does real work in PrivaC (dashboard > About lists dates, proof links and the files that use each one):
