@@ -55,6 +55,19 @@
     return;
   }
 
+  // The privacy policy is read in the background and can take a minute, so its answer often arrives after the
+  // pop-up has drawn. Redraw once this site's answer is saved, so it shows without closing and reopening.
+  function redrawWhenPolicyRead(site) {
+    if (!(chrome.storage && chrome.storage.onChanged)) return;
+    const readAt = (site.policy && site.policy.checkedAt) || null;
+    chrome.storage.onChanged.addListener((changes, area) => {
+      const data = area === "local" && changes.privacData && changes.privacData.newValue;
+      const now = data && Array.isArray(data.sites) && data.sites.find((x) => x.domain === site.domain);
+      if (now && now.policy && now.policy.checkedAt && now.policy.checkedAt !== readAt) location.reload();
+    });
+  }
+  if (inExtension && !preview) redrawWhenPolicyRead(site);
+
   const s = PrivaCSiteSummary.summarize(site);
   const tone = { good: "check", info: "list", warn: "alert" };
   const SOURCE_CHIP = { "Have I Been Pwned": "Have I Been Pwned", "Disclosed in privacy policy": "Privacy policy" };
