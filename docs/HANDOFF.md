@@ -31,6 +31,7 @@ Deadline: feature freeze **Sun Oct 25 11 AM ET**, submit by **4 PM** (hard deadl
 - Temu still unflagged: Pinduoduo/PDD wording + source from **Max**.
 
 ## Game plan (in this order, so nothing undoes anything)
+**Newest first (2026-10-24 ~9:25 PM): do the "⏩ Do next, before the Sun 11 AM freeze" list at the top of docs/PLAN.md before anything below.**
 0. **Next up (done 2026-10-24, verify in the live check):** google.com = A after Clear my PrivaC data; popup shows your real site (never dailynews.example); grade lines say "Seen on your visits in the last 7 days". Dashboard wording should match when R10 is built.
 1. **Live check** (repo owner, 15 min): reload, Clear my PrivaC data, visit google.com (expect A), search "aliexpress" (still A), baidu.com and ya.ru (C alert), tass.com/rt.com (state-run media line, no tass.ru label), granma.cu, en.irna.ir, cnn.com, wired.com (policy answers after ~1 min). Screenshot the popup for each; note results in STATUS.md.
 2. **F3 APNIC** (above).

@@ -7,6 +7,9 @@ Chrome extension that shows who a website connects you to, grades its privacy A-
 - **main is the in-browser version (since 2026-10-24); branch `ollama` is the Ollama-only download.** Gemma 4 E2B runs inside Chrome with Google's LiteRT-LM (`vendor/litert-lm/`, WebGPU): `shared/brain-core.js` in `offscreen/brain.html`, chosen by `shared/ai.js` (Ollama is the fallback). Details: docs/IN-BROWSER-AI.md.
 - Tests: Node's built-in runner, `node --test` (no npm installs needed).
 
+## Before the Sun 11 AM freeze
+- Do the "⏩ Do next" list at the top of docs/PLAN.md first (Ask C fixes R19g/h/i, R19a-c, merge `max/icon-tabs`), before older unchecked steps.
+
 ## Commands (run these; don't guess)
 - Test all: `node --test`
 - Rebuild tracker data: `node scripts/build-atlas.js <path to tracker-radar clone>`; cookie data: `node scripts/build-cookie-db.js <open-cookie-database.csv>`

@@ -1,6 +1,17 @@
 # PrivaC: Plan (v3.2, updated 2026-10-24 Sat ~4 PM ET; deadline Sun Oct 25 5 PM ET, submit by 4 PM, feature freeze Sun 11 AM)
 Owner areas: **core** (repo owner + Claude: background, data plumbing, merges), **data** (Josh), **ask-c** (Max), **ui** (Matthew), **demo** (Justin). One branch per person; merge to `main` when the step's check passes. Pull before every step. Spec: docs/SPEC.md.
 
+## ⏩ Do next, before the Sun 11 AM freeze (in this order; `/next-step` should take these first)
+Added 2026-10-24 ~9:25 PM for Max (team ask-c/ui ideas from real-Gemma testing; details in R19 below and docs/IDEA.md):
+1. **R19i + R19g + R19h**: Ask C, done the general way: fuzzy name matching ("tik tok", "you tube") and cite-and-check on every Gemma
+   answer, plus code-built "Is X safe?" answers. Fixes made-up claims like "Facebook has a history of data breaches".
+2. **R19b**: Ask C answers stop shrinking when they finish (clean the text while it streams).
+3. **R19a**: McDonald's-type "by continuing you agree" notices get C's "Beware!".
+4. **R19c**: C's face instead of the plain "C" icon.
+5. Merge branch `max/icon-tabs` (dashboard tabs with icons + names; merges cleanly).
+6. **R19d + R19e** (home page declutter, bigger card titles): renderings for Max or the repo owner first, not straight to main.
+Tick each one here when done.
+
 ## Done (Fri night) — what changed from plan v2
 - [x] 1. Repo on GitHub, `node --test` (39 tests passing).
 - [x] 2. Gemma check. **Changed:** Gemma 4 E4B through **Ollama** (docs/OLLAMA.md), not Transformers.js.
