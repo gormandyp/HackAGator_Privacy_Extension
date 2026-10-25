@@ -42,7 +42,7 @@ An **exposure score 0-100** (higher = more exposed), computed by code from fixed
 - **F3 C on cookie banners. Built (JavaScript, no Gemma).** Accept: works on 3 real sites (R0: list them in STATUS.md).
 - **F4 Gemma reads the privacy policy. Built, needs live check (R3).** Finds the policy link, fetches the text inside the extension, answers the Knowledge Map questions locally, fills `policy` with the quoted sentence. Accept: matches a human check on 2 demo sites.
 - **F5 Foreign-adversary alert. Scoring built; on-page alert not built (R2, R4).** Triggered by a company in a 15 CFR 7.4 country or on the 1260H list. Names the company, the list and the date. Never claims data went to a government.
-- **F6 Unsafe-site warning. Not built (R5, Matthew).** Grade F plus a flagged company or a recent breach shows C's warning with Go back / Continue anyway. Warns; doesn't hard-block.
+- **F6 Unsafe-site warning. Built 2026-10-25 (R5; content/unsafe.js, rule in background/alerts.js `unsafeReasons`).** Grade F plus a company from a listed foreign-adversary country or the 1260H list, or a data breach reported to Have I Been Pwned in the last year, shows C's warning with Go back / Continue anyway, naming each reason and its list. Warns; doesn't hard-block. Once per site a day; waits for any other C pop-up to finish; Settings > "Unsafe-site warnings".
 - **F7 Ask C. Built** on the dashboard. R6 adds a popup "Ask C why" button and suggestions based on your own browsing.
 - **F8 What a site collects. Built (in Ask C).** Cookies by purpose, named advertising cookies with company and lifetime, how many aren't needed, fingerprinting trackers.
 

@@ -21,6 +21,7 @@ Judges: the dashboard's **About** tab lists each one with its date, a link to pr
 - Grades each site with a rules-based exposure score (0-100). Every point is explained. See "How the grade works" on the dashboard and docs/SPEC.md.
 - C detects cookie banners, clicks "Reject" for you, checks the site saved it (OneTrust, Ensighten, CookieYes, Cookiebot, Didomi), and warns about banners that have no Reject button.
 - Flags data breaches (Have I Been Pwned), registered data brokers (California) and companies based in U.S.-listed foreign-adversary countries (15 CFR 7.4).
+- Warns before you stay on a site graded F that also loads a listed company or had a breach reported in the last year: C names the reasons and offers "Go back" or "Continue anyway" (never blocks).
 - **Ask C**: questions answered by Gemma from the evidence, with a source label on every fact.
 
 ## Privacy

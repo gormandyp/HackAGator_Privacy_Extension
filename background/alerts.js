@@ -60,5 +60,38 @@
     if (site) check(sender.tab.id, site);
   });
 
-  self.PrivaCAlerts = { check, companiesFor, describe };
+  // Unsafe-site warning (PLAN R5, content/unsafe.js): why a site graded F also needs C's warning, or [] when it doesn't.
+  // site = a scored site from PrivaCData.load() (grade, trackers, owner, breach). Names the list and its date, never
+  // "this site is dangerous" (SPEC Honesty rules).
+  const YEAR_MS = 365 * 864e5;
+  function unsafeReasons(site, now = Date.now()) {
+    if (!site || site.grade !== "F") return [];
+    const out = [];
+    const companies = companiesFor(site);
+    if (companies.length) out.push(`It loaded ${companies.join(" and ")}.`);
+    const b = site.breach;
+    if (b && now - Date.parse(b.addedDate || b.breachDate) < YEAR_MS) {
+      out.push(`Have I Been Pwned lists a data breach of this site reported in the last year (${b.name}, ${String(b.breachDate || b.addedDate).slice(0, 4)}).`);
+    }
+    return out;
+  }
+
+  chrome.runtime.onMessage.addListener((msg, sender, reply) => {
+    if (!msg || !fromPrivaC(sender) || !sender.tab) return;
+    // content/unsafe.js asks a few seconds after a page loads, once the grade has settled (same numbers as the popup).
+    if (msg.type === "privac-site-unsafe") {
+      Promise.all([ready, PrivaCData.load()]).then(([, d]) => {
+        const s = !d.sample && (d.sites || []).find((x) => x.domain === msg.domain);
+        const reasons = unsafeReasons(s);
+        reply(reasons.length ? { grade: s.grade, reasons } : null);
+      }).catch(() => reply(null));
+      return true;   // answers after loading
+    }
+    // "Go back" on the warning: the tab's previous page, or a new tab page when there is none.
+    if (msg.type === "privac-go-back") {
+      chrome.tabs.goBack(sender.tab.id).catch(() => chrome.tabs.update(sender.tab.id, { url: "chrome://newtab/" }).catch(() => {}));
+    }
+  });
+
+  self.PrivaCAlerts = { check, companiesFor, describe, unsafeReasons };
 })();

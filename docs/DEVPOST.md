@@ -19,6 +19,7 @@ One website visit can quietly hand you to dozens of companies. Cookie banners ar
 - **Grades** every site from A to F with a rules-based score in which every point is explained: trackers, data brokers, breaches, cookie banners with no Reject button, and links to companies in countries on the U.S. foreign-adversary list.
 - **Acts on cookie banners.** C appears beside the pop-up and offers "Protect me", clicks Reject for you, and checks the site really saved your choice (OneTrust, Ensighten, CookieYes, Cookiebot, Didomi and GOV.UK records). C says "Beware!" when a banner only lets you accept.
 - **Flags foreign-adversary links.** When a page loads a service from a company on the Pentagon's Section 1260H list (updated June 8, 2026), C names the company, the list and its date.
+- **Warns on unsafe sites.** A site graded F that also loads a listed company or had a data breach reported in the last year gets C's warning with "Go back" or "Continue anyway". It never blocks.
 - **Checks public records** downloaded whole every day: Have I Been Pwned breaches and the 2026 California Data Broker Registry (603 companies). PrivaC never looks up a single site, so nobody learns what you visit.
 - **Ask C**: questions answered by Gemma 4 from what PrivaC saw, with a source tag on every fact. C also reads privacy policies for "sells" and "shares" and only shows a quote if it appears word for word in the policy.
 

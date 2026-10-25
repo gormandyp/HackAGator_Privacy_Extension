@@ -3,7 +3,8 @@
   content/c-events.js (which C pop-ups may show) and background/policy-reader.js.
     appearance: "system" | "light" | "dark"   (system follows the computer's light/dark mode)
     style:      "glass" | "clean"              (Liquid glass, or solid panels)
-    popups:     { cookie, acceptOnly, adversary }  (true = C may show that pop-up on websites)
+    popups:     { cookie, acceptOnly, adversary, unsafe }  (true = C may show that pop-up on websites;
+                                                 unsafe = the unsafe-site warning, content/unsafe.js)
     policyReader: true                          (Gemma reads privacy policies on this computer)
     autoDecline: false                          ("Protect me automatically": C declines extra cookies without asking;
                                                  content/c-events.js)
@@ -18,7 +19,7 @@
   const DEFAULTS = {
     appearance: "system",
     style: "glass",
-    popups: { cookie: true, acceptOnly: true, adversary: true },
+    popups: { cookie: true, acceptOnly: true, adversary: true, unsafe: true },
     policyReader: true,
     toolbar: "panel",
     autoDecline: false,

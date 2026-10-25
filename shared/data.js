@@ -319,7 +319,7 @@
   }
 
   async function clearAll() {
-    if (hasChrome()) await chrome.storage.local.remove(["privacData", "privacStats", "privacChipSeen"]);   // history, daily counts, grade box days
+    if (hasChrome()) await chrome.storage.local.remove(["privacData", "privacStats", "privacChipSeen", "privacUnsafeSeen"]);   // history, daily counts, grade box and warning days
   }
 
   window.PrivaCData = { countryOfAddress, annotateListed, load, currentDomain, clearAll, computeScore, gradeFor, GRADE_WORDS, RUBRIC_MAX, FOREIGN_ADVERSARIES };

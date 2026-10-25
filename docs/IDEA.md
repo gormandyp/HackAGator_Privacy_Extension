@@ -23,7 +23,7 @@ _Last reviewed 2026-10-24 (Sat, ~7:45 PM ET, Max's Claude: statuses on every ide
 - Judges will ask: what is new, why central, what was hard. Keep a running log of difficulties in docs/DIFFICULTIES.md.
 
 ## What we are building: PrivaC (Chrome extension)
-**Status (Sat 4 PM):** tracking, grading, C on cookie banners (with decline checks on five consent tools), Ask C, the policy reader, the on-page foreign-adversary alert and the glass dashboard work. Not built: the unsafe-site warning (PLAN R5). Ask C answers still need work (R13).
+**Status (Sat 4 PM):** tracking, grading, C on cookie banners (with decline checks on five consent tools), Ask C, the policy reader, the on-page foreign-adversary alert and the glass dashboard work. Unsafe-site warning built 2026-10-25 (PLAN R5): it warns with Go back / Continue anyway, never blocks. Ask C answers still need work (R13).
 Source: team Google Doc + linked idea chats (read 2026-10-23). The Google Doc will keep changing: re-read it if unsure.
 Team doc: https://docs.google.com/document/d/16WMA557yYF0qcxb9CSYCB0wrmqSXE2lS4e98C3C6bAQ/edit
 

@@ -7,9 +7,9 @@
 (function () {
   const KEEP_DAYS = 90;
   // C's pop-ups and clicks (content/c-events.js).
-  const EVENTS = ["popup-cookie", "popup-accept-only", "popup-adversary", "decline-click", "decline-confirmed",
+  const EVENTS = ["popup-cookie", "popup-accept-only", "popup-adversary", "popup-unsafe", "decline-click", "decline-confirmed",
                   "choose-click", "rejected-on-site", "accepted-on-site", "auto-decline"];
-  const POPUPS = ["popup-cookie", "popup-accept-only", "popup-adversary"];
+  const POPUPS = ["popup-cookie", "popup-accept-only", "popup-adversary", "popup-unsafe"];
   const RANGE_DAYS = { day: 1, week: 7, month: 30 };
 
   const pad = (n) => String(n).padStart(2, "0");

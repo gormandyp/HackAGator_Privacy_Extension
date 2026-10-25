@@ -44,7 +44,8 @@
         "content/alerts.js",
         "content/policy-link.js",
         "content/panel.js",
-        "content/grade-chip.js"
+        "content/grade-chip.js",
+        "content/unsafe.js"
       ],
       "run_at": "document_idle"
     },

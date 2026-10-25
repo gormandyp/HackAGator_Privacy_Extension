@@ -23,6 +23,7 @@ PrivaC needs to see the websites you visit to do its one job: telling you who tr
 | Your questions to C and C's answers | To show the conversation | Only while the page you asked on is open |
 | Your settings (light/dark, glass color, which pop-ups C may show, Ollama or in-browser AI) | To remember your choices | Until you change them or remove PrivaC |
 | Names of sites where the grade box already appeared today, with the day (never full web addresses) | So the grade box shows once per site a day | 7 days |
+| Names of sites where the unsafe-site warning already appeared today, with the day (never full web addresses; main version) | So the warning shows once per site a day | 7 days |
 | C's AI model, if you download it (main version only: about 2 GB, in Chrome's cache) | So C can answer on your computer | Until you click **Delete download** or remove PrivaC |
 | Public lists of data breaches and data brokers | To flag breached sites and data-broker trackers | Replaced once a day |
 
@@ -33,6 +34,7 @@ PrivaC never reads or stores what you type into websites, passwords, form conten
 - **C on cookie banners.** When a site shows a cookie banner, C offers to click its Reject button (or, if you turn on **Protect me automatically**, clicks it without asking). PrivaC then reads the site's own consent cookie only to answer "are the optional cookies off?", keeps only that yes or no, and never stores the cookie.
 - **"Do not sell or share my personal information."** When a page shows a button with exactly that label, PrivaC clicks it once on that page to opt you out of the site selling or sharing your data, as U.S. state privacy laws allow. This has no off switch yet, because it can only reduce what a site may do with your data.
 - **Alerts.** C warns you about banners with no Reject button and about connections to companies on U.S. government lists.
+- **Unsafe-site warning (main version).** On a site PrivaC grades F that also loads a company on those lists or had a data breach reported in the last year, C names the reasons and offers **Go back** or **Continue anyway**. It never blocks the site. Once per site a day; turn it off in **Settings › Unsafe-site warnings**.
 - **Grade box.** A few seconds after a site opens, a small box in the top right shows its grade (once per site a day), and after you decline or accept cookies it explains what that choice means. Turn it off in **Settings › Show the grade box**.
 - **Clear this site's data.** Only when you tap it twice in PrivaC's pop-up, Chrome removes that one site's own cookies, saved data and cache. PrivaC never removes your history, passwords or downloads.
 
@@ -62,7 +64,7 @@ The use of information received from Chrome APIs by PrivaC adheres to the [Chrom
 
 ## Deleting your data
 
-- **Settings › Clear my PrivaC data** deletes your site history, daily totals and the grade box's list of sites right away, and forgets the sites in your open tabs. Your settings stay.
+- **Settings › Clear my PrivaC data** deletes your site history, daily totals and the grade box's and warning's lists of sites right away, and forgets the sites in your open tabs. Your settings stay.
 - **Delete download** on the Ask C card deletes C's 2 GB AI model (main version).
 - Closing Chrome deletes the open-tab and already-warned lists.
 - Removing the extension in `chrome://extensions` deletes all of it.

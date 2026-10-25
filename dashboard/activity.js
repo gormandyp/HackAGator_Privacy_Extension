@@ -95,7 +95,8 @@
     const kinds = [
       { key: "popup-cookie", icon: ["cookie", "orange"], label: "Offers to decline cookies", q: "What does C's offer to decline cookies do, and what happens when I say yes?" },
       { key: "popup-accept-only", icon: ["alert", "yellow"], label: "Warnings about banners with no Reject", q: "Why does C warn me about cookie banners that only have an Accept button?" },
-      { key: "popup-adversary", icon: ["globe", "red"], label: "Foreign-adversary alerts", q: "What is a foreign-adversary alert, and what should I do when C shows one?" }
+      { key: "popup-adversary", icon: ["globe", "red"], label: "Foreign-adversary alerts", q: "What is a foreign-adversary alert, and what should I do when C shows one?" },
+      { key: "popup-unsafe", icon: ["shield", "red"], label: "Unsafe-site warnings", q: "Why does C warn me before I stay on some sites graded F?" }
     ];
     const most = Math.max(1, ...kinds.map((k) => n(k.key)));
     const responses = [
