@@ -63,3 +63,21 @@ test("with no site named or asked about, it explains how policy reading works in
   assert.match(r.answer, /PrivaC reads a site's privacy policy by itself/);
   assert.doesNotMatch(r.answer, /mail\.yahoo\.com|anthropic\.com/);
 });
+
+// G14 (real Gemma, main ad603c0): after "Does nytimes share my data?" the same question went to Gemma, which said the
+// policy wasn't checked and brought up a breach, though nytimes.com's policy was read. A policy that was read and
+// answered fell through ("other answers cover it"); now C says it was read, what it says, and whether it's in the grade.
+test("a policy that was read and answered says so, after a sell/share question or named", async () => {
+  const withNyt = { sites: [...browsing.sites, ...[site("nytimes.com", { source: "https://help.nytimes.com/privacy", checkedAt: "2026-10-25T09:00:00Z", sells: false, shares: true,
+    quotes: { shares: "We share information with advertising partners." } }, [{ company: "Google", category: "Advertising", country: "US" }])]
+    .map((s) => ({ ...s, ...window.PrivaCData.computeScore(s) }))] };
+  for (const [q, before] of [["Why isnt the privacy policy checked yet", ["Does nytimes share my data?"]], ["why hasn't nytimes.com's privacy policy been checked?", []]]) {
+    let calls = 0;
+    const r = await A.answer(q, { load: async () => withNyt, history: before.map((question) => ({ question, answer: "An earlier answer." })),
+      ask: async () => { calls++; return "You haven't checked the privacy policy yet. This site has a data breach."; } });
+    assert.strictEqual(calls, 0, q);
+    assert.match(r.answer, /^PrivaC already read nytimes\.com's privacy policy on Oct 25, 2026: it says it doesn't sell personal information and shares personal information with partners for advertising \[Privacy policy\]\./, `${q} -> ${r.answer}`);
+    assert.match(r.answer, /already counted in nytimes\.com's grade/);
+    assert.doesNotMatch(r.answer, /breach/i);
+  }
+});

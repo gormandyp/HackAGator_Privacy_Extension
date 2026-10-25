@@ -194,6 +194,11 @@ Tick each one here when done. **All 8 done (checked 2026-10-25 overnight).**
     offline?", "Why are you showing me this?") still go to Gemma with a note that "you" means C, and PrivaC's facts; requests,
     opinions and "you" meaning anyone ("Can you tell me about Google?", "How do you clear cookies?") are unchanged. Check:
     tests/askc-you.test.js; backtest of 119 other questions: all identical (answers and Gemma's evidence).
+  - [x] **r. "Why isn't the privacy policy checked yet?"** **Done 2026-10-25.** Max (max/policy-why) answers it by code about the
+    site named or last asked about, with the real reasons a policy can still be unread. The G14 then found it went to Gemma after
+    "Does nytimes share my data?" ("You haven't checked the privacy policy yet... a data breach"): nytimes.com's policy had been read,
+    and a read policy with an answer fell through. Now C says when PrivaC read it, what it says, and that it's already in the grade.
+    Check: tests/askc-policy-why.test.js; backtest of 184 other questions unchanged.
   - Also waiting to merge: `max/icon-tabs` (tab icons + names).
 
 ## Sun (freeze 11 AM)

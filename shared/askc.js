@@ -689,7 +689,13 @@ Steps the person can take (no tag needed):
       return `PrivaC read ${d}'s privacy policy on ${readOn(p.checkedAt)}, but it doesn't say clearly whether it sells or shares your personal information [Privacy policy]. ` +
         "So that line stays unknown, and the grade shows how high the score could go instead of counting it as safe." + couldGo(s);
     }
-    if (p.checkedAt || typeof p.sells === "boolean" || typeof p.shares === "boolean") return null;   // read and answered: other answers cover it
+    // Read and answered (G14, Oct 25: after "Does nytimes share my data?" this went to Gemma, which said it wasn't checked).
+    if (p.checkedAt || typeof p.sells === "boolean" || typeof p.shares === "boolean") {
+      const says = ["sells", "shares"].filter((f) => typeof p[f] === "boolean").map((f) => (p[f] ? SAYS[f].yes : SAYS[f].no));
+      const r = scoreParts(s);
+      return `PrivaC already read ${d}'s privacy policy${p.checkedAt ? ` on ${readOn(p.checkedAt)}` : ""}: it says it ${and(says)} [Privacy policy]. ` +
+        `That answer is already counted in ${d}'s grade.${r && r.unknowns && r.unknowns.length ? ` ${checkedLine(r)}` : ""}`;
+    }
     return `PrivaC hasn't read ${d}'s privacy policy yet. ${POLICY_HOW}\n\n${POLICY_REASONS}\n\n` +
       `What you can do: open ${d} again and let the page finish loading; the grade updates by itself once the policy is read.${couldGo(s)}`;
   }
