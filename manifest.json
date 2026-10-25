@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "PrivaC",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "See which companies track you on each site, get an A-F privacy grade, and let C decline extra cookies. Its AI runs on your computer.",
   "icons": {
     "16": "icons/icon16.png",
