@@ -52,6 +52,20 @@ Owner areas: **core** (repo owner + Claude: background, data plumbing, merges), 
   - [x] **d. Declutter the home page** (Max): 2-3 rendered options first, reviewed by Preston or Max before main. **Done 2026-10-25 (repo owner picked rendering A):** "Cookies your sites kept" moved to the Safety tab (it repeated This week's count), Ask C buttons on rows hidden until you point at the row (still shown for the keyboard and touch screens), "Who followed you" starts with 5 companies and 6 sites, two long subtitles cut (tests/overview-declutter.test.js).
   - [x] **e. Card titles more prominent** (Max, done 2026-10-24: `.card h2` 17.5 px bold, tests/card-headers.test.js): test users weren't sure what each box was): larger, bolder "Worth knowing", "This week" etc.; render with d.
   - [ ] **f. Terms of service** (Max, IDEA "URGENT"): this is R7, still stretch. Say so in the Devpost "what's next".
+  - [ ] **g. "tik tok" breach questions (Max, 2026-10-24 9 PM, real Gemma; must be done before the Sunday 11 AM freeze).** On main `bb99bfc`:
+    "Has TikTok had any data breaches recently?" -> breach-list answer (correct), but "Has tik tok had any data breaches recently?" -> Gemma
+    (no list check, no Have I Been Pwned chip, "I do not have information about specific data breaches"), and the follow-up
+    "Check the ive been pwned list" -> Gemma again, with a breach claim tagged [Seen on your visit] and the after-a-breach steps.
+    Fix in shared/askc.js, failing test first for each:
+    1. Names typed with a space match like one word, everywhere companies and sites are matched (`companiesIn()`, breach sites, sites
+       shown in full): "tik tok", "linked in", "face book", "you tube", "what's app". Join two neighbouring words when the joined form is
+       a known name or alias (don't join ordinary words; keep the everyday-word rules from the backtest).
+    2. The answer names what was asked, with the owner after it: "no breach on record for TikTok (owned by ByteDance)", not "for ByteDance".
+    3. "Check the (I've been / have I been) pwned list", "check HIBP", "look it up" right after a breach question re-runs the breach
+       answer for the last question's site or company.
+    4. Breach answers with no breach on record leave out the after-a-breach steps (give "use a different password for each site and
+       two-step sign-in" only).
+    Check: those 3 questions in a row give list answers with the Have I Been Pwned chip; `node --test` passes; then ask them on the Mac.
   - Also waiting to merge: `max/icon-tabs` (tab icons + names).
 
 ## Sun (freeze 11 AM)
