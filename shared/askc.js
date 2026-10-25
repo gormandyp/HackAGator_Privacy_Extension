@@ -973,7 +973,7 @@ Steps the person can take (no tag needed):
 - The "Clear" button in PrivaC's pop-up deletes that site's own cookies and storage in Chrome, so it can't link your next visit to earlier ones. Other companies' cookies, your history and your passwords stay.
 - "Fully checked" next to a grade means every line of the grade has an answer for that site. "Partly checked" means something isn't known yet, usually because the site's privacy policy hasn't been read, so PrivaC shows how high the score could go instead of counting the unknown as safe.
 - The grade is PrivaC's own rubric, the same for every site, and the pop-up lists every point with its source. It measures how much of your data a site exposes, not whether the site is a scam.`;
-  const featureFacts = (question) => (FEATURE_Q.test(String(question || "")) ? `\n\n${PRIVAC_FACTS}` : "");
+  const featureFacts = (question) => (FEATURE_Q.test(String(question || "")) || toC(question) ? `\n\n${PRIVAC_FACTS}` : "");
 
   // What C did this week, with the dashboard's "C's impact" numbers and words (shared/stats.js, dashboard/activity.js).
   const IMPACT_Q = /\b(?:c|privac|you)\s+(?:do|did|done|doing|help\w*|protect\w*|stop\w*|block\w*|declin\w*|catch\w*|caught|sav\w*)\b|\bimpact\b|\bstepped in\b/i;
@@ -1246,9 +1246,11 @@ Steps the person can take (no tag needed):
     new RegExp(String.raw`\bpermissions?\b[^?.!]*\b${ME}\b|\b${ME}\b[^?.!]*\bpermissions?\b|\bwhy\s+(?:does|do)\s+${ME}\s+need\b`, "i"),
     /\bread\s+and\s+change\s+all\b/i
   ];
+  // What PrivaC keeps (PRIVACY.md), in every answer that says so.
+  const KEEPS = "It keeps site names (never the addresses of the pages you visit), which tracker companies each site loaded, cookie names (never what's inside them), your cookie-banner choices, and what each site's privacy policy says with the address of its privacy-policy page. It deletes each site 7 days after your last visit, and never reads your passwords or what you type into websites.";
   const SAFE_ANSWER = "Here's exactly what PrivaC can and can't do:\n" +
     "- It runs on this computer. PrivaC has no servers, no accounts, no ads and no analytics, and the PrivaC team never sees your data. What it learns about your browsing stays in Chrome's storage, and my answers are written by Gemma 4 running here, so your questions stay here too.\n" +
-    "- It keeps site names (never the addresses of the pages you visit), which tracker companies each site loaded, cookie names (never what's inside them), your cookie-banner choices, and what each site's privacy policy says with the address of its privacy-policy page. It deletes each site 7 days after your last visit, and never reads your passwords or what you type into websites.\n" +
+    `- ${KEEPS}\n` +
     "- It downloads only whole public lists (data breaches and data brokers) and my AI model, the same files for everyone, so no site names are sent anywhere. It reads a site's privacy policy from that same site, without your cookies.\n" +
     "- Chrome says it can \"Read and change all your data on all websites\": PrivaC needs that to see which trackers each page loads, find cookie banners, and show C and the grade box. On a page it only clicks a cookie banner's reject option when you let it (or turn on automatic), and a \"Do not sell or share my personal information\" button when a page shows one. It deletes a site's cookies only when you tap \"Clear\" twice in the pop-up.\n" +
     "- It doesn't block trackers or ads: it shows you who's there and helps you say no.\n" +
@@ -1278,7 +1280,7 @@ Steps the person can take (no tag needed):
   // Google?" or "What can you tell me about Google?" (questions about trackers) still go to Gemma.
   const MODEL_WORDS = /\b(gemma|llms?|large language models?|language models?|ai models?|litert)\b/i;
   const ABOUT_MODEL = [
-    /\b(?:are|were)\s+you\s+(?:an?\s+)?(?:ai|a\.i\.|bot|chatbot|robot|human|real(?:\s+person)?|chatgpt|gpt|gemini|claude|llama|model|llm)\b/i,
+    /\b(?:are|were)\s+you\s+(?:an?\s+)?(?:ai|a\.i\.|bot|chatbot|robot|human|person|real(?:\s+person)?|chatgpt|gpt|gemini|claude|llama|model|llm)\b/i,
     /\b(?:are|were)\s+you\s+(?:made|built|powered|trained|running|created)\b/i,
     /\b(?:who|what)\s+(?:made|built|created|trained|powers|runs)\s+(?:you|c|privac|ask\s+c)\b/i,
     /\bwhat\s+(?:ai|model|llm|brain)\s+(?:are|is|runs|powers|do)\b/i,
@@ -1292,7 +1294,7 @@ Steps the person can take (no tag needed):
     "and each fact shows its source.";
   // "Does my browsing leave my computer?": Gemma answered "Yes, your questions and browsing never leave your computer"
   // (G14, 2026-10-25). PrivaC's privacy promise is answered in its own words (PRIVACY.md).
-  const PRIVATE_Q = /\b(?:leave|leaves|leaving)\s+(?:my|this|the)\s+(?:computer|device|laptop|machine|pc|mac|browser)\b|\b(?:do|does|will|can)\s+(?:you|privac|c|ask\s+c|the\s+extension)\s+(?:see|read|sell|collect|keep|save|track)\b[^?.!]*\b(?:passwords?|data|browsing|history|questions?|me)\b/i;
+  const PRIVATE_Q = /\b(?:leave|leaves|leaving)\s+(?:my|this|the)\s+(?:computer|device|laptop|machine|pc|mac|browser)\b|\b(?:do|does|will|can)\s+(?:you|privac|c|ask\s+c|the\s+extension)\s+(?:see|read|sell|collect|keep|save|track)\b[^?.!]*\b(?:passwords?|data|browsing|history|questions?|me|type|typing|e-?mails?|messages?|my\s+screen)\b/i;
   const PRIVATE_ANSWER = "No. What PrivaC learns about your browsing stays on this computer, in Chrome's storage, and my answers are written by Gemma " +
     "running here (inside Chrome, or in the Ollama app on this computer), so your questions stay here too. PrivaC never reads your passwords " +
     "or what you type into websites. It only downloads whole public lists (data breaches and data brokers) and my AI model, the same files for " +
@@ -1327,17 +1329,67 @@ Steps the person can take (no tag needed):
   const echoesRules = (t) => ECHOED_RULES.some((re) => re.test(t));
   const ECHO_ANSWER = "I'm C, PrivaC's privacy guide. I can tell you which companies saw your visits, why a site got its grade, " +
     "whether a site had a data breach, and whether to accept cookies. Try asking: \"Who tracked me the most this week?\"";
+  // "You" means C (Preston, Oct 25: C "repeats back 'You' to the user with something unrelated"). Gemma's rule is to call the
+  // person "you", so "Are you tracking me?" or "Are you there?" got answers about the person or the rules read back. The
+  // common questions to C get C's own answer (PRIVACY.md, TERMS.md); "Are you recording my screen?" no longer gets the
+  // dashboard's list of sites that record screens.
+  const C_ME = String.raw`(?:${ME}|c)`;
+  const TRACKING_ME_Q = new RegExp(String.raw`^\s*(?:are|were|is)\s+${C_ME}\s+(?:secretly\s+|also\s+|really\s+)?(?:tracking|spying(?:\s+on)?|watching|monitoring|following|recording|logging|collecting|stealing|selling)\s+(?:me|my|what\s+i|everything|where\s+i)\b[^?.!]*[?.!]*\s*$`, "i");
+  const NOT_TRACKER_ANSWER = "No. I don't track you or record your screen: what PrivaC learns about your browsing stays on this computer, " +
+    `in Chrome's storage, and the PrivaC team never sees it. ${KEEPS} To see who does track you, ask: "Who tracked me the most this week?"`;
+  const KNOW_ME_Q = new RegExp(String.raw`^\s*(?:what\s+(?:do|does)\s+${C_ME}\s+(?:know|keep|store|save|remember|have|collect)\s+(?:about|on|from)\s+me` +
+    String.raw`|what\s+(?:data|information|info|details|records?)\s+(?:do|does)\s+${C_ME}\s+(?:have|keep|store|save|collect)(?:\s+(?:about|on|from)\s+me)?` +
+    String.raw`|(?:do|does|will|would|can)\s+${C_ME}\s+know\s+(?:what\s+(?:sites|websites|pages)\s+i|which\s+(?:sites|websites)\s+i|where\s+i|(?:everything\s+)?about\s+me|who\s+i\s+am|me\b|my\s+(?:history|browsing|name|sites|data|searches))` +
+    String.raw`|(?:do|does|will|would|can)\s+${C_ME}\s+(?:keep|store|save|remember|log|record)\s+(?:my\s+(?:history|browsing|sites|websites|visits|data|information|info|searches|questions|chats?|conversations?)|what\s+i|everything|this\s+(?:conversation|chat)|our\s+(?:conversation|chat)|the\s+(?:sites|websites|pages)\s+i)` +
+    String.raw`|(?:can|could|will|would)\s+${C_ME}\s+forget\s+(?:what\s+i|everything|me\b|my\s+(?:history|browsing|data|questions)|this\s+(?:conversation|chat)|our\s+(?:conversation|chat)))[^?.!]*[?.!]*\s*$`, "i");
+  const KNOWS_ANSWER = `Only what PrivaC saw in this browser, and it stays on this computer. ${KEEPS} I use your last 3 questions to follow ` +
+    "the conversation while this page is open, and nothing you ask me is saved. You can delete everything PrivaC keeps with Settings > \"Clear my PrivaC data\".";
+  const HERE_Q = /^\s*(?:are\s+)?you\s+(?:still\s+)?(?:there|here|on|working|awake|alive|online|ready|listening|ok|okay|up)\s*[?.!]*\s*$/i;
+  const HERE_ANSWER = "I'm here! Ask me about any site you visited, a tracker company, or whether to accept cookies. Try: \"Which of my sites had a recent data breach?\"";
+  const HOW_ARE_YOU_Q = /^\s*(?:how\s+are\s+you(?:\s+doing)?(?:\s+today)?|how(?:'s|\s+is)\s+it\s+going|what(?:'s|\s+is)\s+up|how\s+have\s+you\s+been)\s*[?.!]*\s*$/i;
+  const HOW_ARE_YOU_ANSWER = "I'm doing well, thanks for asking! Ask me about any site you visited, a tracker company, or whether to accept cookies.";
+  const HELP_Q = /^\s*(?:(?:can|could|will|would)\s+you\s+help(?:\s+me)?(?:\s+(?:out|please))?|what(?:'s|\s+is)\s+your\s+name|do\s+you\s+have\s+a\s+name)\s*[?.!]*\s*$/i;
+  const ACCURATE_Q = new RegExp(String.raw`^\s*(?:how\s+(?:accurate|reliable|correct|precise)\s+(?:are\s+(?:you|your\s+(?:answers|grades|facts))|is\s+${C_ME})` +
+    String.raw`|(?:are|is)\s+(?:${C_ME}|your\s+(?:answers|grades|facts))\s+(?:always\s+|really\s+|even\s+)?(?:accurate|reliable|correct|right)` +
+    String.raw`|(?:do|does|can|could)\s+${C_ME}\s+(?:ever\s+)?(?:make\s+mistakes|get\s+(?:it|things)\s+wrong|be\s+wrong))\s*[?.!]*\s*$`, "i");
+  const ACCURATE_ANSWER = "My facts are as accurate as their sources, and each one shows its source: what PrivaC saw on your visits, DuckDuckGo's " +
+    "Tracker Radar, Have I Been Pwned, California's Data Broker Registry, the Open Cookie Database, each site's own privacy policy and the U.S. " +
+    "government lists. Every site's grade follows the same rules, and anything PrivaC couldn't check is marked \"Partly checked\" instead of " +
+    "being counted as safe. My words are written by Gemma, a small AI model on this computer, and it can still word things wrongly, so the " +
+    "pop-up's list of points is the place to check a grade.";
+  const COST_Q = new RegExp(String.raw`^\s*(?:(?:is|are)\s+${C_ME}\s+(?:really\s+|completely\s+|totally\s+)?free|(?:do|does)\s+${C_ME}\s+cost(?:\s+(?:money|anything))?` +
+    String.raw`|how\s+much\s+(?:do|does)\s+${C_ME}\s+cost)\s*[?.!]*\s*$`, "i");
+  const COST_ANSWER = "PrivaC is free. There are no accounts, payments, ads or paid features, and the PrivaC team never sees your data.";
+  const LOVE_Q = /^\s*(?:i\s+(?:love|like|adore)\s+you(?:\s+(?:so\s+much|a\s+lot))?|you(?:'re|\s+are)\s+(?:the\s+best|so\s+(?:cool|helpful|smart|great|cute)|awesome|amazing|great|helpful|cool|smart|cute|nice))\s*[!.]*\s*$/i;
+  const LOVE_ANSWER = "Thank you! Ask me anything else about a site, a tracker company or your cookies.";
+  const WRONG_Q = /^\s*(?:you(?:'re|\s+are)\s+(?:wrong|incorrect|mistaken)|that(?:'s|\s+is)\s+(?:wrong|incorrect|not\s+(?:true|right))|you\s+(?:got|have)\s+(?:it|that)\s+wrong)\b[^?]*[.!]*\s*$/i;
+  const WRONG_ANSWER = "Sorry about that. My facts come from PrivaC's records and public lists, but Gemma, the AI that writes my words, can get the " +
+    "wording wrong. Each site's pop-up lists every point of its grade with its source, so check it there, and ask me about the exact part that looks wrong.";
+  // Other questions to C ("Can you protect me?", "Why are you showing me this?") still go to Gemma, with a note saying who
+  // "you" is and PrivaC's facts. Requests ("Can you tell me about Google?"), opinions ("Do you think...") and "you" meaning
+  // anyone ("How do you clear cookies?", "Should you worry about Criteo?") keep the usual evidence.
+  const TO_C = /^\s*(?:(?:are|were|do|did|have|will|would|can|could)\s+you\b(?!\s+(?:please\s+)?(?:tell|explain|show|list|give|find|check|look|compare|summari[sz]e|describe|define|say|name|recommend|suggest|think|know|believe|reckon|mean)\b)|why\s+(?:are|were|do|did|have|would|can't|cannot|won't|don't|didn't)\s+you\b|what\s+(?:are|were|have|did)\s+you\s+(?:doing|done|found|blocked|declined|stopped|caught|seen|saved)\b)/i;
+  const toC = (q) => TO_C.test(spelledOut(String(q || "")));
+  const TO_C_NOTE = `\n\nFor this question: the person is talking to you, C. In their question, "you" and "your" mean you (C, PrivaC), not them. Answer about yourself as "I", and say "you" only for the person.`;
   function cannedAnswer(asked) {
     for (const q of [asked, asked.replace(CALLING_C, "$1"), spelledOut(asked), spelledOut(asked).replace(CALLING_C, "$1")]) {
       if (GREETING.test(q)) return GREETING_ANSWER;
       if (THANKS.test(q)) return THANKS_ANSWER;
+      if (HERE_Q.test(q)) return HERE_ANSWER;
+      if (HOW_ARE_YOU_Q.test(q)) return HOW_ARE_YOU_ANSWER;
+      if (LOVE_Q.test(q)) return LOVE_ANSWER;
+      if (WRONG_Q.test(q)) return WRONG_ANSWER;
       if (SPECIAL_Q.test(q)) return SPECIAL_ANSWER;
       if (PURPOSE_Q.test(q)) return ABOUT_ANSWER;
+      if (TRACKING_ME_Q.test(q)) return NOT_TRACKER_ANSWER;
+      if (KNOW_ME_Q.test(q)) return KNOWS_ANSWER;
       if (PRIVATE_Q.test(q)) return PRIVATE_ANSWER;
       if (MODEL_WORDS.test(q) || ABOUT_MODEL.some((re) => re.test(q))) return MODEL_ANSWER;
       if (PRIVAC_SAFE_Q.some((re) => re.test(q))) return SAFE_ANSWER;
+      if (ACCURATE_Q.test(q)) return ACCURATE_ANSWER;
+      if (COST_Q.test(q)) return COST_ANSWER;
       if (HOW_Q.test(q)) return howAnswer(q);
-      if (ABOUT_C.test(q) || ABOUT_PRIVAC.test(q)) return ABOUT_ANSWER;
+      if (ABOUT_C.test(q) || ABOUT_PRIVAC.test(q) || HELP_Q.test(q)) return ABOUT_ANSWER;
       if (OFF_TOPIC_THING.test(q) && OFF_TOPIC_ASK.test(q) && !PRIVACY_WORDS.test(q)) return OFF_TOPIC_ANSWER;
     }
     return null;
@@ -1624,6 +1676,7 @@ Steps the person can take (no tag needed):
     try {
       const context = buildContext(data, null, facts, extra, q, standalone ? [] : deps.history) +
         (steps ? "" : `\n\nFor this question: Don't add a "What you can do" line; just answer it.`) +
+        (toC(q) ? TO_C_NOTE : "") +
         (breachNames ? `\n\nFor this question: they want more about ${breachNames}'s breach record. Answer only about ${breachNames}, from its [HIBP] facts; don't bring up other sites' breaches.` : "");
       // A source tag needs evidence behind it: Gemma wrote [HIBP] with no breach facts (2026-10-24), which also showed a
       // "Have I Been Pwned" check mark C never made. Tags that aren't in the evidence are removed, so their chips don't show.

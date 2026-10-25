@@ -182,6 +182,18 @@ Tick each one here when done. **All 8 done (checked 2026-10-25 overnight).**
     cookie banner ("Do not sell or share" / "Accept") isn't detected (content/cookie-detector.js, needs its own R9 note). Check:
     tests/askc-dashboard.test.js, tests/clear-site.test.js; a backtest of 55 unrelated questions gave 54 identical answers (the
     other was the Criteo follow-up, now with only Criteo's line).
+  - [x] **q. C knows "you" means C** **Done 2026-10-25 (Preston: C "repeats back 'You' to the user with something unrelated").**
+    Max's fix (b35e239) gave greetings, thanks and "what makes you special" C's own answer. Still wrong on real Gemma: "Are you
+    tracking me?" answered about the sites' trackers, "How are you?" said "I am a large language model developed by Google DeepMind",
+    "Do you work offline?" said no, and "Are you recording my screen?" listed the sites that record screens. Cause: Gemma's rule is
+    to call the person "you", and nothing said the person's "you" means C. Now C answers the common ones himself, from PRIVACY.md and
+    TERMS.md: tracking/spying/recording me ("No", then what PrivaC does keep), what do you know/remember about me (what it keeps, 7
+    days, the last 3 questions only while the page is open, how to delete it), are you there / how are you, can you help / your name,
+    are you a person, can you see what I type or read my emails, how accurate are you (sources, "Partly checked", Gemma can word
+    things wrongly), are you free, "I love you", "you're wrong". Other questions to C ("Can you protect me?", "Do you work
+    offline?", "Why are you showing me this?") still go to Gemma with a note that "you" means C, and PrivaC's facts; requests,
+    opinions and "you" meaning anyone ("Can you tell me about Google?", "How do you clear cookies?") are unchanged. Check:
+    tests/askc-you.test.js; backtest of 119 other questions: all identical (answers and Gemma's evidence).
   - Also waiting to merge: `max/icon-tabs` (tab icons + names).
 
 ## Sun (freeze 11 AM)
