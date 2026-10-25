@@ -80,15 +80,31 @@
   }
 
   const BANNER =
-    '[role="dialog"], [aria-modal="true"], ' +
+    '[role="dialog"], [role="alertdialog"], [aria-modal="true"], ' +
     '[id*="cookie" i], [class*="cookie" i], ' +
     '[id*="consent" i], [class*="consent" i], ' +
     '#onetrust-banner-sdk';
 
+  // closest() stops at a shadow root, and some cookie apps draw their whole pop-up inside one with no dialog role
+  // and made-up class names (Consentmo on Shopify stores: <csm-cookie-consent>, puffco.com; there only the button
+  // itself matches BANNER). Inside a shadow root whose host is named like a cookie pop-up (tag, id or class) or
+  // sits inside one, this is the outermost element with a size around `element` in that shadow root (the host
+  // itself measures 0x0). Null on the page itself.
+  function shadowBoxAround(element) {
+    const host = element.getRootNode?.().host;
+    if (!host || !(/cookie|consent/i.test(host.localName) || host.closest(BANNER))) return null;
+    let box = null;
+    for (let el = element; el; el = el.parentElement) {
+      const rect = el.getBoundingClientRect();
+      if (rect.width && rect.height) box = el;
+    }
+    return box;
+  }
+
   // The cookie pop-up around an element, or null when it isn't in one.
   function cookieBannerAround(element) {
-    const banner = element.closest(BANNER);
-    return banner && /cookie|consent|privacy|tracking/i.test(banner.innerText || "") ? banner : null;
+    const aboutCookies = (box) => box && /cookie|consent|privacy|tracking/i.test(box.innerText || "") ? box : null;
+    return aboutCookies(element.closest(BANNER)) || aboutCookies(shadowBoxAround(element));
   }
 
   // A one-click way to say no whose wording isn't in REJECT_LABELS yet ("Deny", "Disagree and close"):
@@ -453,8 +469,8 @@
 
     promptedFor = button;
 
-    // Find the cookie banner surrounding the rejection button.
-    const banner = button.closest(BANNER);
+    // Find the cookie banner surrounding the rejection button (also inside a shadow root).
+    const banner = cookieBannerAround(button) || button.closest(BANNER);
 
     if (banner) {
 

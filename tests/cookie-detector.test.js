@@ -42,10 +42,11 @@ function bannerWith(labels, text = "We use cookies to improve your experience an
 // Loads the detector on a page whose buttons are `controls`. `hosts` are elements with open shadow roots.
 function load(controls, { hosts = [], cookie = "", notices = [] } = {}) {
   const calls = [];
+  const positions = [];      // the boxes C was asked to stand on (positionAtBanner)
   const P = {
     cookie(opts) { calls.push(["cookie", opts]); },
     acceptOnly() { calls.push(["acceptOnly"]); },
-    positionAtBanner() {},
+    positionAtBanner(banner) { positions.push(banner); },
     hide() { calls.push(["hide"]); },
     ignored() {},
     isReacting: () => false,
@@ -101,7 +102,7 @@ function load(controls, { hosts = [], cookie = "", notices = [] } = {}) {
   ctx.top = ctx;   // the top page, not a frame
   ctx.PrivaCPrompt = P;
   vm.runInNewContext(SRC, ctx);
-  return { calls, ctx, saved, sent, clock, kinds: () => calls.map((c) => c[0]) };
+  return { calls, ctx, saved, sent, clock, positions, kinds: () => calls.map((c) => c[0]) };
 }
 
 // Each new Reject label: C offers to decline, on a banner with only that button and Accept.
@@ -232,6 +233,86 @@ test("an accept-only banner inside a shadow root still gets the warning", () => 
   const { controls } = bannerWith(["Accept all cookies", "Cookie settings"]);
   const host = { shadowRoot: { querySelectorAll: (sel) => (sel === "*" ? [] : controls) } };
   assert.deepStrictEqual(load([], { hosts: [host] }).kinds(), ["acceptOnly"]);
+});
+
+// PLAN R9 note 11 (puffco.com, 2026-10-25): Consentmo, a cookie app on Shopify stores, draws its pop-up inside an open
+// shadow root on <csm-cookie-consent class="csm-cmp-root needsclick" popover="manual">. Real markup (captured in Chrome
+// on the G14): <div> > <div id="csm-wrapper" class="csm-wrapper (hash)"> > <div role="region" aria-label="Cookie bar"
+// class="(hashes) cc-floating cc-bottom cc-left cc-window ..."> > the text, and <div role="group" aria-label="Cookie
+// consent actions" class="cc-compliance ..."> with the two buttons. Only each button itself matches BANNER (its class
+// "isense-cc-submit-consent" contains "consent"), so closest() finds the button, whose text ("Accept") isn't about
+// cookies; nothing around it matches (closest() stops at the shadow root). The host measures 0x0, the floating
+// cc-window is the box you see, and the wrappers around it have no height.
+function shadowBanner(tag, labels, text = "This website uses cookies to ensure you get the best experience on our website. Privacy Policy",
+  { className = "csm-cmp-root needsclick", around = null, buttonsNamedConsent = true } = {}) {
+  const host = { localName: tag, tagName: tag.toUpperCase(), id: "", className,
+    getAttribute: (name) => (name === "class" ? className : null),
+    closest: () => around,                                     // a cookie pop-up around the host in the page, if any
+    getBoundingClientRect: () => ({ top: 0, bottom: 0, left: 0, right: 0, width: 0, height: 0 }) };
+  const root = { host };
+  const flat = () => ({ top: 0, bottom: 0, left: 0, right: 1440, width: 1440, height: 0 });
+  const outer = { parentElement: null, innerText: text, getBoundingClientRect: flat };
+  const wrapper = { id: "csm-wrapper", parentElement: outer, innerText: text, getBoundingClientRect: flat };
+  const box = { className: "cc-floating cc-bottom cc-left cc-window", parentElement: wrapper, innerText: text,
+    getBoundingClientRect: () => ({ top: 640, bottom: 880, left: 16, right: 416, width: 400, height: 240 }) };
+  const group = { className: "cc-compliance", parentElement: box, innerText: labels.join("\n"),
+    getBoundingClientRect: () => ({ top: 820, bottom: 860, left: 32, right: 400, width: 368, height: 40 }) };
+  const controls = labels.map((l) => Object.assign(control(l), { parentElement: group, getRootNode: () => root }));
+  if (buttonsNamedConsent) for (const c of controls) c.closest = () => c;   // [class*="consent" i] on the button itself
+  box.querySelectorAll = () => controls;
+  root.querySelectorAll = (sel) => (sel === "*" || !sel.includes("button") ? [] : controls.filter((c) => fits(c.kind, sel)));
+  host.shadowRoot = root;
+  return { host, box, controls };
+}
+
+test("Consentmo (puffco.com): Accept + \"Do not sell or share\" inside <csm-cookie-consent>'s shadow root: C warns once, on the box you see", () => {
+  const { host, box, controls } = shadowBanner("csm-cookie-consent", ["Do not sell or share", "Accept"]);
+  const page = load([], { hosts: [host] });
+  page.ctx.window.PrivaCCookieCheck();
+  assert.deepStrictEqual(page.kinds(), ["acceptOnly"]);
+  assert.strictEqual(page.positions.length, 1);
+  assert.strictEqual(page.positions[0], box, "C stands on the cc-window box, not the 0x0 host or the button group");
+  assert.strictEqual(controls[0].clicks, 0, "the short \"Do not sell or share\" is never clicked");
+});
+
+test("Consentmo's pop-up with a Reject all button: C offers to decline on the box you see, and \"Protect me\" clicks only Reject all", async () => {
+  const { host, box, controls } = shadowBanner("csm-cookie-consent", ["Do not sell or share", "Reject all", "Accept"]);
+  const page = load([], { hosts: [host] });
+  assert.deepStrictEqual(page.kinds(), ["cookie"]);
+  assert.strictEqual(page.positions.length, 1);
+  assert.strictEqual(page.positions[0], box);
+  const reject = controls[1];
+  reject.click = () => { reject.clicks++; reject.isConnected = false; };
+  await page.calls[0][1].onDecline();
+  assert.deepStrictEqual(controls.map((c) => c.clicks), [0, 1, 0]);
+});
+
+test("a shadow root on an element named like a consent pop-up only by its id or a box around it counts too", () => {
+  const byId = shadowBanner("x-root", ["Accept", "Manage choices"], undefined, { className: "x1" });
+  byId.host.id = "consent-root";
+  byId.host.closest = () => byId.host;                         // [id*="consent" i] matches the host itself
+  assert.deepStrictEqual(load([], { hosts: [byId.host] }).kinds(), ["acceptOnly"]);
+  const inBox = shadowBanner("x-root", ["Accept", "Manage choices"], undefined, { className: "x1", around: { innerText: "" } });
+  const page = load([], { hosts: [inBox.host] });
+  assert.deepStrictEqual(page.kinds(), ["acceptOnly"]);
+  assert.strictEqual(page.positions[0], inBox.box);
+});
+
+test("a shadow root on an element not named like a cookie pop-up (a chat widget) with Accept/Decline: C stays out of it", () => {
+  const { host } = shadowBanner("chat-widget", ["Accept", "Decline"],
+    "Start a video chat? By chatting you agree to our privacy policy.", { className: "chat-root", buttonsNamedConsent: false });
+  const page = load([], { hosts: [host] });
+  page.clock.tick(5000);
+  assert.deepStrictEqual(page.kinds(), []);
+  assert.deepStrictEqual(page.positions, []);
+});
+
+test("a pop-up marked role=\"alertdialog\" (and named nothing else) counts as a cookie pop-up", () => {
+  const { banner, controls } = bannerWith(["Accept", "Manage preferences"]);
+  for (const c of controls) c.closest = (sel) => (sel.split(/,\s*/).includes('[role="alertdialog"]') ? banner : null);
+  const page = load(controls);
+  assert.deepStrictEqual(page.kinds(), ["acceptOnly"]);
+  assert.strictEqual(page.positions[0], banner);
 });
 
 test("c-placement.js's copy of the Reject labels matches cookie-detector.js, so C lines up with the same button", () => {
