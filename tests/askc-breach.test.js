@@ -122,6 +122,31 @@ test("\"what about google?\" right after a breach question is a breach question 
   assert.match(asked.answer, /LinkedIn \(linkedin\.com\) has 2 data breaches/);
 });
 
+// "what about quest diagnostics?" after "Was linked in hacked?" got LinkedIn's breaches again (Max, real Gemma, 2026-10-25):
+// a name PrivaC doesn't know counted as "names nothing", so C reused the last question's site.
+test("\"what about <a name PrivaC doesn't know>?\" after a breach question is about that name, never the last site", async () => {
+  const history = [{ question: "Was linked in hacked?", answer: "LinkedIn (linkedin.com) has 2 data breaches on record in Have I Been Pwned [HIBP]" }];
+  for (const [q, name] of [["what about quest diagnostics?", "Quest Diagnostics"], ["What about Quest Diagnostics", "Quest Diagnostics"],
+    ["and the home depot?", "The Home Depot"], ["how about Ticketmaster", "Ticketmaster"], ["what about eBay?", "eBay"]]) {
+    const r = await askAll(q, history);
+    assert.doesNotMatch(r.answer, /LinkedIn/, `${q} -> ${r.answer}`);
+    assert.strictEqual(r.calls, 0, q);
+    assert.match(r.answer, new RegExp(`Have I Been Pwned's list \\(updated Oct 24, 2026\\) has no breach on record for ${name} \\[HIBP\\]`), q);
+    assert.match(r.answer, /doesn't prove it was never breached/);
+  }
+  const bank = await askAll("what about my bank?", history);   // not a name: Gemma answers, and it isn't LinkedIn's list
+  assert.strictEqual(bank.calls, 1);
+  assert.doesNotMatch(bank.answer, /LinkedIn \(linkedin\.com\) has 2 data breaches/);
+});
+
+test("\"what about it?\" and other real follow-ups after a breach question still mean the last site", async () => {
+  const history = [{ question: "Was linked in hacked?", answer: "LinkedIn (linkedin.com) has 2 data breaches on record in Have I Been Pwned [HIBP]" }];
+  for (const q of ["what about it?", "what about their passwords?", "and that one?"]) {
+    const r = await askAll(q, history);
+    assert.match(r.answer, /LinkedIn \(linkedin\.com\) has 2 data breaches/, q);
+  }
+});
+
 test("something PrivaC doesn't know at all still goes to Gemma, and Gemma's rules keep it on topic", async () => {
   const r = await askAll("Was my bank hacked?");
   assert.strictEqual(r.calls, 1);
