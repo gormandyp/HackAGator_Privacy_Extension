@@ -108,3 +108,35 @@ test("the box line adds how high the score could go when part of the grade is un
   const tb = fs.readFileSync(__dirname + "/../background/toolbar.js", "utf8");
   assert.match(tb, /reply\(s \? \{ grade: s\.grade, score: s\.score, range: s\.range \} : null\)/);
 });
+
+// Seen on zara.com/us (team's G14, 2026-10-24): C's cookie pop-up sits in the top right too, and the grade box was
+// drawn under him, hiding its "of 100". The grade box now waits for C to go away first.
+test("the grade box waits for C's pop-up to go away, and gives up (no box) if C stays", () => {
+  let c = true;
+  const timers = [];
+  const ctx = { console, setTimeout: (fn) => timers.push(fn), clearTimeout() {}, addEventListener() {},
+    location: { hostname: "www.zara.com", protocol: "https:" },
+    document: { readyState: "loading", addEventListener() {}, querySelector: (s) => (s === "privac-prompt" && c ? {} : null) },
+    chrome: { runtime: { id: "x" }, storage: { local: {}, onChanged: { addListener() {} } } } };
+  ctx.window = ctx; ctx.top = ctx;
+  vm.runInNewContext(SRC, ctx);
+  const tick = () => timers.shift()();
+
+  const seen = [];
+  ctx.PrivaCGradeChip.afterC((gone) => seen.push(gone), 1200);
+  tick(); tick();
+  assert.deepStrictEqual(seen, [], "still waiting while C is up");
+  c = false; tick();
+  assert.deepStrictEqual(seen, [true], "drawn once C is gone");
+
+  c = true;
+  const late = [];
+  ctx.PrivaCGradeChip.afterC((gone) => late.push(gone), 1200);
+  while (timers.length) tick();
+  assert.deepStrictEqual(late, [false], "C stayed the whole time: the caller is told so");
+
+  c = false;
+  const now = [];
+  ctx.PrivaCGradeChip.afterC((gone) => now.push(gone), 1200);
+  assert.deepStrictEqual(now, [true], "no C: right away");
+});

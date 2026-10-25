@@ -128,6 +128,18 @@
   const showGrade = (chip) => show({ badge: chip.grade, color: COLORS[chip.grade], title: chip.word,
     line: lineFor(chip), label: `PrivaC grade ${chip.grade} for ${chip.domain}: ${chip.word}. Open PrivaC.` });
 
+  // Not on top of C: calls then(true) once his pop-up is gone (checked every 0.4 s), or then(false) after maxMs.
+  function afterC(then, maxMs) {
+    let waited = 0;
+    const check = () => {
+      if (!document.querySelector("privac-prompt")) return then(true);
+      if (waited >= maxMs) return then(false);
+      waited += 400;
+      setTimeout(check, 400);
+    };
+    check();
+  }
+
   // After a cookie choice: waits for C's own answer ("Nice!") to finish first, then explains. Once per page.
   const explained = new Set();
   async function explain(choice) {
@@ -139,13 +151,7 @@
       const draw = () => show({ badge: n.icon, color: n.color, title: n.title, line: n.text, note: true, time: 12000,
         label: `${n.title}. ${n.text} Open PrivaC.` });
       // Not on top of C: wait (up to 8 s) for his pop-up to go away.
-      let waited = 0;
-      const when = () => {
-        if (!document.querySelector("privac-prompt") || waited >= 8000) return draw();
-        waited += 400;
-        setTimeout(when, 400);
-      };
-      setTimeout(when, choice === "declined" ? 3200 : 800);
+      setTimeout(() => afterC(draw, 8000), choice === "declined" ? 3200 : 800);
     } catch (e) { /* PrivaC was reloaded */ }
   }
 
@@ -158,12 +164,17 @@
       if (!pick(store, domain, today, { grade: "A" })) return;   // turned off or shown today: don't ask the background
       const chip = pick(store, domain, today, await chrome.runtime.sendMessage({ type: "privac-site-grade", domain }));
       if (!chip) return;
-      await chrome.storage.local.set({ privacChipSeen: remember(store.privacChipSeen, domain, today) });
-      showGrade(chip);
+      // C's cookie pop-up can sit in the top right too (zara.com/us): wait up to a minute for it to go away, and
+      // skip the box if it doesn't (it then shows on the next visit, as it wasn't marked seen).
+      afterC(async (gone) => {
+        if (!gone) return;
+        try { await chrome.storage.local.set({ privacChipSeen: remember(store.privacChipSeen, domain, today) }); } catch (e) { return; }
+        showGrade(chip);
+      }, 60000);
     } catch (e) { /* PrivaC was reloaded or storage isn't there: no box */ }
   }
 
-  window.PrivaCGradeChip = { pick, remember, meaning, explain, lineFor };
+  window.PrivaCGradeChip = { pick, remember, meaning, explain, lineFor, afterC };
   const start = () => setTimeout(run, DELAY);
   if (document.readyState === "complete") start(); else window.addEventListener("load", start, { once: true });
 })();
