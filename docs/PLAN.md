@@ -89,6 +89,26 @@ Owner areas: **core** (repo owner + Claude: background, data plumbing, merges), 
        Facebook answer.
     Check: "Is YouTube safe?", "Is you tube safe?", "is youtube.com safe", "Should I trust cnn?", "Is FaceBook safe?", "Is Meta safe?" give the same kind of answer with the
     grade and source chips; `node --test` passes; then ask them on the Mac.
+  - [ ] **i. General fixes instead of more special cases (Max, 2026-10-24 9:20 PM; do R19g and R19h this way, before the Sunday 11 AM freeze).**
+    Why: Gemma 4 E2B is small; it skips evidence it was given (YouTube's grade) and fills gaps from general knowledge (Facebook's "history
+    of breaches"). Fixing each wording by hand doesn't end. Two mechanisms in shared/askc.js, each with tests first:
+    1. **Fuzzy name matching (does R19g).** One `resolveNames(question)` used by every matcher (companies, breach sites, sites shown in full):
+       compare the question's words, and each pair of neighbouring words joined ("tik tok" -> "tiktok"), against every known name after
+       removing spaces and punctuation, allowing one typo for names of 6+ letters ("linkdin" -> LinkedIn). Known names = visited sites,
+       Tracker Radar companies and their owners/aliases, Have I Been Pwned sites. Keep the backtest's everyday-word rules so ordinary words
+       never match. Replace the hand alias lists where this covers them. Tests: "tik tok", "you tube", "face book", "linkdin", "what's app"
+       resolve; "my crypto exchange", "the store", "did any site I visit get hacked" don't.
+    2. **Cite-and-check on every Gemma answer (generalizes R19h step 5).** After `cleanAnswer`, check each sentence: it must carry at least one
+       source tag that appears in the evidence (or be a step from the Steps list, or a plain linking sentence with no fact), and any site or
+       company it names must be in the evidence. Sentences that claim a breach/hack for something with no Have I Been Pwned record are
+       replaced by the record's line; other unsupported factual sentences are dropped. If nothing is left, say PrivaC has no record of it.
+       Tests: the exact Facebook answer ("history of data breaches"), "Because Meta is based in the United States, you should be aware...",
+       and a sentence with a tag that isn't in the evidence.
+    3. Keep the code-built answers (grades, breaches, R19h "Is X safe?"): they are the "code computes, AI explains" rule and the pitch line.
+  - [ ] **j. After the hackathon: Gemma calls lookup tools** (function calling: `site_report`, `breach_record`, `company`) instead of keyword
+    routing, so the model picks what to look up and code still supplies every fact. Not before the freeze: one more model turn per lookup
+    (about 1-2 s each in the browser) and a small model sometimes skips the call. Try with the in-browser E2B and Ollama E4B; compare with
+    the backtest questions.
   - Also waiting to merge: `max/icon-tabs` (tab icons + names).
 
 ## Sun (freeze 11 AM)
