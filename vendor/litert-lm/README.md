@@ -7,7 +7,7 @@ Google's on-device LLM runtime for the web, used to run Gemma 4 in Chrome with W
   (`--bundle --format=esm --platform=browser --target=chrome120`), so the extension needs no build step.
 - `wasm/litertlm_wasm_internal.js` + `.wasm`: the WebAssembly build for browsers with JSPI and relaxed SIMD (Chrome 137+).
   The package's other three builds (for older browsers) are left out to keep the extension small.
-- Produced by the `vendor-litert-lm` GitHub Actions workflow (branch of the same name) because the team's machines and
+- Produced by the `vendor-litert-lm` GitHub Actions workflow (kept in docs/history/vendor-litert-lm.yml; its branch was later deleted) because the team's machines and
   Claude's workspace couldn't reach npm directly; nothing was changed by hand.
 
 SHA-256:

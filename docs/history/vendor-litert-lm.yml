@@ -1,0 +1,54 @@
+# Copy of the one-time GitHub Actions workflow that vendored vendor/litert-lm/ (it ran on branch vendor-litert-lm).
+# Kept for the record only: it sits in docs/history, so GitHub never runs it.
+# One-time helper for the in-browser AI branch (not used by main).
+# Downloads Google's LiteRT-LM web runtime (npm @litert-lm/core, runs Gemma 4 on WebGPU), bundles it into
+# one file the extension can load with no build step, records versions + model sizes, and commits it here.
+name: vendor-litert-lm
+on:
+  push:
+    branches: [vendor-litert-lm]
+    paths: [".github/workflows/vendor-litert-lm.yml"]
+permissions:
+  contents: write
+jobs:
+  vendor:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Download, bundle and check
+        run: |
+          set -x
+          WORK=$(mktemp -d); cd "$WORK"
+          OUT="$GITHUB_WORKSPACE/vendor/litert-lm"; mkdir -p "$OUT/wasm" "$OUT/info"
+          npm init -y >/dev/null
+          npm view @litert-lm/core dist-tags versions time --json > "$OUT/info/core-npm.json" || true
+          npm view @litertjs/wasm-utils dist-tags versions --json > "$OUT/info/wasm-utils-npm.json" || true
+          npm install --no-audit --no-fund @litert-lm/core esbuild@0.23.1 2>&1 | tail -20
+          CORE=node_modules/@litert-lm/core
+          (cd $CORE && find . -type f -printf "%10s %p\n" | sort -k2) > "$OUT/info/core-files.txt"
+          (cd node_modules/@litertjs/wasm-utils && find . -type f -printf "%10s %p\n" | sort -k2) > "$OUT/info/wasm-utils-files.txt" || true
+          cp $CORE/package.json "$OUT/info/core-package.json"
+          cp node_modules/@litertjs/wasm-utils/package.json "$OUT/info/wasm-utils-package.json" || true
+          cp $CORE/wasm/* "$OUT/wasm/" || true
+          npx esbuild $CORE/dist/index.js --bundle --format=esm --platform=browser --target=chrome120 --legal-comments=eof --outfile="$OUT/litert-lm.mjs" 2>&1 | tail -20
+          mkdir -p "$OUT/src-dist" && cp -r $CORE/dist "$OUT/src-dist/core" && cp -r node_modules/@litertjs/wasm-utils/dist "$OUT/src-dist/wasm-utils" || true
+          for f in LICENSE LICENSE.md LICENSE.txt; do [ -f "$CORE/$f" ] && cp "$CORE/$f" "$OUT/LICENSE"; done
+          grep -n -o -E ".{0,60}(new Function|[^a-zA-Z_.]eval\(|importScripts).{0,60}" "$OUT/litert-lm.mjs" "$OUT"/wasm/*.js > "$OUT/info/csp-check.txt" 2>&1 || echo "none found" > "$OUT/info/csp-check.txt"
+          for R in gemma-4-E2B-it-litert-lm gemma-4-E4B-it-litert-lm; do
+            curl -sSL "https://huggingface.co/api/models/litert-community/$R/tree/main" -o "$OUT/info/$R-tree.json" || true
+            curl -sSL "https://huggingface.co/api/models/litert-community/$R" -o "$OUT/info/$R-model.json" || true
+          done
+          curl -sSIL "https://huggingface.co/litert-community/gemma-4-E2B-it-litert-lm/resolve/main/gemma-4-E2B-it-web.litertlm" > "$OUT/info/e2b-web-headers.txt" 2>&1 || true
+          (cd "$OUT" && sha256sum litert-lm.mjs wasm/* > info/sha256.txt) || true
+          ls -laR "$OUT" | head -100
+      - name: Commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add vendor
+          git commit -m "Vendor LiteRT-LM web runtime (npm @litert-lm/core) for the in-browser AI branch"
+          git push

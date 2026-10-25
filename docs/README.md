@@ -29,3 +29,4 @@ New here? Start with the [main README](../README.md) (what PrivaC is and a 3-min
 | [history/STATUS.md](history/STATUS.md) | Saturday's status board, live-check log and decision log |
 | [history/HANDOFF.md](history/HANDOFF.md) | The hand-off note from Saturday 2:45 AM, when work moved to the demo Mac |
 | [history/CLAUDE-CODE-CHEATSHEET.md](history/CLAUDE-CODE-CHEATSHEET.md) | The workflow we followed with our AI coding assistant |
+| [history/vendor-litert-lm.yml](history/vendor-litert-lm.yml) | The one-time script that downloaded the in-browser AI runtime in vendor/litert-lm/ |

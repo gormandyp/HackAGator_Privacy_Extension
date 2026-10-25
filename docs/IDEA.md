@@ -116,7 +116,10 @@ Supporting (older, so NOT the theme answer): DuckDuckGo Tracker Radar (domain to
   - **Status: done 2026-10-24** (repo owner asked): the button says "Protect me" everywhere. Also new: Settings > "Protect me automatically" declines with no click.
 -   Could not verify that the website saved your choice on a couple websites. Said "could not verify" if site made choice or not 
   - **Status: fixed 2026-10-24.** C now reads the choice from Ensighten (John Lewis), CookieYes, Cookiebot and Didomi as well as OneTrust; a site with none of these still gets the honest "couldn't verify".
-- 
+- i looked up recent data breaches and quest diagnostics popped up but when i went to the website PrivaC said it was good and there was no recent data breaches, why is that and can it be fixed?
+  - **Status: fixed 2026-10-25** (16d5ace). Have I Been Pwned only lists breaches whose account data became public, and questdiagnostics.com isn't on it. The grade line now says "No breach on record in Have I Been Pwned", and a look-alike name (DentaQuest, QuestionPro) never counts (tests/breach-lookalikes.test.js).
+- When going in the sites section and viewing a specific website and ask C why it got an F grade for the "tracker connections" for example, C says it doesn't know yet, can you fix that? C should be able to have those explanations. Maybe do that by giving C access to the New-Grading-Scale branch and instructions.
+  - **Status: fixed 2026-10-25** (16d5ace). Every line of the grade carries its rule, and C answers "why did this line cost points?" from it (tests/grade-rules.test.js). Justin's full 21-check scale was reviewed 2026-10-24; its ideas (score range, "how this grade was calculated") went into the current grade instead (PLAN R17).
 
 ## From the team Google Doc (read 2026-10-24 4 PM)
 - Show the PrivaC grade box in the top right as soon as you open a site, with an x to close it (you shouldn't have to click the extension).
