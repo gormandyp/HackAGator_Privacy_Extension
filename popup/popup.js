@@ -5,6 +5,8 @@
   const $ = (id) => document.getElementById(id);
   const I = window.PrivaCIcons;
   const esc = (str) => String(str).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  // Long site names may only wrap after a dot ("openencyclopedia." / "example"), never in the middle of a word.
+  const breakable = (d) => esc(d).replace(/\./g, ".<wbr>");
   const an = (g) => (g === "A" || g === "F" ? "an" : "a");
 
   $("wordmark").innerHTML = PrivaCMascot.wordmark(20);
@@ -63,7 +65,7 @@
       <div class="site-top">
         <span class="badge big" aria-label="Grade ${s.grade}">${s.grade}</span>
         <div class="site-id">
-          <h1>${esc(s.domain)}</h1>
+          <h1 class="${s.domain.length > 20 ? "long" : ""}">${breakable(s.domain)}</h1>
           <p>${esc(s.words)}</p>
         </div>
         <div class="c-art" aria-hidden="true">${PrivaCMascot.svg(PrivaCMascot.moodForGrade(s.grade), { size: 66 })}</div>

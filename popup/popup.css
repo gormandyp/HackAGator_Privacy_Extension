@@ -61,7 +61,8 @@ main { display: grid; gap: 8px; margin-top: 8px; }
 
 /* Site, grade and C */
 .site-top { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 12px; align-items: center; }
-.site-id h1 { font-size: 18px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.2; overflow-wrap: anywhere; }
+.site-id h1 { font-size: 18px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.2; overflow-wrap: break-word; }
+.site-id h1.long { font-size: 15.5px; }
 .site-id p { margin: 1px 0 0; color: var(--text-2); font-size: 12.5px; font-weight: 500; }
 .site .badge.big { width: 54px; height: 54px; border-radius: 16px; font-size: 28px; }
 .site .c-art { margin: -6px -2px -10px 0; }
