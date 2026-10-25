@@ -549,7 +549,7 @@ Steps the person can take (no tag needed):
     const sites = ((data && data.sites) || []).filter(Boolean).map(tidy).sort((a, b) => (b.score || 0) - (a.score || 0));
     // Unchanging background first, then everything about this question: Ollama can reuse the start of the last prompt.
     const date = `Today is ${today || new Date().toISOString().slice(0, 10)}.`;
-    const bg = BACKGROUND + regtrackLines(extra) + (facts && facts.length ? `\n\nFacts about what you asked:\n${facts.join("\n")}` : "") + memoryText(history);
+    const bg = BACKGROUND + rulesText() + regtrackLines(extra) + (facts && facts.length ? `\n\nFacts about what you asked:\n${facts.join("\n")}` : "") + memoryText(history);
     if (!sites.length) return `${date}\n${bg}\n\nThe person hasn't visited any sites with PrivaC on yet.`;
     // Sites the question names first, then sites named in the last few questions (for follow-ups like "its cookies").
     const earlier = recent(history).map(t => t.question).reverse().join(" ");
@@ -665,7 +665,40 @@ Steps the person can take (no tag needed):
         ? "What added points:\n" + r.counted.map(p => `- ${p.label} (+${p.points}) [${PART_TAG[p.kind] || PART_TAG.observed}]`).join("\n")
         : "Nothing added points: no trackers or tracking cookies were counted, and no data breach or foreign-adversary link is on record. [Seen on your visit]";
       return `${head}\n${body}\n${checkedLine(r)}`;
-    }).join("\n\n");
+    }).join("\n\n") + (named.length === 1 ? topicRules(q) : "");
+  }
+
+  // The dashboard's Ask C button on a score line ('On cnn.com: what does "5 outside companies with trackers here" mean,
+  // and why is it worth 25 points?') is answered from that line's own rule (Justin, 2026-10-24: C said "I don't know yet").
+  const PART_Q = /\bwhat does "([^"]+)" mean\b/i;
+  function partAnswer(q, sites) {
+    const m = q.match(PART_Q);
+    const s = m && namedSites(sites, q)[0];
+    const r = s && scoreParts(s);
+    const p = r && r.parts.find((x) => x.label === m[1]);
+    if (!p || !p.rule) return null;
+    return `"${p.label}" is one line of ${s.domain}'s exposure score [${PART_TAG[p.kind] || PART_TAG.observed}]. How it's counted: ${p.rule}. ` +
+      `Here it adds ${p.points} of ${s.domain}'s ${r.score} points (${r.grade}); higher means more of your data is exposed (${GRADE_RANGES}).`;
+  }
+  // "Why did cnn.com get a C for tracker connections?": the breakdown, plus how the lines the question names are counted.
+  const PART_TOPICS = [
+    [/\btrack|\bconnections?\b/i, "tracker lines are", ["trackers", "ads"]],
+    [/\bcookies?\b|\bbanners?\b/i, "cookie line is", ["cookies"]],
+    [/\bpolic(?:y|ies)\b|\bsell|\bshar(?:e|es|ing)\b/i, "privacy policy line is", ["policy"]],
+    [/\bbreach|\bhack|\bleak|\bpwn/i, "breach line is", ["breach"]],
+    [/\bforeign\b|\badversar|\bchin|\brussia|\b1260h\b/i, "foreign-adversary line is", ["flag"]]
+  ];
+  function topicRules(q) {
+    const D = (typeof window !== "undefined" ? window : self).PrivaCData;
+    if (!D || !D.RULES) return "";
+    return PART_TOPICS.filter(([re]) => re.test(q)).map(([, name, keys]) => `\nHow the ${name} counted: ${keys.map((k) => D.RULES[k]).join(". ")}.`).join("");
+  }
+  // Every rule once, for Gemma: so a rule question in any wording has its answer in the evidence.
+  function rulesText() {
+    const D = (typeof window !== "undefined" ? window : self).PrivaCData;
+    if (!D || !D.RULES) return "";
+    return `\n\nHow the grade is counted (higher means more exposed):\n` +
+      ["trackers", "ads", "cookies", "flag", "policy", "breach"].map((k) => `- ${D.RULES[k]}.`).join("\n") + `\nGrades: ${GRADE_RANGES}.`;
   }
 
   const dropSteps = (text) => text.replace(/\s*What you can do:[\s\S]*$/i, "").trim();
@@ -785,6 +818,8 @@ Steps the person can take (no tag needed):
     const steps = WANTS_STEPS.test(q);
     const data = await deps.load();
     const graded = gradeAnswer(q, ((data && data.sites) || []).filter(Boolean), deps.history);
+    const part = partAnswer(q, ((data && data.sites) || []).filter(Boolean));
+    if (part) return { answer: part, trace: [{ tool: "get_site_report", label: "Your browsing" }] };
     if (graded) return { answer: graded, trace: [{ tool: "get_site_report", label: "Your browsing" }] };
     const most = mostTrackedAnswer(q, ((data && data.sites) || []).filter(Boolean));
     if (most) return { answer: most, trace: [{ tool: "get_site_report", label: "Your browsing" }] };

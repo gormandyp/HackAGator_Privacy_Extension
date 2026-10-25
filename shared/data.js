@@ -86,6 +86,20 @@
     Privacy exposure score, 0–100. Higher = more exposure. NOT a probability.
     Each part is returned so the UI can explain the grade line by line.
   */
+  // How each line of the score is counted, in plain words (the "How the grade works" table in dashboard.html says the
+  // same). Each line carries its rule, so C can explain any line without guessing (Justin, 2026-10-24: "C says it
+  // doesn't know yet" for the tracker line).
+  const RULES = {
+    trackers: "5 points for each outside company with trackers on the site, up to 40. A company counts once however many web addresses it uses; over several visits only companies seen on at least half of them count, and companies that loaded only after you clicked Accept are listed instead",
+    ads: "5 more points for each of those companies whose business is advertising, data brokering or recording your screen, up to 20",
+    listedOnly: "Listed so you can see them, 0 points",
+    cookies: "10 points if you accepted all cookies, the banner had no Reject button, or the site tracks you without a banner; 0 if you declined the extras, or there's no banner and nothing tracking you",
+    flag: "15 points, counted once, for any link to a listed foreign-adversary country (15 CFR 7.4) or the Pentagon's Section 1260H list: a tracker company, the site's owner, a state-run news site, a web address ending in that country's code, or a server address registered there",
+    unknownServers: "Shown, 0 points: the server's owner is unknown",
+    policy: "15 points if the site's privacy policy says it sells personal information, 8 if it shares it with partners, 0 if it says neither; while the policy is unread or doesn't say, the grade shows how high it could go",
+    breach: "From Have I Been Pwned: 15 points if one of the site's breaches was reported in the last 12 months, 5 if one happened in the last 5 years or exposed 100 million+ accounts, 0 if older; the worst one counts once. Have I Been Pwned only lists breaches whose account data became public, so a breach in the news may not be on it yet"
+  };
+
   function computeScore(site, now = Date.now()) {
     const t = site.trackers || [];
     const parts = [];
@@ -107,19 +121,19 @@
     // and your choice already costs the 10 cookie points (repo owner, 2026-10-24).
     const counted = [...byCompany.entries()].filter(([co, c]) => !c.afterAccept && regular(co));
     const trackerPts = Math.min(40, counted.length * 5);
-    parts.push({ label: `${counted.length} outside ${counted.length === 1 ? "company" : "companies"} with trackers here`, points: trackerPts, kind: "observed" });
+    parts.push({ label: `${counted.length} outside ${counted.length === 1 ? "company" : "companies"} with trackers here`, points: trackerPts, kind: "observed", rule: RULES.trackers });
 
     const adCount = counted.filter(([, c]) => c.ad).length;
     const adPts = Math.min(20, adCount * 5);
-    parts.push({ label: `${adCount} of them for advertising, data brokering or recording your screen`, points: adPts, kind: "observed" });
+    parts.push({ label: `${adCount} of them for advertising, data brokering or recording your screen`, points: adPts, kind: "observed", rule: RULES.ads });
 
     const unlocked = [...byCompany.entries()].filter(([, c]) => c.afterAccept).map(([co]) => co).sort((a, b) => a.localeCompare(b));
     if (unlocked.length) {
-      parts.push({ label: `Loaded only after you clicked Accept (listed, 0 points; accepting costs the 10 cookie points): ${unlocked.join(", ")}`, points: 0, kind: "observed" });
+      parts.push({ label: `Loaded only after you clicked Accept (listed, 0 points; accepting costs the 10 cookie points): ${unlocked.join(", ")}`, points: 0, kind: "observed", rule: RULES.listedOnly });
     }
     const occasional = [...byCompany.entries()].filter(([co, c]) => !c.afterAccept && !regular(co)).map(([co]) => co).sort((a, b) => a.localeCompare(b));
     if (occasional.length) {
-      parts.push({ label: `Also seen on fewer than half of your ${visits} visits (0 points): ${occasional.join(", ")}`, points: 0, kind: "observed" });
+      parts.push({ label: `Also seen on fewer than half of your ${visits} visits (0 points): ${occasional.join(", ")}`, points: 0, kind: "observed", rule: RULES.listedOnly });
     }
 
     // Cookies: points come off when you weren't given a real way to say no.
@@ -133,7 +147,7 @@
       none:        tracksYou ? [10, "Tracks you with no cookie banner: you were never asked"] : [0, "No cookie banner, and nothing tracking you"]
     };
     const [cookiePts, cookieLabel] = COOKIE[site.cookieChoice] || COOKIE.none;
-    parts.push({ label: cookieLabel, points: cookiePts, kind: "observed" });
+    parts.push({ label: cookieLabel, points: cookiePts, kind: "observed", rule: RULES.cookies });
 
     // Foreign-adversary line (15 points, counted once): a tracker company based in a 15 CFR 7.4 country,
     // a tracker company on the Pentagon's Section 1260H list, the site's own company based in a listed country,
@@ -168,7 +182,7 @@
       flagLabel = `This site's server address is registered in ${FOREIGN_ADVERSARIES[serverFlag.country]} (regional internet registry), a listed foreign-adversary country`;
     }
     const flagPts = flagged.length || owner || addressFlag || serverFlag ? 15 : 0;
-    parts.push({ label: flagLabel, points: flagPts, kind: "observed" });
+    parts.push({ label: flagLabel, points: flagPts, kind: "observed", rule: RULES.flag });
 
     // Outside servers whose owner we don't know but whose address ends in a listed country's code: shown, 0 points.
     const unknownHosts = [...new Set([
@@ -178,14 +192,14 @@
     if (unknownHosts.length) {
       const names = unknownHosts.slice(0, 5).map(h => `${h} (${FOREIGN_ADVERSARIES[countryOfAddress(h)]})`).join(", ");
       const more = unknownHosts.length > 5 ? ` and ${unknownHosts.length - 5} more` : "";
-      parts.push({ label: `Also contacted outside ${unknownHosts.length === 1 ? "server" : "servers"} with a listed country's web address, owner unknown: ${names}${more}`, points: 0, kind: "observed" });
+      parts.push({ label: `Also contacted outside ${unknownHosts.length === 1 ? "server" : "servers"} with a listed country's web address, owner unknown: ${names}${more}`, points: 0, kind: "observed", rule: RULES.unknownServers });
     }
     // F3: outside servers whose address is registered in a listed country (owner unknown): shown, 0 points.
     const servers = (site.foreignServers || []).filter(x => FOREIGN_ADVERSARIES[x.country] && !unknownHosts.includes(x.host));
     if (servers.length) {
       const names = servers.slice(0, 5).map(x => `${x.host} (${FOREIGN_ADVERSARIES[x.country]})`).join(", ");
       const more = servers.length > 5 ? ` and ${servers.length - 5} more` : "";
-      parts.push({ label: `Also contacted outside ${servers.length === 1 ? "server" : "servers"} whose address is registered in a listed country, owner unknown: ${names}${more}`, points: 0, kind: "observed" });
+      parts.push({ label: `Also contacted outside ${servers.length === 1 ? "server" : "servers"} whose address is registered in a listed country, owner unknown: ${names}${more}`, points: 0, kind: "observed", rule: RULES.unknownServers });
     }
 
     const p = site.policy || {};
@@ -202,7 +216,7 @@
       : typeof p.shares === "boolean" ? "the privacy policy doesn't say whether it sells"
       : p.source ? "the privacy policy doesn't say whether it sells or shares"
       : "the privacy policy isn't read yet";
-    parts.push({ label: policyLabel, points: policyPts, kind: "disclosed", ...(policyOpen ? { unknown: policyOpen, worst: policyWorst, max: 15 } : {}) });
+    parts.push({ label: policyLabel, points: policyPts, kind: "disclosed", rule: RULES.policy, ...(policyOpen ? { unknown: policyOpen, worst: policyWorst, max: 15 } : {}) });
 
     // The site's own data breaches, from Have I Been Pwned (rule v4, repo owner 2026-10-24):
     // reported in the last 12 months 15; happened in the last 5 years 5; older 0, unless major (100 million+ accounts) 5.
@@ -214,9 +228,9 @@
       const top = scored[0];
       const others = all.filter(x => x !== top.x).sort((p, q) => (yearOf(p) < yearOf(q) ? 1 : -1));
       const extra = others.length ? `; ${others.length} ${others.length === 1 ? "other breach" : "earlier breaches"} on record: ${others.map(x => `${x.name} (${yearOf(x)})`).join(", ")}` : "";
-      parts.push({ label: top.label + extra, points: top.points, kind: "breach" });
+      parts.push({ label: top.label + extra, points: top.points, kind: "breach", rule: RULES.breach });
     } else {
-      parts.push({ label: "No known data breaches", points: 0, kind: "breach" });
+      parts.push({ label: "No breach on record in Have I Been Pwned", points: 0, kind: "breach", rule: RULES.breach });
     }
 
     const score = Math.min(100, parts.reduce((s, x) => s + x.points, 0));
@@ -324,5 +338,5 @@
     if (hasChrome()) await chrome.storage.local.remove(["privacData", "privacStats", "privacChipSeen", "privacUnsafeSeen"]);   // history, daily counts, grade box and warning days
   }
 
-  window.PrivaCData = { countryOfAddress, annotateListed, load, currentDomain, clearAll, computeScore, gradeFor, GRADE_WORDS, RUBRIC_MAX, FOREIGN_ADVERSARIES };
+  window.PrivaCData = { countryOfAddress, annotateListed, load, currentDomain, clearAll, computeScore, gradeFor, GRADE_WORDS, RUBRIC_MAX, RULES, FOREIGN_ADVERSARIES };
 })();

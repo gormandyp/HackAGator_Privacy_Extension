@@ -37,7 +37,7 @@ test("reasons that add points come first, biggest first, and add up to the score
 test("checks that added nothing are kept as short lines, good news marked good", () => {
   const s = summarize(cnn, { now: NOW });
   const flag = s.checks.find((c) => c.label === "No foreign-adversary links");
-  const breach = s.checks.find((c) => c.label === "No known data breaches");
+  const breach = s.checks.find((c) => c.label === "No breach on record in Have I Been Pwned");
   assert.strictEqual(flag.tone, "good");
   assert.strictEqual(breach.tone, "good");
   const clean = summarize(scored({ domain: "quiet.example", trackers: [], cookieChoice: "none", policy: {} }), { now: NOW });
