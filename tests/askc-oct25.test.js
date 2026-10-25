@@ -208,10 +208,14 @@ test("a bare \"why?\" after \"Should I trust cnn?\" explains cnn.com's grade fro
   }
   const g = await ask("why?", [{ question: "Why did wired.com get an F?", answer: "wired.com got an F... [Seen on your visit]" }]);
   assert.match(g.answer, /^wired\.com got an? [A-F]:/);
+  // The G14's exact order: "why?" came right after "What can I do about trackers on cnn.com?".
+  const t = await ask("why?", [{ question: "What can I do about trackers on cnn.com?", answer: "You can ... [Seen on your visit]" }]);
+  assert.strictEqual(t.calls, 0);
+  assert.match(t.answer, /^cnn\.com got an? [A-F]:/);
 });
 
 test("\"why?\" after other questions still goes to Gemma with the conversation", async () => {
-  for (const before of ["Was linkedin.com hacked?", "Who is Criteo?", "What is fingerprinting?"]) {
+  for (const before of ["Was linkedin.com hacked?", "Who is Criteo?", "What is fingerprinting?", "Does wired.com sell my data?", "Was wired.com breached?"]) {
     const r = await ask("why?", [{ question: before, answer: "Earlier answer. [Tracker Radar]" }]);
     assert.strictEqual(r.calls, 1, before);
   }
