@@ -1357,6 +1357,11 @@ Steps the person can take (no tag needed):
     "government lists. Every site's grade follows the same rules, and anything PrivaC couldn't check is marked \"Partly checked\" instead of " +
     "being counted as safe. My words are written by Gemma, a small AI model on this computer, and it can still word things wrongly, so the " +
     "pop-up's list of points is the place to check a grade.";
+  // G14 (real Gemma, 23755e9): "Do you work offline?" got only C's general intro.
+  const OFFLINE_Q = new RegExp(String.raw`^\s*(?:(?:do|does|can|will)\s+${C_ME}\s+(?:still\s+)?(?:work|run)\s+(?:offline|without\s+(?:the\s+)?(?:internet|wi-?fi|a\s+connection))|(?:do|does)\s+${C_ME}\s+need\s+(?:the\s+)?(?:internet|wi-?fi|a\s+connection|to\s+be\s+online))\s*[?.!]*\s*$`, "i");
+  const OFFLINE_ANSWER = "Mostly, yes. PrivaC's tracker and cookie lists come with it, and once my AI model is downloaded I answer on this computer " +
+    "without the internet. The data-breach and data-broker lists refresh once a day when you're online, and reading a site's privacy policy " +
+    "needs that site, so those wait until you're back online.";
   const COST_Q = new RegExp(String.raw`^\s*(?:(?:is|are)\s+${C_ME}\s+(?:really\s+|completely\s+|totally\s+)?free|(?:do|does)\s+${C_ME}\s+cost(?:\s+(?:money|anything))?` +
     String.raw`|how\s+much\s+(?:do|does)\s+${C_ME}\s+cost)\s*[?.!]*\s*$`, "i");
   const COST_ANSWER = "PrivaC is free. There are no accounts, payments, ads or paid features, and the PrivaC team never sees your data.";
@@ -1388,6 +1393,7 @@ Steps the person can take (no tag needed):
       if (PRIVAC_SAFE_Q.some((re) => re.test(q))) return SAFE_ANSWER;
       if (ACCURATE_Q.test(q)) return ACCURATE_ANSWER;
       if (COST_Q.test(q)) return COST_ANSWER;
+      if (OFFLINE_Q.test(q)) return OFFLINE_ANSWER;
       if (HOW_Q.test(q)) return howAnswer(q);
       if (ABOUT_C.test(q) || ABOUT_PRIVAC.test(q) || HELP_Q.test(q)) return ABOUT_ANSWER;
       if (OFF_TOPIC_THING.test(q) && OFF_TOPIC_ASK.test(q) && !PRIVACY_WORDS.test(q)) return OFF_TOPIC_ANSWER;

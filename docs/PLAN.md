@@ -189,7 +189,7 @@ Tick each one here when done. **All 8 done (checked 2026-10-25 overnight).**
     to call the person "you", and nothing said the person's "you" means C. Now C answers the common ones himself, from PRIVACY.md and
     TERMS.md: tracking/spying/recording me ("No", then what PrivaC does keep), what do you know/remember about me (what it keeps, 7
     days, the last 3 questions only while the page is open, how to delete it), are you there / how are you, can you help / your name,
-    are you a person, can you see what I type or read my emails, how accurate are you (sources, "Partly checked", Gemma can word
+    are you a person, can you see what I type or read my emails, do you work offline (G14: Gemma only gave its intro), how accurate are you (sources, "Partly checked", Gemma can word
     things wrongly), are you free, "I love you", "you're wrong". Other questions to C ("Can you protect me?", "Do you work
     offline?", "Why are you showing me this?") still go to Gemma with a note that "you" means C, and PrivaC's facts; requests,
     opinions and "you" meaning anyone ("Can you tell me about Google?", "How do you clear cookies?") are unchanged. Check:

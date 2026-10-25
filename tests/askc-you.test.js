@@ -110,7 +110,7 @@ test("\"I love you\" and \"You're wrong\" get C's own reply", async () => {
 });
 
 test("other questions to C still go to Gemma, told that \"you\" means C and given PrivaC's facts", async () => {
-  for (const q of ["Can you protect me?", "Do you block ads?", "Why are you showing me this?", "Do you work offline?", "Do you use cookies?",
+  for (const q of ["Can you protect me?", "Do you block ads?", "Why are you showing me this?", "Do you use cookies?",
     "Can you clear my cookies?", "Did you block anything?", "can u decline cookies for me", "Are you able to block trackers on news.example?"]) {
     const r = await ask(q);
     assert.strictEqual(r.calls, 1, q);
@@ -130,7 +130,17 @@ test("requests, opinions and \"you\" meaning anyone keep the usual evidence, wit
 });
 
 test("an answer about C still gets C's own words when Gemma reads its instructions back", async () => {
-  const r = await ask("Do you work offline?", "I am C, the friendly privacy guide inside the PrivaC browser extension. [Seen on your visit]");
+  const r = await ask("Do you use cookies?", "I am C, the friendly privacy guide inside the PrivaC browser extension. [Seen on your visit]");
   assert.doesNotMatch(r.answer, /friendly privacy guide inside/);
   assert.match(r.answer, /^I'm C, PrivaC's privacy guide\./);
+});
+
+// G14, real Gemma on 23755e9: "Do you work offline?" got only C's general intro, never saying whether it does.
+test("\"Do you work offline?\" says what works without the internet and what waits for it", async () => {
+  for (const q of ["Do you work offline?", "Do you need the internet?", "Does PrivaC work offline?", "Can you work without internet?", "do u need wifi"]) {
+    const r = await ask(q);
+    assert.strictEqual(r.calls, 0, `${q} went to Gemma`);
+    assert.match(r.answer, /^Mostly, yes\./, q);
+    assert.match(r.answer, /refresh once a day/, q);
+  }
 });
