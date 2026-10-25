@@ -77,15 +77,16 @@
     selectSite(Math.max(0, Math.min(sites.length - 1, current + (e.key === "ArrowDown" ? 1 : -1))), true);
   });
   // From the Overview's "Worth knowing" (Max, 2026-10-25: it opened the top of the Sites tab): selects the site, brings
-  // it into view, and when a company is named, scrolls to its row and highlights it for a moment.
+  // it into view, and when companies are named ("Baidu|Yandex"), scrolls to the first one's row and highlights every
+  // row of theirs for a moment.
   function reveal(company) {
     const pane = $("site-detail");
-    const row = company && [...pane.querySelectorAll(".co")].find((c) => c.firstChild && c.firstChild.textContent.trim() === company);
-    const target = row ? row.closest("li") : pane;
+    const names = String(company || "").split("|").filter(Boolean);
+    const rows = [...pane.querySelectorAll(".co")].filter((c) => c.firstChild && names.includes(c.firstChild.textContent.trim())).map((c) => c.closest("li"));
     const reduce = typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
     requestAnimationFrame(() => {
-      target.scrollIntoView({ block: row ? "center" : "start", behavior: reduce ? "auto" : "smooth" });
-      if (row) { target.classList.remove("spot"); void target.offsetWidth; target.classList.add("spot"); }
+      (rows[0] || pane).scrollIntoView({ block: rows.length ? "center" : "start", behavior: reduce ? "auto" : "smooth" });
+      for (const li of rows) { li.classList.remove("spot"); void li.offsetWidth; li.classList.add("spot"); }
     });
   }
   window.PrivaCSites = { select: (domain, company) => {

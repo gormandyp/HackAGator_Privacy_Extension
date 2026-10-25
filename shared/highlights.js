@@ -124,7 +124,13 @@
     if (foreign.length) {
       const names = foreign.map((c) => `${c.name}${adv[c.country] ? ` (${adv[c.country]})` : ""}`);
       const siteSet = [...new Set(foreign.flatMap((c) => [...c.sites]))];
-      add({ kind: "adversary", tone: "alert", weight: 94, site: siteSet[0],
+      // Opens the site where the most of them tracked you (the riskiest on a tie) and names the ones found there, so
+      // the Sites tab can highlight their rows (coordinator, 2026-10-25: it opened wired.com and pointed at nothing).
+      const on = (d) => foreign.filter((c) => c.sites.has(d) && ownersOf.get(d) !== c.name);
+      const score = (d) => (sites.find((x) => x.domain === d) || {}).score || 0;
+      const open = [...siteSet].sort((a, b) => on(b).length - on(a).length || score(b) - score(a))[0];
+      const named = on(open).map((c) => c.name);
+      add({ kind: "adversary", tone: "alert", weight: 94, site: open, company: named[0], companies: named,
         title: `${list(names)} tracked you on ${siteSet.length === 1 ? siteSet[0] : `${siteSet.length} sites`}`,
         detail: foreign.some((c) => c.listed) ? `Includes a company on the Pentagon's Section 1260H list (June 2026).` : "Companies based in countries on the U.S. Commerce Department's foreign-adversary list.",
         ask: `Who ${foreign.length === 1 ? "is" : "are"} ${list(foreign.map((c) => c.name))}, and what can ${foreign.length === 1 ? "it" : "they"} see when ${foreign.length === 1 ? "it loads" : "they load"} on my sites?` });

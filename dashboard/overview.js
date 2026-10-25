@@ -71,7 +71,7 @@
     ${list.length ? `<ul class="facts">${list.map((f) => `
       <li class="fact tone-${f.tone}">
         <span class="fact-icon">${ICON[f.tone]}</span>
-        <div class="fact-text">${f.site ? `<button type="button" class="fact-title" data-site="${esc(f.site)}"${f.company ? ` data-company="${esc(f.company)}"` : ""}>${esc(f.title)}</button>` : `<b class="fact-title">${esc(f.title)}</b>`}<span>${esc(f.detail)}</span></div>
+        <div class="fact-text">${f.site ? `<button type="button" class="fact-title" data-site="${esc(f.site)}"${f.company ? ` data-company="${esc((f.companies || [f.company]).join("|"))}"` : ""}>${esc(f.title)}</button>` : `<b class="fact-title">${esc(f.title)}</b>`}<span>${esc(f.detail)}</span></div>
         ${ask(f.ask, f.title)}
       </li>`).join("")}</ul>` : `<p class="hint">Nothing stands out yet. Browse with PrivaC on and the strongest findings show up here.</p>`}`;
 

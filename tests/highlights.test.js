@@ -121,3 +121,37 @@ test("without the company's own site, it opens the riskiest site where the compa
   const reach = facts(sites).find((f) => f.kind === "reach");
   assert.strictEqual(reach.site, "busy.example");
 });
+
+// Coordinator, 2026-10-25: "Baidu (China), ByteDance (China) and Yandex (Russia) tracked you on 3 sites" opened
+// wired.com but pointed at no company row, unlike the other facts about companies. It now opens the site where the
+// most of the named companies tracked you (the riskiest one on a tie) and names the ones found there, so the Sites
+// tab highlights each of their rows.
+const F = (company, country, domain) => ({ company, country, domain, category: "Analytics" });
+test("the foreign-company fact opens the site with the most of the named companies, and names them", () => {
+  const sites = [visit("wired.com", [F("Yandex", "RU", "mc.yandex.ru")]),
+    visit("tass.com", [F("Yandex", "RU", "mc.yandex.ru"), F("ByteDance", "CN", "analytics.tiktok.com"), T("Google")]),
+    visit("weather.com", [F("Baidu", "CN", "hm.baidu.com")])];
+  const adv = facts(sites).find((f) => f.kind === "adversary");
+  assert.match(adv.title, /Baidu \(China\)/);
+  assert.match(adv.title, /ByteDance \(China\)/);
+  assert.match(adv.title, /Yandex \(Russia\)/);
+  assert.match(adv.title, /tracked you on 3 sites$/);
+  assert.strictEqual(adv.site, "tass.com");
+  assert.deepStrictEqual([...adv.companies].sort(), ["ByteDance", "Yandex"]);
+  assert.strictEqual(adv.company, adv.companies[0], "the first one named in the title");
+  assert.ok(adv.title.indexOf(adv.companies[0]) < adv.title.indexOf(adv.companies[1]));
+});
+
+test("on a tie, the foreign-company fact opens the riskiest of those sites", () => {
+  const busy = [F("Baidu", "CN", "hm.baidu.com"), T("Google"), T("Criteo"), T("Hotjar", "Session recording"), T("Meta"), T("Amazon")];
+  const sites = [visit("calm.example", [F("Yandex", "RU", "mc.yandex.ru")]), visit("busy.example", busy)];
+  const adv = facts(sites).find((f) => f.kind === "adversary");
+  assert.strictEqual(adv.site, "busy.example");
+  assert.deepStrictEqual(adv.companies, ["Baidu"]);
+});
+
+test("the Overview passes every named company to the Sites tab, which highlights each of their rows", () => {
+  const read = (f) => require("fs").readFileSync(require("path").join(__dirname, "..", f), "utf8");
+  assert.match(read("dashboard/overview.js"), /f\.companies \|\| \[f\.company\]/);
+  assert.match(read("dashboard/dashboard.js"), /String\(company \|\| ""\)\.split\("\|"\)/);
+});
