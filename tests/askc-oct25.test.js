@@ -151,13 +151,33 @@ test("\"What did C do for me this week?\" gets the same numbers as the dashboard
 });
 
 // ---------- "How many breaches go unnoticed?" (a guiding question) ----------
+// Answered by code since the overnight Mac check: with this figure in its evidence, Gemma (4 E4B through Ollama) still
+// said "PrivaC has no record of how many data breaches happen without people knowing."
 test("how long breaches stay unknown: a figure worked out from Have I Been Pwned's own list, with its tag", async () => {
   const r = await ask("How many data breaches happen without people knowing?");
-  assert.match(factsIn(r.context), /Have I Been Pwned's list[^\n]*5 breaches[^\n]*half[^\n]*at least 2 months after[^\n]*\[HIBP\]/);
-  assert.match(factsIn(r.context), /2 of the 5 \(40%\) more than a year later/);
-  assert.match(factsIn(r.context), /can't count breaches nobody has found yet/);
+  assert.strictEqual(r.calls, 0);
+  assert.match(r.answer, /Have I Been Pwned's list[^\n]*5 breaches[^\n]*half[^\n]*at least 2 months after[^\n]*\[HIBP\]/);
+  assert.match(r.answer, /2 of the 5 \(40%\) more than a year later/);
+  assert.match(r.answer, /can't count breaches nobody has found yet/);
+  assert.match(r.answer, /What you can do:\n- Use a different password for each site/);
+  assert.ok(r.trace.some((t) => t.label === "Have I Been Pwned"));
   const other = await ask("Who is Criteo?");
   assert.doesNotMatch(factsIn(other.context), /half/);
+  const noList = await ask("How many data breaches happen without people knowing?", [], { lists: async () => null });
+  assert.strictEqual(noList.calls, 1, "without the breach list there's no figure, so Gemma answers");
+});
+
+// Gemma 4 E4B (Mac, overnight) wrote its steps one per line without dashes, and they came out run together in one
+// paragraph: the repeat check split sentences across line breaks and joined them back with spaces.
+test("steps written one per line, without dashes, stay one per line; a repeated line is still dropped", () => {
+  const raw = "PrivaC does not block trackers or ads. [Seen on your visit]\n\nWhat you can do:\nUse a tracker-blocking browser extension.\n" +
+    "In Chrome, Settings > Privacy and security > Third-party cookies > Block third-party cookies.\nUse a tracker-blocking browser extension.\n" +
+    "Let C decline non-essential cookies (\"Protect me\"), or click that option yourself.";
+  assert.strictEqual(A.cleanAnswer(raw), "PrivaC does not block trackers or ads. [Seen on your visit]\n\nWhat you can do:\nUse a tracker-blocking browser extension.\n" +
+    "In Chrome, Settings > Privacy and security > Third-party cookies > Block third-party cookies.\n" +
+    "Let C decline non-essential cookies (\"Protect me\"), or click that option yourself.");
+  assert.strictEqual(A.cleanAnswer("Google tracked you the most. [Seen on your visit] Facebook was next. [Seen on your visit]"),
+    "Google tracked you the most. [Seen on your visit] Facebook was next. [Seen on your visit]", "sentences on one line stay on one line");
 });
 
 // ---------- G14, real Gemma 4 E2B in Chrome (2026-10-25) ----------

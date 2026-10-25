@@ -53,6 +53,17 @@ test("a follow-up to \"Was LinkedIn hacked?\" can't add a breach the breach list
   }
 });
 
+// A dropped made-up breach sentence left its tag behind: "...knowing. [Seen on your visit] [Seen on your visit]" (Mac, overnight).
+test("a made-up breach sentence that is taken out takes its source tag with it", async () => {
+  const history = [{ question: "Was LinkedIn hacked?", answer: "LinkedIn (linkedin.com) has 1 data breach on record in Have I Been Pwned [HIBP]: ..." }];
+  const gemma = "In May 2012, LinkedIn lost 164.6 million email addresses and passwords. [HIBP] Zara.com also had a data breach recently. [HIBP] " +
+    "Wired.com had a breach in November 2025. [HIBP]";
+  const r = await ask("yes tell me more", history, gemma);
+  assert.doesNotMatch(r.answer, /Zara/);
+  assert.doesNotMatch(r.answer, /\[HIBP\]\s*\[HIBP\]/);
+  assert.match(r.answer, /passwords\. \[HIBP\] Wired\.com had a breach in November 2025\. \[HIBP\]/);
+});
+
 test("breach sentences that say there's no breach, or explain what a breach is, are kept", async () => {
   const gemma = "A data breach is when a company loses your data. [Tracker Radar] Criteo has no breach on record. [HIBP]";
   const r = await ask("What is a data breach and does Criteo have one?", [], gemma);

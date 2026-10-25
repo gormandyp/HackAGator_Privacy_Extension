@@ -386,7 +386,7 @@ Steps the person can take (no tag needed):
   const NAMES_SOMEONE = /[a-z0-9-]+\.[a-z]{2,}\b|(?:^|\s)(?!(?:A|An|The|This|That|It|Its|You|Your|I|If|When|Some|Many|Most|Any|Each|Every|One|They|Their|There|These|Those|What|In|On|At|Since|After|Before|Also|And|But|So|Yes|No)\b)[A-Z][A-Za-z0-9]+/;
   function dropUnbackedBreaches(text, lists) {
     // A sentence keeps the source tags that follow it ("... passwords. [HIBP] Zara.com ...").
-    return String(text || "").split("\n").map((par) => par.split(/(?<=[.!?](?:\s*\[[^\]]+\])*)\s+/).filter((sentence) => {
+    return String(text || "").split("\n").map((par) => par.split(/(?<=[.!?](?:\s*\[[^\]]+\])*)\s+(?!\[)/).filter((sentence) => {
       if (!BREACH_CLAIM.test(sentence) || DENIES.test(sentence) || breachSites(sentence, lists).length) return true;
       return !NAMES_SOMEONE.test(sentence.replace(/\[[^\]]*\]/g, ""));
     }).join(" ")).join("\n");
@@ -742,9 +742,10 @@ Steps the person can take (no tag needed):
 
   // "How many breaches happen without people knowing?": nobody can count breaches no one has found, but Have I Been
   // Pwned's own list shows how long the found ones took to come out (the breach date vs. the day it was added).
+  // Answered by code: with this figure in its evidence, Gemma (4 E4B, Mac, overnight Oct 25) still said "PrivaC has no record".
   const DELAY_Q = /\b(?:without\s+(?:\w+\s+)?(?:knowing|noticing|realizing|realising|finding out)|unnoticed|undetected|unreported|never (?:find|found) out|find out|how long|take to (?:find|discover|notice|come out)|discovered|hidden|secret)\b/i;
-  function breachDelayFact(q, lists) {
-    if (!BREACH_Q.test(q) || !DELAY_Q.test(q) || !(lists && lists.hibp && lists.hibp.byDomain)) return [];
+  function delayAnswer(q, lists) {
+    if (!BREACH_Q.test(q) || !DELAY_Q.test(q) || !(lists && lists.hibp && lists.hibp.byDomain)) return null;
     const days = [];
     for (const b of Object.values(lists.hibp.byDomain)) {
       for (const x of [b, ...((b && b.earlier) || [])]) {
@@ -752,12 +753,14 @@ Steps the person can take (no tag needed):
         if (d >= 0) days.push(d);
       }
     }
-    if (days.length < 5) return [];
+    if (days.length < 5) return null;
     days.sort((a, b) => a - b);
     const mid = days[Math.floor(days.length / 2)], over = days.filter((d) => d > 365).length;
     const span = (d) => (d < 60 ? `${Math.round(d)} days` : d < 730 ? `${Math.floor(d / 30.44)} months` : `${Math.floor(d / 365.25)} years`);
-    return [`- In Have I Been Pwned's list${hibpUpdated(lists)}, ${days.length} breaches have both dates: half were added at least ${span(mid)} after the breach happened, ` +
-      `and ${over} of the ${days.length} (${Math.round((over / days.length) * 100)}%) more than a year later [HIBP]. PrivaC can't count breaches nobody has found yet.`];
+    return `PrivaC can't count breaches nobody has found yet, but it can show how late the ones that were found came out.\n` +
+      `In Have I Been Pwned's list${hibpUpdated(lists)}, ${days.length} breaches have both dates: half were added at least ${span(mid)} after the breach happened, ` +
+      `and ${over} of the ${days.length} (${Math.round((over / days.length) * 100)}%) more than a year later [HIBP].` +
+      stepList(["use a different password for each site and turn on two-step sign-in, so a breach nobody has found yet can't open your other accounts"]);
   }
 
   // Facts about companies or sites named in the question, looked up in the local lists.
@@ -1156,16 +1159,23 @@ Steps the person can take (no tag needed):
     const seen = new Set();
     return text.split(/\n{2,}/).map((para) => {
       const out = [];
-      for (const piece of para.split(/(?<=[.!?])\s+(?=[A-Z"(\[])|(?<=\])\s+(?=[A-Z"(])/)) {
+      // Each line is its own piece, and each piece remembers whether a line break came before it: steps written one per
+      // line without dashes came out run together in one paragraph (Gemma 4 E4B, Mac, overnight Oct 25).
+      const parts = para.split(/((?<=[.!?])\s+(?=[A-Z"(\[])|(?<=\])\s+(?=[A-Z"(])|[ \t]*\n\s*)/);
+      let lineBreak = false;
+      for (let i = 0; i < parts.length; i += 2) {
+        const piece = parts[i];
+        lineBreak = lineBreak || (i > 0 && parts[i - 1].includes("\n"));
         if (/^(\[[^\]]+\]\s*)+$/.test(piece)) { if (out.length && !out[out.length - 1].dropped) out[out.length - 1].text += " " + piece; continue; }
         let sentence = piece.replace(AS_I_SAID, "");
         if (sentence !== piece) sentence = sentence.charAt(0).toUpperCase() + sentence.slice(1);
         const key = sentence.replace(/\[[^\]]+\]/g, "").replace(/\s+/g, " ").trim().toLowerCase();
         const dropped = TOLD_YOU.test(sentence) || (key.length > 0 && seen.has(key));
         if (key) seen.add(key);
-        out.push({ text: sentence, dropped });
+        out.push({ text: sentence, dropped, lineBreak });
+        if (!dropped) lineBreak = false;
       }
-      return out.filter((x) => !x.dropped).map((x) => x.text).join(" ");
+      return out.filter((x) => !x.dropped).map((x, i) => (i ? (x.lineBreak ? "\n" : " ") : "") + x.text).join("");
     }).filter(Boolean).join("\n\n");
   }
 
@@ -1232,11 +1242,11 @@ Steps the person can take (no tag needed):
       ...(safe.sources.includes("broker") ? [{ tool: "brokers", label: "CA Broker Registry" }] : [])] };
     const sells = sellAnswer(q, ((data && data.sites) || []).filter(Boolean));
     if (sells) return { answer: sells, trace: [{ tool: "get_site_report", label: "Your browsing" }] };
-    const breach = breachAnswer(q, lists, deps.history, ((data && data.sites) || []).filter(Boolean), atlas);
+    const breach = breachAnswer(q, lists, deps.history, ((data && data.sites) || []).filter(Boolean), atlas) || delayAnswer(q, lists);
     if (breach) return { answer: breach, trace: [{ tool: "breaches", label: "Have I Been Pwned" }] };
     // A follow-up that names nothing ("does it fingerprint me?", "tell me more") keeps the last question's facts, so
     // C doesn't lose what he knows about Criteo one question later (backtest 2026-10-24).
-    let facts = lookupFacts(q, lists, atlas).concat(breachDelayFact(q, lists));
+    let facts = lookupFacts(q, lists, atlas);
     const last = recent(deps.history).slice(-1)[0];
     // A question that names its own subject ("Who is Meta?", "Who owns zara.com?", "What is fingerprinting?") is answered
     // without the earlier questions: they changed the prompt, so asking twice gave two different answers even with the
