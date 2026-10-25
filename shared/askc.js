@@ -161,9 +161,15 @@ Steps the person can take (no tag needed):
     const fp = (s.trackers || []).filter(x => (x.fingerprinting || 0) >= 2).map(x => x.company);
     const smText = stateMediaText(s.owner);
     const fpText = fp.length ? `; trackers that read device details to recognize you without cookies (fingerprinting): ${[...new Set(fp)].join(", ")} [Tracker Radar]` : "";
-    return `- ${s.domain}, visited ${day}: grade ${s.grade}, exposure ${s.score}/100, cookies ${s.cookieChoice || "none"} [Seen on your visit]; trackers seen [Seen on your visit]: ${t}; this site's own privacy policy ${pol}${br}${ck}${fpText}${smText}${scoreText(s)}`;
+    return `- ${s.domain}, visited ${day}: grade ${s.grade}${gradeWords(s.grade)}, exposure ${s.score}/100, cookies ${s.cookieChoice || "none"} [Seen on your visit]; trackers seen [Seen on your visit]: ${t}; this site's own privacy policy ${pol}${br}${ck}${fpText}${smText}${scoreText(s)}`;
   }
 
+  // " (Some exposure)": the grade's own words, as the popup and grade box show them, so Gemma doesn't guess them.
+  function gradeWords(g) {
+    const D = (typeof window !== "undefined" ? window : self).PrivaCData;
+    const w = D && D.GRADE_WORDS && D.GRADE_WORDS[g];
+    return w ? ` (${w})` : "";
+  }
   // What adds up to a site's exposure score (the popup's "Why it got a B" lines), from shared/data.js.
   const PART_TAG = { observed: "Seen on your visit", disclosed: "Privacy policy", breach: "HIBP" };
   function scoreParts(s) {
@@ -537,7 +543,7 @@ Steps the person can take (no tag needed):
 
   function shortLine(s) {
     const cos = [...new Set((s.trackers || []).map(t => t.company).filter(Boolean))];
-    return `- ${s.domain}: grade ${s.grade}, exposure ${s.score}/100, ${cos.length} tracker compan${cos.length === 1 ? "y" : "ies"}${cos.length ? ` (${cos.slice(0, 4).join(", ")}${cos.length > 4 ? "..." : ""})` : ""} [Seen on your visit]`;
+    return `- ${s.domain}: grade ${s.grade}${gradeWords(s.grade)}, exposure ${s.score}/100, ${cos.length} tracker compan${cos.length === 1 ? "y" : "ies"}${cos.length ? ` (${cos.slice(0, 4).join(", ")}${cos.length > 4 ? "..." : ""})` : ""} [Seen on your visit]`;
   }
 
   // extra = { flagged, regtrack }: the checked fact files (optional; context still builds without them).
