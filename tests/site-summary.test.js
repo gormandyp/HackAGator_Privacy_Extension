@@ -146,3 +146,11 @@ test("steps: the site's own points add up, then the letter, the unknowns and the
     breach: { name: "X", breachDate: "2026-06-01", addedDate: "2026-07-01" } }));
   assert.match(capped[1], /= 115, capped at 100/);
 });
+
+// wired.com on the Mac (2026-10-25): "could be as high as 100 of 100 (still an F)" when the score was already 100.
+test("checked: a site already at the top of the scale says an unknown can't raise it", () => {
+  const { checkedFor } = window.PrivaCSiteSummary;
+  const c = checkedFor({ domain: "loud.example", grade: "F", score: 100, range: { min: 100, max: 100 }, coverage: 0.87, unknowns: ["the privacy policy isn't read yet"] });
+  assert.strictEqual(c.label, "Partly checked");
+  assert.strictEqual(c.note, "The privacy policy isn't read yet, but the score is already at the top (100 of 100), so that can't raise it.");
+});

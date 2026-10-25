@@ -94,3 +94,15 @@ test("the instant grade answer names what's still unknown and how high the score
   const f = await ask("Why did checked.example get an A?", [full]);
   assert.match(f.answer, /Fully checked: every line of the grade has an answer\./);
 });
+
+// wired.com on the Mac (2026-10-25): already 100 of 100 with the policy unread, the popup said "could be as high as
+// 100 of 100 (still an F)". At the top of the scale an unknown can't raise the score, so C says that instead.
+test("a site already at 100 doesn't say it 'could be as high as 100'", async () => {
+  const ads = [...Array(60)].map((_, i) => tr("Ad" + i, "Advertising"));
+  const loud = site("loud.example", [...ads, tr("Baidu", "Advertising", "CN")],
+    { cookieChoice: "none", breach: { name: "Loud", breachDate: "2026-05-01", addedDate: "2026-06-01", pwnCount: 1000 } });
+  assert.strictEqual(loud.score, 100);
+  const r = await ask("Why did loud.example get an F?", [loud]);
+  assert.ok(!/could be as high as/.test(r.answer), r.answer);
+  assert.match(r.answer, /Partly checked: the privacy policy isn't read yet, but the score is already at the top \(100 out of 100\), so that can't raise it\./);
+});

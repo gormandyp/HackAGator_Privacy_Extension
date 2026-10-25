@@ -625,6 +625,7 @@ Steps the person can take (no tag needed):
   function checkedLine(r) {
     const D = (typeof window !== "undefined" ? window : self).PrivaCData;
     if (!r.unknowns || !r.unknowns.length || !r.range) return "Fully checked: every line of the grade has an answer. What companies do with data on their own servers is still unknown. [Seen on your visit]";
+    if (r.score >= 100) return `Partly checked: ${r.unknowns.join(", and ")}, but the score is already at the top (${r.score} out of 100), so that can't raise it. [${PART_TAG.disclosed}]`;
     const worst = D.gradeFor(r.range.max);
     const g = worst === r.grade ? `still ${article(worst)} ${worst}` : `${article(worst)} ${worst}`;
     return `Partly checked: ${r.unknowns.join(", and ")}, so this could be as high as ${r.range.max} out of 100 (${g}). [${PART_TAG.disclosed}]`;

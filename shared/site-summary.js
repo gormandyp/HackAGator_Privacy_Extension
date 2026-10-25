@@ -109,6 +109,10 @@
     }
     const worst = D && D.gradeFor ? D.gradeFor(range.max) : "";
     const what = unknowns.join(", and ");
+    if (site.score >= 100) {
+      return { full: false, label: "Partly checked", coverage, range,
+        note: `${what[0].toUpperCase()}${what.slice(1)}, but the score is already at the top (${site.score} of 100), so that can't raise it.` };
+    }
     const g = worst === site.grade ? `still ${/^[AEF]/.test(worst) ? "an" : "a"} ${worst}` : worst;
     return { full: false, label: "Partly checked", coverage, range,
       note: `${what[0].toUpperCase()}${what.slice(1)}, so this could be as high as ${range.max} of 100 (${g}).` };
