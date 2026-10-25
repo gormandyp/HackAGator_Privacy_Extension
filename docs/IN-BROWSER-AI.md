@@ -16,6 +16,23 @@ PrivaC's main download runs **Gemma 4 E2B inside Chrome**, on your computer's gr
 https://huggingface.co/litert-community/gemma-4-E2B-it-litert-lm, Apache 2.0) in a `models/` folder inside the extension
 folder before step 2. PrivaC then uses that file and never goes online for the model.
 
+## Download C's brain once, not again and again
+Tested in Chromium on Oct 25 2026 with PrivaC loaded unpacked:
+| You do this | C's brain (2 GB) |
+|---|---|
+| Click the circular **reload** arrow on `chrome://extensions` (after pulling or editing files) | **Kept** |
+| Quit and reopen Chrome, or restart the computer | **Kept** |
+| Click **Remove**, then Load unpacked again | **Deleted**: downloads again |
+| Load the same code from another folder (a new zip, a second clone) | A **separate copy**: Chrome treats each folder as its own extension |
+| Reload or remove PrivaC while the brain is still downloading | The download **starts over** |
+
+So: update PrivaC in the same folder (GitHub Desktop pull, or copy the new files over the old ones) and click reload.
+If you do switch folders, remove the old PrivaC so its copy is freed. The dashboard's brain card says the same.
+
+To keep it even through Remove, put the model file in `models/` as above (the folder is never committed or packed
+for the Web Store). Once Gemma has loaded from that copy, PrivaC deletes its downloaded copy, so the 2 GB is never
+on the disk twice.
+
 ## Needs
 - Chrome 137 or newer on a computer (Mac, Windows, Linux, ChromeOS). Chromium browsers like Edge and Brave work too.
 - A graphics chip Chrome can use for WebGPU: any Apple-silicon Mac, and most Windows laptops from the last few years.

@@ -81,5 +81,23 @@ test("Windows: once C's brain is there, the card says how to put Chrome on the f
     assert.match(v.text, /Settings > System > Display > Graphics/);
     assert.match(v.text, /High performance/);
   }
-  assert.strictEqual(view({ use: "browser", status: { state: "ready" } }, {}).text, "", "Mac and others: no tip");
+  assert.doesNotMatch(view({ use: "browser", status: { state: "ready" } }, {}).text, /graphics chips/, "Mac and others: no Windows tip");
+});
+
+// Preston re-downloaded the 2 GB brain several times (Oct 24). Tested in Chromium (Oct 25): the reload arrow and a
+// Chrome restart keep it; Remove deletes it, and loading the folder from somewhere else starts a separate copy.
+test("downloaded: the card says reloading PrivaC keeps C's brain, and that removing PrivaC deletes it", () => {
+  for (const state of ["ready", "downloaded"]) {
+    const v = view({ use: "browser", status: { state, where: "downloaded" } });
+    assert.match(v.text, /reloading PrivaC/i);
+    assert.match(v.text, /removing PrivaC deletes it/i);
+    assert.match(view({ use: "browser", status: { state, where: "downloaded" } }, { windows: true }).text, /reloading PrivaC.*High performance/s, "both lines on Windows");
+  }
+  assert.match(view({ use: "browser", status: { state: "ready", where: "bundled" } }).text, /models folder/, "the copy packed in the folder survives Remove");
+});
+
+test("downloading: the card warns that reloading or removing PrivaC before the end starts the download over", () => {
+  const v = view({ use: "browser", status: { state: "downloading", loaded: 5e8, total: 2008432640 } });
+  assert.match(v.text, /One time only/);
+  assert.match(v.text, /reloading or removing PrivaC/i);
 });

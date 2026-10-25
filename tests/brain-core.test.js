@@ -216,6 +216,26 @@ test("a model file packed inside the extension is used without downloading anyth
   assert.strictEqual(lm.calls.engines, 1);
 });
 
+test("no 2 GB twice: once Gemma loads from the copy packed in the extension, the downloaded copy is deleted", async () => {
+  const caches = fakeCaches(); caches.store.set(MODEL.url, MODEL.bytes);
+  const { brain } = brainWith({ caches, fetch: async (url) => { if (url.endsWith(MODEL.file) && url.startsWith("chrome-extension://")) return new Response(new Uint8Array(8)); throw new TypeError("Failed to fetch"); } });
+  assert.strictEqual(caches.store.size, 1, "not deleted just for being looked at");
+  await brain.handle({ cmd: "status" });
+  assert.strictEqual(caches.store.size, 1);
+  assert.ok((await brain.handle({ cmd: "generate", id: "b2", system: "s", user: "u" })).text);
+  await flush();
+  assert.strictEqual(brain.status().where, "bundled");
+  assert.strictEqual(caches.store.size, 0, "the downloaded copy was freed after the packed copy loaded");
+});
+
+test("a failed load from the packed copy keeps the downloaded copy", async () => {
+  const caches = fakeCaches(); caches.store.set(MODEL.url, MODEL.bytes);
+  const { brain } = brainWith({ caches, failCreate: "Invalid model file", fetch: async (url) => { if (url.endsWith(MODEL.file) && url.startsWith("chrome-extension://")) return new Response(new Uint8Array(8)); throw new TypeError("Failed to fetch"); } });
+  await brain.handle({ cmd: "generate", id: "b3", system: "s", user: "u" });
+  await flush();
+  assert.strictEqual(caches.store.size, 1);
+});
+
 test("if Gemma fails on the GPU, C says so and starts fresh next time", async () => {
   const caches = fakeCaches(); caches.store.set(MODEL.url, MODEL.bytes);
   const { brain } = brainWith({ caches, failCreate: "WebGPU device was lost" });

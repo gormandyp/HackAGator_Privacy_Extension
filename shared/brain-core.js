@@ -243,6 +243,8 @@
         engine = await d.lm.Engine.create({ model: model.stream, mainExecutorSettings: { maxNumTokens: CONTEXT_TOKENS } });
         failedAt = 0;
         set({ state: "ready", where, loadMs: now() - t0, error: null });
+        // Gemma works from the copy packed in the extension, so a downloaded copy would only take 2 GB more disk.
+        if (where === "bundled") d.caches.open(CACHE).then((c) => c.delete(M.url)).catch(() => {});
         return engine;
       })().catch((e) => {
         engine = null;

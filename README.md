@@ -48,7 +48,7 @@ Unzip, open `chrome://extensions`, turn on **Developer mode**, click **Load unpa
 2. Pin PrivaC (puzzle-piece menu), browse a few sites, then click the C icon and open the dashboard.
 3. In **Ask C**, click **Download C's brain** (2.0 GB, one time). Nothing else to install. Prefer Ollama? See [docs/OLLAMA.md](docs/OLLAMA.md).
 
-After you change any file, click the circular reload arrow on the PrivaC card in `chrome://extensions`. Tests: `node --test`.
+After you change any file, click the circular reload arrow on the PrivaC card in `chrome://extensions` (that keeps C's 2 GB brain; Remove deletes it, see [docs/IN-BROWSER-AI.md](docs/IN-BROWSER-AI.md#download-cs-brain-once-not-again-and-again)). Tests: `node --test`.
 
 Without installing anything, you can open `dashboard/dashboard.html` or `popup/popup.html?site=flightdeals.example` to see the interface with sample data.
 

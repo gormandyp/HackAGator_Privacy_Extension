@@ -24,20 +24,25 @@
     // Chrome on Windows ignores the request for the faster graphics chip, so a laptop with two runs Gemma on the slow
     // built-in one (team's G14: 18-70 s per answer instead of about 2 s with Chrome forced onto its NVIDIA chip).
     const winTip = ui.windows ? "Laptop with two graphics chips? For much faster answers, set Chrome to High performance in Windows Settings > System > Display > Graphics, then restart Chrome." : "";
+    // Chrome keeps the download through the reload arrow and restarts, but Remove deletes it, and the same folder
+    // loaded from another place is a separate extension with its own copy (tested in Chromium, Oct 25 2026).
+    const keep = s.where === "bundled" ? "It's the copy in PrivaC's models folder, so it stays even if PrivaC is removed."
+      : "Saved in Chrome: reloading PrivaC keeps it, removing PrivaC deletes it.";
+    const quietText = [keep, winTip].filter(Boolean).join(" ");
     switch (s.state) {
       case "ready":
         return { tone: "quiet", title: `${s.name || "Gemma 4 E2B"} is running in your browser.`,
-          text: winTip, actions: quietActions };
+          text: quietText, actions: quietActions };
       case "loading":
         return { tone: "info", title: "Getting C's brain ready...",
           text: "Loading Gemma into your graphics chip. The very first time can take about 20 seconds.", actions: [], busy: true };
       case "downloaded":
         return { tone: "quiet", title: `${s.name || "Gemma 4 E2B"} is downloaded and loads when you ask.`,
-          text: winTip, actions: quietActions };
+          text: quietText, actions: quietActions };
       case "downloading": {
         const pct = Math.max(0, Math.min(100, Math.round(((s.loaded || 0) / total) * 100)));
         return { tone: "info", title: `Downloading C's brain: ${gb(s.loaded || 0)} of ${gb(total)} GB`,
-          text: "One time only. You can keep browsing; grades and C's pop-ups work meanwhile.", progress: pct, actions: [["cancel", "Cancel"]] };
+          text: "One time only. You can keep browsing; grades and C's pop-ups work meanwhile. Reloading or removing PrivaC before it finishes starts it over.", progress: pct, actions: [["cancel", "Cancel"]] };
       }
       case "unsupported":
         return { tone: "warn", title: "C's in-browser brain can't run here.",
