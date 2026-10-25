@@ -71,3 +71,15 @@ test("during the download only the numbers change, so a focused Cancel button ke
   assert.strictEqual(sameShape(a, view({ use: "browser", status: { state: "downloaded" } })), false);
   assert.strictEqual(sameShape(view({ status: { state: "none" } }), view({ status: { state: "none" }, ollama: true })), false);
 });
+
+// On the team's G14 (2026-10-24), Chrome on Windows ignored the request for the fast graphics chip and ran Gemma on
+// the slow built-in one: answers took 18-70 s instead of about 2 s on the laptop's NVIDIA chip.
+test("Windows: once C's brain is there, the card says how to put Chrome on the fast graphics chip", () => {
+  for (const state of ["ready", "downloaded"]) {
+    const v = view({ use: "browser", status: { state } }, { windows: true });
+    assert.match(v.text, /two graphics chips/);
+    assert.match(v.text, /Settings > System > Display > Graphics/);
+    assert.match(v.text, /High performance/);
+  }
+  assert.strictEqual(view({ use: "browser", status: { state: "ready" } }, {}).text, "", "Mac and others: no tip");
+});

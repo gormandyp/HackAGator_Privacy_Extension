@@ -21,16 +21,19 @@
     }
     // A model file packed inside the extension folder can't be deleted from here, so only a download is offered.
     const quietActions = [["use-ollama", "Use Ollama instead"]].concat(s.where === "bundled" ? [] : [["ask-remove", "Delete download"]]);
+    // Chrome on Windows ignores the request for the faster graphics chip, so a laptop with two runs Gemma on the slow
+    // built-in one (team's G14: 18-70 s per answer instead of about 2 s with Chrome forced onto its NVIDIA chip).
+    const winTip = ui.windows ? "Laptop with two graphics chips? For much faster answers, set Chrome to High performance in Windows Settings > System > Display > Graphics, then restart Chrome." : "";
     switch (s.state) {
       case "ready":
         return { tone: "quiet", title: `${s.name || "Gemma 4 E2B"} is running in your browser.`,
-          text: "", actions: quietActions };
+          text: winTip, actions: quietActions };
       case "loading":
         return { tone: "info", title: "Getting C's brain ready...",
           text: "Loading Gemma into your graphics chip. The very first time can take about 20 seconds.", actions: [], busy: true };
       case "downloaded":
         return { tone: "quiet", title: `${s.name || "Gemma 4 E2B"} is downloaded and loads when you ask.`,
-          text: "", actions: quietActions };
+          text: winTip, actions: quietActions };
       case "downloading": {
         const pct = Math.max(0, Math.min(100, Math.round(((s.loaded || 0) / total) * 100)));
         return { tone: "info", title: `Downloading C's brain: ${gb(s.loaded || 0)} of ${gb(total)} GB`,
@@ -83,7 +86,7 @@
     if (thread && thread.parentNode) thread.parentNode.insertBefore(box, thread); else host.prepend(box);
 
     let info = null, shown = null;
-    const ui = { confirmRemove: false };
+    const ui = { confirmRemove: false, windows: /Windows/.test(navigator.userAgent) };
     const render = () => {
       if (!info) return;
       const v = view(info, ui);

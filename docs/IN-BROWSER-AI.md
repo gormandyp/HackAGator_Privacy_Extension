@@ -65,6 +65,11 @@ Switch back with **Use the in-browser brain**.
 
 ## Troubleshooting
 - "can't run here": update Chrome (`chrome://settings/help`), and check `chrome://gpu` shows WebGPU as hardware accelerated.
+- Slow answers on a Windows laptop with two graphics chips: Chrome on Windows ignores PrivaC's request for the faster chip
+  (https://crbug.com/369219127), so Gemma runs on the built-in one. On the team's ASUS G14 that meant 18-70 s per answer on
+  the AMD chip vs about 2 s on the NVIDIA chip (tested by starting Chrome with `--force-high-performance-gpu`). Fix: Windows
+  Settings > System > Display > Graphics, pick Google Chrome, choose High performance, restart Chrome. The C's brain card
+  shows this tip on Windows.
 - "ran out of graphics memory": close a few tabs (especially video or 3D) and ask again.
 - Download stopped: click **Try again** (it starts over). **Cancel** stops it and keeps nothing.
 - PrivaC only keeps the download if it is exactly the right file (2,008,432,640 bytes); a Wi-Fi sign-in page or a cut-off download is thrown away.
