@@ -113,6 +113,8 @@
       sw.checked = s.popups[sw.dataset.popup];
       sw.addEventListener("change", () => PrivaCSettings.save({ popups: { [sw.dataset.popup]: sw.checked } }));
     }
+    // Settings > Your data: the "Hi, I'm C" page link shows only while example data is on (for demo videos).
+    $("open-welcome").hidden = !s.exampleData;
     for (const sw of sheet.querySelectorAll("[data-setting-bool]")) {
       sw.checked = s[sw.dataset.settingBool];
       sw.addEventListener("change", async () => {

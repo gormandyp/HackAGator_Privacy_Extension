@@ -137,3 +137,17 @@ test("while it's on, the dashboard header says \"Example data\", and C's impact 
   assert.match(read("dashboard/dashboard.js"), /data\.example[\s\S]{0,200}Example data/);
   assert.match(read("dashboard/activity.js"), /loadStats\(data\.sample \|\| data\.example\)/);
 });
+
+test("while example data is on, a link under the switch opens C's \"Hi, I'm C\" install page; nothing opens by itself", () => {
+  const html = read("dashboard/dashboard.html");
+  const group = html.slice(html.indexOf('<h3 class="group-title">Your data</h3>'), html.indexOf('id="clear"'));
+  // Same look as "See C on 17 kinds of cookie pop-ups"; placed right under the switch, above Clear.
+  assert.match(group, /data-setting-bool="exampleData"><\/label>\s*<a class="row link" id="open-welcome" href="\.\.\/welcome\/welcome\.html" target="_blank" rel="noopener" hidden><span>[^<]+<small>[^<]+<\/small><\/span><span class="chev" aria-hidden="true"><\/span><\/a>/);
+  // .group .row is display:flex, which would beat the hidden attribute without this.
+  assert.match(read("dashboard/dashboard.css"), /\.group \.row\[hidden\] \{ display: none; \}/);
+  const tabs = read("dashboard/tabs.js");
+  assert.match(tabs, /open-welcome[\s\S]{0,120}hidden = !s\.exampleData/);
+  assert.doesNotMatch(tabs, /welcome\.html|tabs\.create/, "no tab opens on its own");
+  // The welcome page only explains; it never starts the brain download or changes settings or data.
+  assert.doesNotMatch(read("welcome/welcome.js") + read("welcome/welcome.html"), /sendMessage|privac-ai|storage\.local/);
+});
