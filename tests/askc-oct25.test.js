@@ -263,3 +263,9 @@ test("other \"should I worry\" questions still go to Gemma: a follow-up, no comp
     assert.strictEqual(r.calls, 1, q);
   }
 });
+
+// G14 Q12: "What is wired.com collecting about me?" got "Wired.com is collecting personal information because it has a data
+// breach where 2.4 million accounts were exposed". A breach is what leaked from a site's accounts, not what it collects.
+test("the prompt tells Gemma a breach is what leaked from a site, not what the site collects about you", () => {
+  assert.match(A.SYSTEM_PROMPT, /breach[^\n]*leaked[^\n]*not what the site collects/i);
+});
