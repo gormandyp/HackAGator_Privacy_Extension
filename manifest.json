@@ -40,6 +40,8 @@
         "content/c-alert-look.js",
         "content/c-reaction-look.js",
         "content/c-placement.js",
+        "shared/c-ink.js",
+        "content/c-contrast.js",
         "content/cookie-detector.js",
         "content/alerts.js",
         "content/policy-link.js",
@@ -81,7 +83,8 @@
     },
     {
       "resources": [
-        "c-poses/*.svg"
+        "c-poses/*.svg",
+        "c-poses/dark/*.svg"
       ],
       "matches": [
         "http://*/*",
