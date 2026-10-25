@@ -22,6 +22,7 @@ How to answer:
 - If a site had a data breach [HIBP], say when, how many accounts and what kind of data, and tell the person to change that password. Scraped or leaked data listed with [HIBP] counts as a breach too: never say you have no information about it.
 - If the person says yes to something you offered earlier, give it now from the evidence. Never claim you already told them something that isn't in your earlier answer. No backticks, no markdown, no lists with symbols.
 - When cookies or cookie banners come up, you may quote one RegTrack fact. RegTrack only compared doing nothing with clicking accept-all, so never say rejecting removes a number of trackers.
+- A company's home country is a concern only if it's on the foreign-adversary list in the evidence; never suggest the United States or any other country is a risk.
 - Never say data was sent to a government. A tracker loading means the company could collect data; it doesn't prove the data was sold or shared.
 - Don't mention sample data; the dashboard already says so.
 - You don't know which site the person has open right now. Don't say "you are currently visiting".
@@ -253,7 +254,7 @@ Steps the person can take (no tag needed):
     return `${siteLabel(d, b)} has ${n} data breach${n > 1 ? "es" : ""} on record in Have I Been Pwned`;
   }
   // "Was X hacked?" answered from the list itself (like grade questions): every breach, exact numbers, no guessing.
-  const BREACH_Q = /\b(hack\w*|breach\w*|leak\w*|pwn\w*|compromis\w*|stolen)\b/i;
+  const BREACH_Q = /\b(hack\w*|breach\w*|leak\w*|pwn\w*|compromis\w*|stolen|hibp)\b/i;
   const FOLLOW_UP = /\b(it|its|it's|they|them|their|that|this|those|yes|yeah|yep|ok|okay|sure|please)\b/i;
   // Companies the tracker data knows ("Google"), named in the question as whole words.
   function namedCompanies(question, atlas) {
@@ -269,7 +270,9 @@ Steps the person can take (no tag needed):
   // Company names that are everyday words: they count only when written the way the company writes them, not first.
   const EVERYDAY_NAMES = new Set(["visit", "next", "impact", "about you", "answers", "insider", "move", "near", "optimize", "orange",
     "polar", "smile", "stamped", "uplift", "indeed", "increasingly", "narrative", "stuff", "epic", "affinity", "iterate", "institute",
-    "herald", "maverick", "terminus", "consumable", "radial", "admiral", "agora", "arbitrage", "triumphant", "seattle", "quant", "plex", "fomo"]);
+    "herald", "maverick", "terminus", "consumable", "radial", "admiral", "agora", "arbitrage", "triumphant", "seattle", "quant", "plex", "fomo",
+    // Found with English word frequencies over every Tracker Radar company (2026-10-24): "how do I block trackers?" named Block, Inc.
+    "block", "news", "reach", "progressive", "leaf", "snap", "valve", "anthem", "booking", "singular", "oracle", "staples", "flux", "sony"]);
   const escapeRe = (x) => x.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   function companiesIn(question, names) {
     const L = (typeof window !== "undefined" ? window : self).PrivaCLists;
@@ -298,7 +301,11 @@ Steps the person can take (no tag needed):
   const GENERIC_FIRST = new Set(["digital", "media", "global", "network", "networks", "group", "systems", "technologies", "technology",
     "solutions", "services", "software", "interactive", "mobile", "marketing", "analytics", "labs", "internet", "united", "american",
     "national", "international", "first", "smart", "cloud", "online", "social", "advanced", "audience", "trade", "direct", "content",
-    "video", "local", "north", "south", "east", "west", "china", "beijing", "shanghai", "russia", "new", "general", "public", "power"]);
+    "video", "local", "north", "south", "east", "west", "china", "beijing", "shanghai", "russia", "new", "general", "public", "power",
+    // Country names: "based in France" names no company (not "France Medias Monde").
+    "france", "germany", "japan", "india", "canada", "britain", "england", "ireland", "israel", "italy", "spain", "korea", "brazil",
+    "mexico", "australia", "netherlands", "sweden", "norway", "denmark", "finland", "poland", "turkey", "ukraine", "singapore", "taiwan",
+    "europe", "european", "asia", "africa", "america", "swiss", "french", "german", "japanese", "chinese", "russian", "british"]);
 
   const MORE_Q = /\b(more|else|again|why|how so|explain)\b/i;
   const AND_ABOUT = /^\s*(?:and|what about|how about|same for|also)\b/i;
@@ -310,6 +317,9 @@ Steps the person can take (no tag needed):
     if (!BREACH_Q.test(q) && !(lastWasBreach && AND_ABOUT.test(q))) return null;   // "what about google?" after a breach question
     let hits = breachSites(q, lists);
     if (!hits.length && FOLLOW_UP.test(q) && last && !AND_ABOUT.test(q)) hits = breachSites(last.question, lists);   // "yes, its breaches"
+    // "Check the ive been pwned list" names nothing: it means the last question's site or company (PLAN R19g).
+    const namesNothing = (x) => !breachSites(x, lists).length && !/[a-z0-9-]+\.[a-z]{2,}/i.test(x) && !namedSites(sites || [], x).length && !namedCompanies(x, atlas).length;
+    if (!hits.length && last && namesNothing(q) && !MY_SITES.test(q)) { hits = breachSites(last.question, lists); if (!hits.length) q = last.question; }
     if (hits.length) {
       const parts = hits.map(([d, b]) => `${breachHead(d, b)} [HIBP]:\n` +
         breachList(b).map((x) => `- ${x.when}, ${x.title}: ${x.count}${x.kinds ? `; exposed ${x.kinds}` : ""}.`).join("\n"));
@@ -324,7 +334,7 @@ Steps the person can take (no tag needed):
     // 2026-10-24: six wordings went three different ways, one answered about a tracker company named VISIT).
     if (!domain && !visited && !company && MY_SITES.test(q)) return yourBreaches(lists, sites || []);
     // No breach on record. Say so for anything PrivaC knows: a web address, a site you visited, or a tracker company.
-    const subject = domain ? domain.replace(/^www\./, "") : visited ? visited.domain : company;
+    const subject = domain ? domain.replace(/^www\./, "") : visited ? visited.domain : company ? companyLabel(q, company) : null;
     if (!subject) return null;   // nothing PrivaC knows: Gemma answers from the rest of the evidence
     const at = String(lists.hibp.fetchedAt || "").slice(0, 10).split("-");
     const updated = at.length === 3 ? ` (updated ${MONTHS[+at[1] - 1]} ${+at[2]}, ${at[0]})` : "";
@@ -387,6 +397,219 @@ Steps the person can take (no tag needed):
       hit.map(([d, b]) => `- ${d}: ` + breachList(b).map((x) => `${x.when}, ${x.title}: ${x.count}${x.kinds ? `; exposed ${x.kinds}` : ""}`).join(". ") + ".").join("\n") +
       "\n\nWhat you can do: if you have an account on one of these sites, change its password and the same password anywhere else you used it, " +
       "turn on two-step sign-in, and watch for emails pretending to be that site.";
+  }
+
+  // ---------- One way to recognise names, however they're typed (PLAN R19g/R19i) ----------
+  // "tik tok", "you tube", "face book", "what's app" (two words run together) and "linkdin" (one typo) become the name
+  // PrivaC knows, before anything else reads the question, so every part of C (facts, grades, breaches, "Is X safe?")
+  // recognises them the same way. Ordinary words never change: joins need a known name and never start with "my", "the"...;
+  // typos only fix the best-known names, never words ending like ordinary words ("tracked", "sharing").
+  const JOIN_STOP = new Set(["my", "your", "the", "a", "an", "our", "his", "her", "its", "their", "this", "that", "these", "those", "is", "it", "i", "me", "we"]);
+  const TYPO_STOP = new Set(["should", "website", "websites", "cookie", "cookies", "tracker", "trackers", "tracking", "privacy", "safety", "secure",
+    "hacked", "breach", "breaches", "breached", "leaked", "worried", "trusted", "online", "google", "people", "policy", "please", "things"]);
+  const POPULAR_PREV = 5;   // companies whose biggest tracker is on 5%+ of popular sites (Google, Facebook, Microsoft...)
+  const VOCAB = new WeakMap();
+  function nameVocab(sites, lists, atlas) {
+    const key = atlas || VOCAB;
+    const cached = VOCAB.get(key);
+    const sig = `${(sites || []).length}|${lists && lists.hibp ? Object.keys(lists.hibp.byDomain || {}).length : 0}`;
+    if (cached && cached.sig === sig) return cached;
+    const all = new Set(), popular = new Set();
+    const add = (w, pop) => { w = String(w || "").toLowerCase().replace(/[^a-z0-9]/g, ""); if (w.length >= 4) { all.add(w); if (pop && w.length >= 6) popular.add(w); } };
+    for (const a of Object.keys(COMPANY_ALIASES)) add(a, true);
+    for (const s of sites || []) add(siteName(s.domain), true);
+    if (lists && lists.hibp && lists.hibp.byDomain) for (const d of Object.keys(lists.hibp.byDomain)) add(siteName(d), false);
+    if (atlas && atlas.domains) for (const [co, x] of Object.entries(companiesOf(atlas))) { if (!/\s/.test(co.trim())) add(co, x.prev >= POPULAR_PREV); }
+    for (const w of [...BREACH_STOP, ...COMMON_WORDS, ...EVERYDAY_NAMES]) all.delete(w), popular.delete(w);
+    const v = { sig, all, popular };
+    VOCAB.set(key, v);
+    return v;
+  }
+  function oneEditApart(a, b) {
+    if (a === b || Math.abs(a.length - b.length) > 1) return a !== b && false;
+    let i = 0, j = 0, edits = 0;
+    while (i < a.length && j < b.length) {
+      if (a[i] === b[j]) { i++; j++; continue; }
+      if (++edits > 1) return false;
+      if (a.length > b.length) i++; else if (b.length > a.length) j++; else { i++; j++; }
+    }
+    return edits + (a.length - i) + (b.length - j) <= 1;
+  }
+  function fixNames(question, vocab) {
+    const q = String(question || "");
+    if (!vocab) return q;
+    const parts = q.match(/[A-Za-z0-9'’]+|[^A-Za-z0-9'’]+/g) || [];
+    const word = (p) => /^[A-Za-z0-9'’]+$/.test(p || "");
+    const low = (p) => String(p).toLowerCase().replace(/['’]/g, "");
+    const out = [];
+    for (let i = 0; i < parts.length; i++) {
+      const p = parts[i];
+      if (word(p) && /^\s+$/.test(parts[i + 1] || "") && word(parts[i + 2]) && !JOIN_STOP.has(low(p))) {
+        const joined = low(p) + low(parts[i + 2]);
+        if (joined.length >= 5 && vocab.all.has(joined) && !vocab.all.has(low(p))) { out.push(joined); i += 2; continue; }
+      }
+      if (word(p)) {
+        const w = low(p);
+        if (w.length >= 6 && !vocab.all.has(w) && !TYPO_STOP.has(w) && !/(?:ed|ing|ly|es|er|ers|tion|ment)$/.test(w)) {
+          const hit = [...vocab.popular].find((c) => c[0] === w[0] && oneEditApart(w, c));
+          if (hit) { out.push(hit); continue; }
+        }
+      }
+      out.push(p);
+    }
+    return out.join("");
+  }
+
+  // How to name a company the person asked about by another name: "TikTok (owned by ByteDance)", "Meta (Tracker Radar lists it as Facebook)".
+  const ALIAS_LABEL = { meta: "Meta", "meta platforms": "Meta Platforms", instagram: "Instagram", whatsapp: "WhatsApp", alphabet: "Alphabet",
+    youtube: "YouTube", tiktok: "TikTok", linkedin: "LinkedIn", bing: "Bing", yahoo: "Yahoo", aol: "AOL", snapchat: "Snapchat", amazon: "Amazon", verizon: "Verizon" };
+  const SAME_COMPANY = new Set(["meta", "meta platforms", "alphabet", "amazon", "verizon", "snapchat"]);
+  function askedAlias(question, company) {
+    const L = (typeof window !== "undefined" ? window : self).PrivaCLists;
+    const nq = " " + (L ? L.norm(question) : String(question).toLowerCase()) + " ";
+    return Object.keys(COMPANY_ALIASES).find((a) => COMPANY_ALIASES[a] === company && nq.includes(" " + a + " ")) || null;
+  }
+  function companyLabel(question, company) {
+    const a = askedAlias(question, company);
+    if (!a) return company;
+    if (a === "amazon" || a === "snapchat") return ALIAS_LABEL[a];
+    return SAME_COMPANY.has(a) ? `${ALIAS_LABEL[a]} (Tracker Radar lists it as ${company})` : `${ALIAS_LABEL[a]} (owned by ${company})`;
+  }
+  const shortLabel = (label) => label.replace(/ \(.*$/, "");
+
+  // ---------- "Is X safe?" from PrivaC's own records (PLAN R19h) ----------
+  // "Is YouTube safe?" (real Gemma, 2026-10-24) ignored YouTube's grade; "Is FaceBook safe?" made up a breach history.
+  // Like grade and breach questions, these are answered from the records: grade, what added points, flags, owner, the
+  // breach list. Never "safe" or "unsafe": PrivaC measures exposure, not malware or scams.
+  const SAFE_Q = /\b(safe|safely|unsafe|dangerous|danger|trust|trustworthy|trusted|legit|legitimate|secure|sketchy|shady|risky|ok(?:ay)?\s+to\s+use|fine\s+to\s+use)\b/i;
+  function hibpUpdated(lists) {
+    const at = String(lists.hibp.fetchedAt || "").slice(0, 10).split("-");
+    return at.length === 3 ? ` (updated ${MONTHS[+at[1] - 1]} ${+at[2]}, ${at[0]})` : "";
+  }
+  function breachLine(subject, b, lists) {
+    if (b) return `${breachHead(subject, b)} [HIBP]: ` + breachList(b).map((x) => `${x.when}, ${x.title}: ${x.count}${x.kinds ? `; exposed ${x.kinds}` : ""}`).join(". ") + ".";
+    if (!(lists && lists.hibp)) return "";
+    return `Have I Been Pwned's list${hibpUpdated(lists)} has no breach on record for ${subject} [HIBP]. That doesn't prove it was never breached.`;
+  }
+  const BAD_CATS = new Set(["Malware", "High-risk"]);
+  const stepList = (steps) => "\n\nWhat you can do:\n" + steps.slice(0, 3).map((x) => `- ${x.charAt(0).toUpperCase()}${x.slice(1)}.`).join("\n");
+  function safeAnswer(q, sites, lists, atlas, extra) {
+    if (!SAFE_Q.test(q)) return null;
+    const domain = (q.toLowerCase().match(/[a-z0-9-]+(?:\.[a-z0-9-]+)+/) || [])[0];
+    const visited = namedSites(sites, q)[0] || (domain && sites.find((s) => s.domain === domain.replace(/^www\./, "")));
+    const steps = [];
+    if (visited) {
+      const s = visited, r = scoreParts(s);
+      if (!r) return null;
+      const lines = [`${s.domain} got ${article(r.grade)} ${r.grade} from PrivaC: an exposure score of ${r.score} out of 100, where higher means more of your data is exposed (${GRADE_RANGES}). [Seen on your visit]`];
+      lines.push(r.counted.length ? "What added points:\n" + r.counted.slice(0, 3).map((p) => `- ${p.label} (+${p.points}) [${PART_TAG[p.kind] || PART_TAG.observed}]`).join("\n")
+        : "Nothing added points: no trackers or tracking cookies were counted, and no data breach or foreign-adversary link is on record. [Seen on your visit]");
+      const alias = COMPANY_ALIASES[siteName(s.domain)];
+      if (alias && ALIAS_LABEL[siteName(s.domain)] && !SAME_COMPANY.has(siteName(s.domain))) {
+        const on = sites.filter((x) => (x.trackers || []).some((t) => t && t.company === alias)).length;
+        lines.push(`${ALIAS_LABEL[siteName(s.domain)]} is owned by ${alias}${on ? `, whose trackers were on ${on} of your ${sites.length} sites this week [Seen on your visit]` : ""}.`);
+      }
+      const flags = [];
+      if (s.owner && ADVERSARY.has(s.owner.country)) flags.push(`the site belongs to ${s.owner.company} (${countryName(s.owner.country)}${s.owner.stateMedia ? ", state-run media" : ""})`);
+      for (const t of s.trackers || []) {
+        if (!t || !t.company) continue;
+        const listed = t.listed || listedCompany(t.company, extra);
+        if ((ADVERSARY.has(t.country) || listed) && !flags.some((f) => f.startsWith(t.company + " "))) flags.push(`${t.company} (${[ADVERSARY.has(t.country) ? countryName(t.country) : null, listed ? "Section 1260H list" : null].filter(Boolean).join("; ")})`);
+      }
+      if (flags.length) lines.push(`Foreign-adversary links seen here [Seen on your visit] [Government list]: ${flags.slice(0, 4).join(", ")}.`);
+      const bad = [...new Set((s.trackers || []).filter((t) => t && BAD_CATS.has(t.category)).map((t) => `${t.company}${t.domain ? ` (${t.domain})` : ""}: Tracker Radar labels it as ${t.category === "Malware" ? "malware" : "high-risk"}`))];
+      if (bad.length) lines.push(`${bad.join("; ")} [Tracker Radar] [Seen on your visit].`);
+      const b = lists && lists.hibp && lists.hibp.byDomain ? lists.hibp.byDomain[s.domain] || s.breach : s.breach;
+      const bl = breachLine(s.domain, b, lists);
+      if (bl) lines.push(bl);
+      lines.push(bad.length ? "PrivaC grades how much of your data a site exposes; it doesn't check the site itself for malware or scams, but Tracker Radar's label above is worth taking seriously."
+        : "PrivaC grades how much of your data a site exposes; it doesn't check the site for malware or scams.");
+      if (b) steps.push(`if you have a ${s.domain} account, change its password and turn on two-step sign-in`);
+      if (bad.length || flags.length || r.grade === "F") steps.push("avoid entering personal details (name, email, phone, payment) there");
+      if (["accepted", "no-reject", "none"].includes(s.cookieChoice) && (s.trackers || []).length) steps.push("let C decline the extra cookies next time you visit, or turn on Protect me automatically in Settings");
+      if ((s.trackers || []).some((t) => t && t.category === "Advertising")) steps.push("block third-party cookies in Chrome (Settings > Privacy and security > Third-party cookies)");
+      if (!steps.length) steps.push("use a different password for each site and turn on two-step sign-in");
+      return { text: lines.join("\n") + stepList(steps), sources: b || (lists && lists.hibp) ? ["site", "breach"] : ["site"] };
+    }
+    if (domain) return null;   // a site PrivaC hasn't seen: the grade answer says so; Gemma handles the rest
+    const company = namedCompanies(q, atlas)[0];
+    if (!company) return null;
+    const label = companyLabel(q, company);
+    const on = sites.filter((x) => (x.trackers || []).some((t) => t && t.company === company));
+    const x = atlas && atlas.domains ? companiesOf(atlas)[company] : null;
+    const cat = x ? Object.entries(x.cats).sort((a, b) => b[1] - a[1])[0][0] : null;
+    const lines = [on.length ? `PrivaC saw trackers from ${label} on ${on.length} of your ${sites.length} sites this week${cat ? `, mostly ${PURPOSE[cat] ? PURPOSE[cat].toLowerCase() : cat.toLowerCase()}` : ""} [Seen on your visit] [Tracker Radar].`
+      : `PrivaC hasn't seen trackers from ${label} on your sites this week [Seen on your visit].`];
+    const listed = listedCompany(company, extra);
+    if (listed || (x && ADVERSARY.has(x.ctry))) lines.push(`${shortLabel(label)}${x && ADVERSARY.has(x.ctry) ? ` is based in ${countryName(x.ctry)}, a country on the U.S. foreign-adversary list` : ""}${listed ? listedText(listed) : " [Government list]"}.`);
+    const hits = breachSites(shortLabel(label), lists).concat(shortLabel(label) !== company ? breachSites(company, lists) : []);
+    const bl = hits.length ? breachLine(hits[0][0], hits[0][1], lists) : breachLine(shortLabel(label), null, lists);
+    if (bl) lines.push(bl);
+    lines.push(`PrivaC measures what ${shortLabel(label)}'s trackers can see on the sites you visit; it doesn't check companies for malware or scams.`);
+    steps.push("let C decline the extra cookies on sites that load them");
+    steps.push("block third-party cookies in Chrome (Settings > Privacy and security > Third-party cookies)");
+    if (hits.length) steps.push(`if you have a ${shortLabel(label)} account, change its password and turn on two-step sign-in`);
+    return { text: lines.join("\n") + stepList(steps), sources: ["site", ...(bl ? ["breach"] : [])] };
+  }
+
+  // ---------- What the trackers were for: the same groups and counts as the dashboard (PLAN R19k) ----------
+  // Ask C said "no record" of a malware tracker the dashboard showed: a tracker only reached Gemma from its 4 detailed sites
+  // or the top-10 companies. Every purpose is listed now; malware, high-risk and screen recording are never cut.
+  const PURPOSE = {
+    "Advertising": "Advertising", "Analytics": "Measuring your visits", "Session recording": "Recording your screen",
+    "Social": "Social media", "Data broker": "Data brokers", "Tracking": "Unlabelled tracking",
+    "Malware": "Labelled malware", "High-risk": "High-risk behavior", "Obscure ownership": "Hidden owner"
+  };
+  const NEVER_CUT = new Set(["Labelled malware", "High-risk behavior", "Recording your screen"]);
+  function purposeLines(sites) {
+    const domainCat = new Map();                 // the dashboard's way: each tracker address once, its first category
+    for (const s of sites) for (const t of s.trackers || []) if (t && !domainCat.has(t.domain)) domainCat.set(t.domain, t.broker ? "Data broker" : t.category);
+    const groups = new Map();                    // label -> { n, companies: Map(company -> Set(site)) }
+    for (const cat of domainCat.values()) { const label = PURPOSE[cat] || cat || "Other"; if (!groups.has(label)) groups.set(label, { n: 0, companies: new Map() }); groups.get(label).n++; }
+    for (const s of sites) for (const t of s.trackers || []) {
+      if (!t || !t.company) continue;
+      const g = groups.get(PURPOSE[domainCat.get(t.domain)] || domainCat.get(t.domain) || "Other");
+      if (!g) continue;
+      if (!g.companies.has(t.company)) g.companies.set(t.company, new Set());
+      g.companies.get(t.company).add(s.domain);
+    }
+    if (!groups.size) return "";
+    const rows = [...groups].sort((a, b) => b[1].n - a[1].n || a[0].localeCompare(b[0])).map(([label, g]) => {
+      const all = NEVER_CUT.has(label);
+      const cos = [...g.companies].sort((a, b) => b[1].size - a[1].size || a[0].localeCompare(b[0]));
+      const shown = all ? cos : cos.slice(0, 6);
+      const txt = shown.map(([co, set]) => { const l = [...set]; return set.size === 1 ? `${co} on ${l[0]}` : `${co} on ${set.size} sites (${l.slice(0, all ? 8 : 3).join(", ")}${set.size > (all ? 8 : 3) ? "..." : ""})`; });
+      return `- ${label} ${g.n}: ${txt.join("; ")}${cos.length > shown.length ? `; and ${cos.length - shown.length} more compan${cos.length - shown.length === 1 ? "y" : "ies"}` : ""}`;
+    });
+    return `What the trackers were for (tracker addresses, same as the dashboard) [Seen on your visit] [Tracker Radar]:\n${rows.join("\n")}`;
+  }
+
+  // ---------- Cite-and-check (PLAN R19i): every name Gemma uses must be in its evidence ----------
+  // A sentence naming a tracker company or a web address that C's evidence doesn't contain is dropped (Gemma filled gaps
+  // from its general knowledge). The "What you can do" steps are left alone. Only names PrivaC knows can be checked.
+  function dropUnknownNames(text, context, atlas, memo) {
+    if (!atlas || !atlas.domains) return text;
+    const names = Object.keys(companiesOf(atlas));
+    const ctx = context.toLowerCase();
+    const known = (n) => ctx.includes(n.toLowerCase()) || Object.keys(COMPANY_ALIASES).some((a) => COMPANY_ALIASES[a] === n && ctx.includes(a));
+    const ok = (sentence) => {
+      if (memo && memo.has(sentence)) return memo.get(sentence);
+      const plain = sentence.replace(/\[[^\]]*\]/g, "");
+      // Whole names only ("Criteo", or a nickname like "Meta"): a first word alone ("France ...") isn't proof of a company.
+      const nq = " " + ((typeof window !== "undefined" ? window : self).PrivaCLists.norm(plain)) + " ";
+      const whole = (n) => nq.includes(" " + (typeof window !== "undefined" ? window : self).PrivaCLists.norm(n) + " ") ||
+        Object.keys(COMPANY_ALIASES).some((a) => COMPANY_ALIASES[a] === n && nq.includes(" " + a + " "));
+      const bad = companiesIn(plain, names).filter(whole).some((n) => !known(n)) ||
+        (plain.toLowerCase().match(/\b[a-z0-9-]+\.(?:com|net|org|io|co|ru|cn|de|uk|fr|tv|me|info)\b/g) || []).some((d) => !ctx.includes(d));
+      if (memo) memo.set(sentence, !bad);
+      return !bad;
+    };
+    const cut = text.search(/What you can do:/i);
+    const body = cut >= 0 ? text.slice(0, cut) : text, tail = cut >= 0 ? text.slice(cut) : "";
+    // Split after a sentence and its source tags, never between them ("... France. [Tracker Radar] Its tracker ...").
+    const kept = body.split("\n").map((par) => par.split(/(?<=[.!?](?:\s*\[[^\]]+\])*)\s+(?!\[)/).filter((x) => !x.trim() || ok(x)).join(" ")).join("\n").replace(/\n{3,}/g, "\n\n").trim();
+    if (!kept && body.trim()) return ("PrivaC has no record of that in your browsing or its lists." + (tail ? "\n\n" + tail : "")).trim();
+    return (kept + (tail ? "\n\n" + tail : "")).trim();
   }
 
   // Facts about companies or sites named in the question, looked up in the local lists.
@@ -526,6 +749,8 @@ Steps the person can take (no tag needed):
       `cookie banners: ${choices.declined} declined, ${choices.accepted} accepted, ${choices["no-reject"]} had no Reject button, ${choices.none} with no banner seen.`);
     const top = [...byCo].sort((a, b) => b[1].sites.size - a[1].sites.size).slice(0, 10);
     if (top.length) lines.push(`Companies seen on the most sites [Seen on your visit] [Tracker Radar]: ${top.map(([co, x]) => `${co} (${x.category}, ${x.country ? countryName(x.country) : "unknown country"}) on ${x.sites.size} of ${sites.length} sites`).join("; ")}.`);
+    const purposes = purposeLines(sites);
+    if (purposes) lines.push(purposes);
     if (brokers.size) {
       const list = [...brokers].map(([name, b]) => `${b.company} (registered as "${name}") on ${b.sites.length} site${b.sites.length > 1 ? "s" : ""}: ${b.sites.slice(0, 4).join(", ")}${b.sites.length > 4 ? "..." : ""}`);
       lines.push(`Registered California data brokers seen [CA Broker Registry] [Seen on your visit]: ${list.slice(0, LIST_MAX).join("; ")}${more(list, LIST_MAX)}.`);
@@ -818,22 +1043,29 @@ Steps the person can take (no tag needed):
   const SEED = 7;
 
   async function answer(question, deps) {
-    const q = String(question || "").trim();
-    if (!q) return { error: "Type a question for C first." };
-    const canned = cannedAnswer(q);
+    const asked = String(question || "").trim();
+    if (!asked) return { error: "Type a question for C first." };
+    const canned = cannedAnswer(asked);
     if (canned) return { answer: canned, trace: [] };
-    const steps = WANTS_STEPS.test(q);
     const data = await deps.load();
+    const lists = deps.lists ? await deps.lists() : null;
+    const atlas = deps.atlas ? deps.atlas() : null;
+    // Names however they're typed ("tik tok", "you tube", "linkdin"), in the question and C's memory (PLAN R19g/R19i).
+    const vocab = nameVocab(((data && data.sites) || []).filter(Boolean), lists, atlas);
+    const q = fixNames(asked, vocab);
+    deps = { ...deps, history: Array.isArray(deps.history) ? deps.history.map((t) => (t && typeof t.question === "string" ? { ...t, question: fixNames(t.question, vocab) } : t)) : deps.history };
+    const steps = WANTS_STEPS.test(q);
     const graded = gradeAnswer(q, ((data && data.sites) || []).filter(Boolean), deps.history);
     const part = partAnswer(q, ((data && data.sites) || []).filter(Boolean));
     if (part) return { answer: part, trace: [{ tool: "get_site_report", label: "Your browsing" }] };
     if (graded) return { answer: graded, trace: [{ tool: "get_site_report", label: "Your browsing" }] };
     const most = mostTrackedAnswer(q, ((data && data.sites) || []).filter(Boolean));
     if (most) return { answer: most, trace: [{ tool: "get_site_report", label: "Your browsing" }] };
-    const lists = deps.lists ? await deps.lists() : null;
-    const breach = breachAnswer(q, lists, deps.history, ((data && data.sites) || []).filter(Boolean), deps.atlas ? deps.atlas() : null);
+    const extraFacts = deps.facts ? await deps.facts() : FACT_FILES;
+    const safe = safeAnswer(q, ((data && data.sites) || []).filter(Boolean), lists, atlas, extraFacts);
+    if (safe) return { answer: safe.text, trace: [{ tool: "get_site_report", label: "Your browsing" }, ...(safe.sources.includes("breach") ? [{ tool: "breaches", label: "Have I Been Pwned" }] : [])] };
+    const breach = breachAnswer(q, lists, deps.history, ((data && data.sites) || []).filter(Boolean), atlas);
     if (breach) return { answer: breach, trace: [{ tool: "breaches", label: "Have I Been Pwned" }] };
-    const atlas = deps.atlas ? deps.atlas() : null;
     // A follow-up that names nothing ("does it fingerprint me?", "tell me more") keeps the last question's facts, so
     // C doesn't lose what he knows about Criteo one question later (backtest 2026-10-24).
     let facts = lookupFacts(q, lists, atlas);
@@ -853,7 +1085,8 @@ Steps the person can take (no tag needed):
         (breachNames ? `\n\nFor this question: they want more about ${breachNames}'s breach record. Answer only about ${breachNames}, from its [HIBP] facts; don't bring up other sites' breaches.` : "");
       // A source tag needs evidence behind it: Gemma wrote [HIBP] with no breach facts (2026-10-24), which also showed a
       // "Have I Been Pwned" check mark C never made. Tags that aren't in the evidence are removed, so their chips don't show.
-      const sourcedOnly = (t) => dropUnbackedBreaches(t, lists).replace(/\s*\[([^\]]+)\]/g, (m, tag) => (TAGS.includes(tag) && !context.includes(`[${tag}]`) ? "" : m));
+      const memo = new Map();
+      const sourcedOnly = (t) => dropUnknownNames(dropUnbackedBreaches(t, lists), context, atlas, memo).replace(/\s*\[([^\]]+)\]/g, (m, tag) => (TAGS.includes(tag) && !context.includes(`[${tag}]`) ? "" : m));
       // While C is writing, his words get the same clean-up as the finished answer (repeats, unsupported tags, steps),
       // so nothing he showed is taken away at the end (Max, IDEA.md).
       const writing = (so) => hideHalfRepeat(sourcedOnly(cleanAnswer(steps ? so : hideSteps(so))));
@@ -875,5 +1108,5 @@ Steps the person can take (no tag needed):
     }
   }
 
-  (typeof window !== "undefined" ? window : self).PrivaCAskC = { answer, buildContext, cleanAnswer, lookupFacts, SYSTEM_PROMPT };
+  (typeof window !== "undefined" ? window : self).PrivaCAskC = { answer, buildContext, cleanAnswer, lookupFacts, fixNames, SYSTEM_PROMPT, PURPOSE };
 })();
