@@ -1,3 +1,5 @@
+> **History.** This is the hand-off note written Sat Oct 24 at 2:45 AM, when work moved to the repo owner's Mac. It is kept as a record of the plan at that point; the current state is in [../PLAN.md](../PLAN.md) and the [README](../../README.md).
+
 # Handoff: finishing PrivaC on the repo owner's Mac (written 2026-10-24 Sat ~2:45 AM)
 From here on, all UI and code work happens **on the Mac with Claude Code in this folder** (not the cloud session).
 Read this first, then CLAUDE.md, docs/PLAN.md, docs/STATUS.md, docs/SPEC.md (Honesty rules).

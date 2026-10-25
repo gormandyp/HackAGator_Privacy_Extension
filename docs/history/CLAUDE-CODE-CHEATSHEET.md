@@ -1,3 +1,5 @@
+> **History.** The one-page workflow our team of beginners followed with Claude Code, our AI coding assistant (see "How we built it" in the [README](../../README.md)). The project instructions it refers to are in [CLAUDE.md](../../CLAUDE.md) and the step commands in `.claude/skills/`. Kept as a record of how we worked.
+
 # Claude Code cheat sheet (your only job is the bold parts)
 
 ## Once per project
@@ -27,4 +29,4 @@
 - Code you'll maintain: every step test-first, review every diff, approve every new dependency.
 
 ## Optional: measure
-- After each task, add a row to `docs/experiment-log.csv` (minutes, `/usage` cost, corrections, did it pass first check).
+- After each task, add a row to an experiment log (minutes, `/usage` cost, corrections, did it pass first check). We did not end up keeping one.

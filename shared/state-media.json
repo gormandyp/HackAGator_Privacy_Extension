@@ -19,7 +19,7 @@
     "profile": "the domain is named in the outlet's State Media Monitor profile",
     "tracker-radar": "DuckDuckGo Tracker Radar lists the outlet's company as the domain's owner",
     "wikipedia": "the outlet's Wikipedia infobox lists the domain as its website",
-    "team-test": "seen by the team on 2026-10-24 (docs/HANDOFF.md)"
+    "team-test": "seen by the team on 2026-10-24 (docs/history/HANDOFF.md)"
   },
   "howToSayIt": "This site is state-run media: {name} ({country}), classified {classification} by State Media Monitor (2026). That describes who controls the outlet; it says nothing about what happens to your data.",
   "outlets": [

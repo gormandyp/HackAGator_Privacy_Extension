@@ -28,7 +28,7 @@ Tick each one here when done. **All 8 done (checked 2026-10-25 overnight).**
 - [x] New: daily HIBP + CA broker lists (shared/lists.js), cookie inventory (shared/cookies.js), scoring v3, privacy footer and source credits.
 
 ## Remaining (in this order, so no step undoes another)
-- [x] **R0. Live check of main** (Sat; log in STATUS.md). Found 2 tracking bugs and that US visitors rarely see cookie banners (see docs/DEMO.md).
+- [x] **R0. Live check of main** (Sat; log in docs/history/STATUS.md). Found 2 tracking bugs and that US visitors rarely see cookie banners (see docs/DEMO.md).
 - [x] **R0b. Fixes:** wait for the Atlas before judging requests; ignore Google's prerendered results; record the site's owner; keep tab state when Chrome pauses the background script.
 - [x] **R1. RegTrack facts** (Max: `shared/regtrack-facts.json`, used by Ask C). For C's cookie pop-up, `await PrivaCRegTrack.line()` is ready (content/regtrack-line.js); Matthew decides where it shows.
 - [x] **R2. 1260H list** (Max: `shared/flagged-companies.json`, sourced to the Federal Register). Used in the score label (no double points), Ask C and the popup.

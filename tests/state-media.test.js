@@ -36,7 +36,7 @@ test("every outlet is sourced: listed country, State-Controlled or Captured Publ
   }
 });
 
-test("the state-run sites from the Saturday test are all found (docs/HANDOFF.md)", () => {
+test("the state-run sites from the Saturday test are all found (docs/history/HANDOFF.md)", () => {
   const expect = {
     "en.irna.ir": "IR", "english.news.cn": "CN", "cgtn.com": "CN", "granma.cu": "CU",
     "presstv.co.uk": "IR", "rt.com": "RU", "tass.com": "RU"
