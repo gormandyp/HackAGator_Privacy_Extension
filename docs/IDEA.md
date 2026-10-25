@@ -93,7 +93,7 @@ Supporting (older, so NOT the theme answer): DuckDuckGo Tracker Radar (domain to
  - C logo in "this week tab" isnt actual C mascot - most if instances of capital C in reference to Ask C or C in general should be the C logo.
    - **Status: done 2026-10-24 night (PLAN R19c).** Was: "C stepped in" (home page, This week) and the C's impact tab use a plain orange arc icon (shared/icons.js "c"), not C's face. The new tab icons (branch `max/icon-tabs`) already use C's face for Ask C. Fix: one small C-face icon used wherever C is meant.
  - Look for ways for the home page to be decluttered and be less overwhelming and plan and render - report to either Preston or max with rendering before pushing to main
-   - **Status: renderings sent to Preston 2026-10-24 night (PLAN R19d).** Renderings first (2-3 options), shown to Preston or Max before anything goes to main.
+   - **Status: done 2026-10-25 (PLAN R19d): Preston picked rendering A** (cookie card moved to Safety, row Ask C buttons show on hover, top 5 companies). Renderings first (2-3 options), shown to Preston or Max before anything goes to main.
  - Headers like "Worth knowing" and "This week" should be larger or bolded in some way/more prominent so that a users eyes would first see the header before seeing whats in the box because some test users have had confusion with what each box does. 
    - **Status: done 2026-10-24 night (PLAN R19e): titles 17.5 px bold.** Was: Card titles are 15 px semibold today (dashboard.css `.card h2`), close to the text under them. Fix: bigger, bolder titles with more space below, rendered for review together with R19d.
 

@@ -1,5 +1,5 @@
 // Overview: everything summarized. Headline, average exposure, the standout facts (shared/highlights.js),
-// this week from C's impact and Safety, what trackers were for, cookies, foreign-adversary links, and who
+// this week from C's impact and Safety, what trackers were for, foreign-adversary links, and who
 // followed you across sites. Each piece links to the tab with the details; every row has Ask C.
 (async function () {
   const $ = (id) => document.getElementById(id);
@@ -67,7 +67,7 @@
   };
   const list = H.facts(sites, { declines });
   $("facts").innerHTML = `
-    ${head(I.tile("bulb", "yellow"), "Worth knowing", "The strongest things PrivaC found this week, from what it saw and from public records.")}
+    ${head(I.tile("bulb", "yellow"), "Worth knowing", "")}
     ${list.length ? `<ul class="facts">${list.map((f) => `
       <li class="fact tone-${f.tone}">
         <span class="fact-icon">${ICON[f.tone]}</span>
@@ -117,7 +117,7 @@
     ${agg.purposes.length ? `<ul class="meter-list">${agg.purposes.slice(0, 6).map((p) => `<li class="p-${purposeKey(p.label)}"><span class="lbl"><i class="p-dot"></i>${esc(p.label)}</span><span class="bar"><i style="--w:${(p.n / pmax) * 100}%"></i></span><b>${p.n}</b>${ask(`What do trackers used for "${p.label.toLowerCase()}" do with what they see?`, p.label)}</li>`).join("")}</ul>`
       : `<p class="hint">No outside trackers seen this week.</p>`}`;
 
-  // ---- Cookies ----
+  // ---- Cookies (shown on the Safety tab since the home page was lightened) ----
   let ck = { total: agg.cookies, tracking: agg.trackingCookies, from: "sites" };
   if (!ck.total && week && week.totals.cookies) ck = { total: week.totals.cookies, tracking: week.totals.trackingCookies || 0, from: "week" };
   $("cookies-card").innerHTML = `
@@ -138,7 +138,7 @@
 
   // ---- Who followed you across sites ----
   // Company names stay in their own column; only the site columns scroll, so nothing ever slides over a name.
-  const LIMIT_SITES = 8, LIMIT_COS = 10;
+  const LIMIT_SITES = 6, LIMIT_COS = 5;
   let allSites = false, allCos = false;
   function renderFollow() {
     const cols = allSites ? sites : sites.slice(0, LIMIT_SITES);
@@ -150,7 +150,7 @@
     const keysInOrder = (PS ? PS.PURPOSES.map((p) => p.key) : SEV).filter((k) => shown.includes(k));
     const legend = rows.length ? `<div class="legend follow-legend">${keysInOrder.map((k) => `<span class="p-${k}"><i class="p-dot"></i>${esc(PS ? PS.purposeOf(k).label : k)}</span>`).join("")}${rows.some((c) => ADV[c.country] || c.listed) ? `<span class="p-flag"><i class="p-dot"></i>Foreign adversary</span>` : ""}</div>` : "";
     $("follow").innerHTML = `
-      ${head(I.tile("people", "teal"), "Who followed you across sites", "Each dot is a company's tracker loading on one of your sites, colored by what it does. The more sites a company appears on, the more of your browsing it can connect.", more.length ? `<div class="head-actions">${more.join("")}</div>` : "")}
+      ${head(I.tile("people", "teal"), "Who followed you across sites", "The more of your sites a company is on, the more of your browsing it can connect.", more.length ? `<div class="head-actions">${more.join("")}</div>` : "")}
       ${legend}
       ${rows.length ? `<div class="follow">
         ${rows[0] && rows[0].sites.size > 1 ? `<div class="band band-top" style="--r:0" aria-hidden="true"></div>` : ""}
