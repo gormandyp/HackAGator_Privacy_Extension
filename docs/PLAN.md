@@ -5,11 +5,12 @@ Owner areas: **core** (repo owner + Claude: background, data plumbing, merges), 
 Added 2026-10-24 ~9:25 PM for Max (team ask-c/ui ideas from real-Gemma testing; details in R19 below and docs/IDEA.md):
 1. **R19i + R19g + R19h**: Ask C, done the general way: fuzzy name matching ("tik tok", "you tube") and cite-and-check on every Gemma
    answer, plus code-built "Is X safe?" answers. Fixes made-up claims like "Facebook has a history of data breaches".
-2. **R19b**: Ask C answers stop shrinking when they finish (clean the text while it streams).
-3. **R19a**: McDonald's-type "by continuing you agree" notices get C's "Beware!".
-4. **R19c**: C's face instead of the plain "C" icon.
-5. Merge branch `max/icon-tabs` (dashboard tabs with icons + names; merges cleanly).
-6. **R19d + R19e** (home page declutter, bigger card titles): renderings for Max or the repo owner first, not straight to main.
+2. **R19k**: Ask C sees the same tracker purposes as the dashboard (it said "no record" of the malware tracker the dashboard shows).
+3. **R19b**: Ask C answers stop shrinking when they finish (clean the text while it streams).
+4. **R19a**: McDonald's-type "by continuing you agree" notices get C's "Beware!".
+5. **R19c**: C's face instead of the plain "C" icon.
+6. Merge branch `max/icon-tabs` (dashboard tabs with icons + names; merges cleanly).
+7. **R19d + R19e** (home page declutter, bigger card titles): renderings for Max or the repo owner first, not straight to main.
 Tick each one here when done.
 
 ## Done (Fri night) — what changed from plan v2
@@ -120,6 +121,16 @@ Tick each one here when done.
     routing, so the model picks what to look up and code still supplies every fact. Not before the freeze: one more model turn per lookup
     (about 1-2 s each in the browser) and a small model sometimes skips the call. Try with the in-browser E2B and Ollama E4B; compare with
     the backtest questions.
+  - [ ] **k. Ask C can't see trackers the dashboard shows (Max, 2026-10-24 9:25 PM, real Gemma; before the freeze).** The home page's
+    "What the trackers were for" shows 1 "Labelled malware" tracker (Worth knowing: "Tracker Radar labels ECO PC - Complex Solutions as
+    malware. It loaded on tass.com"), but "Which trackers were labelled malware and what websites did they originate from?" got "PrivaC
+    has no record of any trackers being labelled malware". Cause (reproduced on main b8ddd42): a tracker only reaches Gemma if its site is
+    one of the 4 shown in full or its company is in the top 10 "seen on the most sites"; with 32 companies, a one-site malware tracker is cut.
+    Fix in shared/askc.js `overview()`, test first: one line per purpose, the same groups and counts as the dashboard card (Advertising,
+    Unlabelled tracking, Measuring your visits, Recording your screen, Labelled malware, data brokers...), each with its companies and the
+    sites they loaded on (cap ~6 companies and ~4 sites each; malware/high-risk and screen recording are never cut), tagged
+    [Seen on your visit] [Tracker Radar]. Keep the context under MAX_CONTEXT_CHARS (these lines go before the short site lines that are
+    trimmed first). Check: that question names ECO PC and tass.com; the counts match the dashboard card; `node --test` passes.
   - Also waiting to merge: `max/icon-tabs` (tab icons + names).
 
 ## Sun (freeze 11 AM)
