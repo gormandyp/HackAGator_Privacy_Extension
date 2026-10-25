@@ -248,6 +248,18 @@ test("\"Who is Google and should I worry?\" is answered from the records: who it
   assert.match(r.answer, /What you can do:/);
 });
 
+// The same answer said Google's trackers were "mostly unlabelled tracking" (overnight check, Oct 25): that was Google's
+// whole Tracker Radar list (83 of its 96 domains are unlabelled), not the advertising trackers PrivaC saw on your sites.
+test("\"mostly ...\" names what PrivaC saw on your sites, not the company's whole Tracker Radar list", async () => {
+  for (const q of ["Who is Google and should I worry?", "Is Google safe?"]) {
+    const r = await ask(q);
+    assert.strictEqual(r.calls, 0, q);
+    assert.match(r.answer, /PrivaC saw trackers from Google on 4 of your 7 sites this week, mostly advertising \[Seen on your visit\]/, q);
+  }
+  const bd = await ask("Who is ByteDance and should I worry?");
+  assert.match(bd.answer, /PrivaC saw trackers from ByteDance on 1 of your 7 sites this week, mostly unlabelled tracking \[Seen on your visit\]/);
+});
+
 test("\"Who is Criteo and should I worry?\": a registered California data broker says so, with the registry's name", async () => {
   const withBrokers = { ...lists, brokers: { list: [{ name: "Criteo Corp.", site: "criteo.com" }] } };
   const r = await ask("Who is Criteo and should I worry?", null, { lists: async () => withBrokers });

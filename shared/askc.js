@@ -580,7 +580,12 @@ Steps the person can take (no tag needed):
     const label = companyLabel(q, company);
     const on = sites.filter((x) => (x.trackers || []).some((t) => t && t.company === company));
     const x = atlas && atlas.domains ? companiesOf(atlas)[company] : null;
-    const cat = x ? Object.entries(x.cats).sort((a, b) => b[1] - a[1])[0][0] : null;
+    // "mostly ..." is what its trackers on your sites were for: Google's whole Tracker Radar list is mostly unlabelled
+    // (83 of 96 domains), but the Google trackers PrivaC saw were advertising (overnight check, Oct 25).
+    const seenCats = {};
+    for (const s of on) for (const t of s.trackers || []) if (t && t.company === company && t.category) seenCats[t.category] = (seenCats[t.category] || 0) + 1;
+    const top = Object.entries(seenCats).sort((a, b) => b[1] - a[1])[0];
+    const cat = top ? top[0] : null;
     const lines = [];
     if (who && x) {
       const runs = `runs ${x.n} tracker domain${x.n > 1 ? "s" : ""}, the biggest on about ${x.prev}% of popular websites${x.ctry ? `; based in ${placeName(x.ctry)}` : ""} [Tracker Radar].`;
