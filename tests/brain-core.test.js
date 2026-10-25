@@ -444,8 +444,9 @@ test("a seed makes Ask C's sampling repeatable, and is part of the prepared conv
   assert.strictEqual(p.seed, 7);
 });
 
-// The model file also holds Gemma's audio and image readers. Conversations had them switched on, so the runtime
-// set up its audio reader (mel_filterbank.cc) for every question and printed a warning each time. C only reads text.
+// The model file also holds Gemma's audio and image readers. C only reads text, so conversations turn them off.
+// (On the G14 with real Gemma the runtime still set up its audio reader; its warning is quieted in
+// offscreen/brain.js, tests/brain-page-logs.test.js.)
 test("conversations are text only: Gemma's audio and image readers stay off", async () => {
   const caches = fakeCaches(); caches.store.set(MODEL.url, MODEL.bytes);
   const { brain, lm } = brainWith({ caches });
