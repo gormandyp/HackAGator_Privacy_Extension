@@ -106,6 +106,9 @@
   const BUSINESS_SALE = /merger|acquisition|bankruptcy|reorgani[sz]|business transactions?|sale of (?:all|part|substantially|the|our|a)\b|such as (?:a )?sales?\b/;
   const RIGHTS = /\bright to\b[^.]{0,80}\b(?:opt[- ]?out|instruct|direct|request|limit|stop|tell)\b|\bopt[- ]?out of (?:the )?(?:sale|selling|sharing)\b/;
   const DEFINES = /\bwe mean\b|\bis defined as\b/;
+  // "To the extent regulators take the position that ... is a 'sale'" (nytimes, Mac, Oct 25): only what would happen if
+  // someone else called it a sale. ("To the extent permitted by law" is not this.)
+  const IF_CALLED_SALE = /\bto the extent (?:that )?(?!permitted|allowed|required)[^.]{0,80}\b(?:position|considered?|deemed?|interpret\w*|view\w*|characteri[sz]\w*|constitutes?)\b|\btakes? the position\b/;
   const DENY = {
     sells: /\b(?:do|does|will|shall|did)\s+not\s+(?:and will not\s+)?sell\b|\b(?:don't|doesn't|won't|never)\s+sell\b|\bhave not sold\b|\bno sale\b/,
     shares: /\b(?:do|does|will|shall|did)\s+not\s+(?:and will not\s+)?(?:sell (?:or|and)\s+)?share\b|\b(?:don't|doesn't|won't|never)\s+(?:sell (?:or|and)\s+)?share\b/
@@ -117,6 +120,7 @@
     if (LINK_NAME.test(q) || DEFINES.test(q)) return false;
     if (answer === "no") return DENY[field].test(q);
     if (DENY[field].test(q) || RIGHTS.test(q)) return false;
+    if (field === "sells" && IF_CALLED_SALE.test(q)) return false;
     return field === "sells" ? SELL_WORD.test(q) && PERSONAL.test(q) && !BUSINESS_SALE.test(q) : SHARE_WORD.test(q) && AD_WORD.test(q);
   }
 

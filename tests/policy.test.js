@@ -129,6 +129,20 @@ test("a 'sells' answer needs a sentence that says the company sells personal inf
   assert.strictEqual(P.quoteFits("sells", "no", "We sell your personal information to partners."), false, "no denial");
 });
 
+// Mac test with real Gemma (Oct 25 2026, main 75a690e): nytimes.com was saved as selling personal information from a
+// sentence that only says what it would do IF regulators called matched ads a "sale". A sentence like that isn't a yes.
+const HEDGED = "To the extent regulators take the position that the disclosure of information for matched ads is a “sale,” we will take steps designed to opt you out of such sales of your personal information.";
+test("a 'sells' answer from an if-regulators-say-so sentence isn't a yes", () => {
+  assert.strictEqual(P.quoteFits("sells", "yes", HEDGED), false);
+  assert.strictEqual(P.quoteFits("sells", "yes", "To the extent that our use of cookies is considered a sale of personal information under California law, you can opt out below."), false);
+  assert.strictEqual(P.quoteFits("sells", "yes", "We may sell your personal information to data brokers and advertising partners."), true, "a plain yes still counts");
+  assert.strictEqual(P.quoteFits("sells", "yes", "We sell your personal information to the extent permitted by law."), true, "'to the extent permitted' is still a yes");
+  const saved = { sells: true, shares: true, checkedAt: "2026-10-25T19:00:00Z", quotes: { sells: HEDGED, shares: "We may share your personal information with third parties as described in this Privacy Policy, including data analytics providers, advertising technology vendors, and social media platforms." } };
+  const p = P.recheck(saved);
+  assert.strictEqual(p.sells, null, "saved readings are fixed when PrivaC starts");
+  assert.strictEqual(p.shares, true);
+});
+
 test("a 'shares' answer needs advertising or marketing in the sentence, and a 'no' needs a real denial", () => {
   assert.strictEqual(P.quoteFits("shares", "yes", "We share your data across our different Services and LinkedIn affiliated entities."), false);
   assert.strictEqual(P.quoteFits("shares", "yes", "We may share your data with these partners and resellers where allowed, and with your consent when required."), false);

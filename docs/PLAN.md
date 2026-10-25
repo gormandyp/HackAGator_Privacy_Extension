@@ -212,6 +212,9 @@ Tick each one here when done. **All 8 done (checked 2026-10-25 overnight).**
     calls), without checkedAt, so a read cut off halfway is tried again; the site asked for most recently is read next. Ask C
     still goes first (a policy question it interrupts is asked again). Not done: shipped readings for the top 50 sites.
     Check: tests/policy-speed.test.js.
+    Then (Preston, Mac real-Gemma check on 3 policies: grade answers in 2.3-4.5 s): nytimes "sells" came from "To the extent
+    regulators take the position that ... is a 'sale'"; such if-someone-calls-it-a-sale sentences no longer count as a yes, and
+    saved readings are rechecked at start-up (tests/policy.test.js).
   - Also waiting to merge: `max/icon-tabs` (tab icons + names).
 
 ## Sun (freeze 11 AM)
