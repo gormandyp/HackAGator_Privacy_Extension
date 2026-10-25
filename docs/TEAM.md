@@ -1,14 +1,18 @@
-# Who does what (updated 2026-10-24 Sat)
+# Who built what (final, Sun Oct 25)
 
-Everyone: GitHub Desktop → **Fetch origin, then Pull** → work on your branch → one PLAN.md step at a time → push when the step's check passes → update your row in docs/STATUS.md. Never click "Force push". Push code, not zip files.
+| Person | Area | What they built |
+|---|---|---|
+| Repo owner (gormandyp) | core + integrator | Background tracker recording and data plumbing, the score rules (`shared/data.js`: breach rule v4, country web address, server location, more company countries), C's impact counters, the unsafe-site warning, the dashboard and popup redesign (liquid glass), steadier grades, Gemma running inside Chrome (LiteRT-LM), the security fixes before the Chrome Web Store, every merge, and the real-browser tests on the Mac and the Windows laptop |
+| Max Glassman | ask-c + data | The Ask C panel and its fixes (docs/ASKC-FIXES.md, PLAN R13 and R19), RegTrack facts, the Pentagon 1260H list, state-run media, the privacy-policy reader and Knowledge Map, the date checks in docs/DATA.md, Chrome Web Store readiness, dashboard tab icons, glass colors and C's white limbs on dark sites |
+| Matthew Finkelstein | ui | C on web pages (`content/c-prompt.js` and his poses), the cookie-banner detector (`content/cookie-detector.js`) and the first tracker recorder |
+| Justin Smilowitz | demo | The Devpost draft, demo sites and testing, the grading-scale review that gave every grade its range and "Fully/Partly checked" label (PLAN R17), bug reports from testing |
+| Josh Davis | data | The data lane: lists and their sources (docs/DATA.md) |
 
-| Area | Person | Branch | Now | Next |
-|---|---|---|---|---|
-| **core + integrator**: background, data plumbing, merges (with Claude) | Repo owner (gormandyp) | main | R0 live check, R1 RegTrack, R2 1260H | R4 adversary alert, R9 reliability |
-| **data**: lists and facts | Josh Davis | data | Away; Claude covers R2 | Check R2 entries and sources when back; docs/DATA.md |
-| **ask-c**: Ask C, policy and terms questions | Max Glassman | ask-c | R3 privacy-policy reader (wording of the questions, honesty) | R6 suggestions, R7 terms of service |
-| **ui**: C on the page, popup, dashboard look | Matthew Finkelstein | ui | C pop-ups (warnings) | R5 unsafe-site warning, R8 themes, step 13 polish |
-| **demo**: pitch, testing, submission | Justin Smilowitz | demo | Devpost draft, 3 demo sites, DIFFICULTIES.md | Steps 14-16, test everyone's work |
+Video presenters: Matthew, Max and Justin, recorded on the repo owner's Mac.
 
-Shared files (ask the repo owner before changing): shared/data.js (score rules), shared/askc.js, shared/gemma.js, shared/lists.js, background/tracking.js, manifest.json.
-Rules: don't edit another area's files without telling them. Post in the group chat when you push. Checkpoint (proposed, confirm in chat): **Sat 6 PM** (R0-R2 done), freeze **Sun 11 AM**.
+## How we worked
+- Everyone used GitHub Desktop: **Fetch origin, then Pull**, work on your own branch, one docs/PLAN.md step at a time, push when the step's check passes. Never "Force push". Push code, not zip files.
+- Shared files needed the repo owner's OK first: `shared/data.js` (score rules), `shared/askc.js`, `shared/gemma.js`, `shared/lists.js`, `background/tracking.js`, `manifest.json`.
+- Don't edit another area's files without telling them; post in the group chat when you push.
+- Feature freeze Sun 11 AM ET, submission by 4 PM.
+- The status board and decision log we kept during the hackathon: [history/STATUS.md](history/STATUS.md).
