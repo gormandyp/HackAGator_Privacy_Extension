@@ -659,6 +659,41 @@ Steps the person can take (no tag needed):
     shares: { yes: "shares personal information with partners for advertising", no: "doesn't share personal information for advertising", verb: "shares" }
   };
   function readOn(iso) { const [y, m, d] = String(iso || "").slice(0, 10).split("-"); return d ? `${MONTHS[+m - 1]} ${+d}, ${y}` : ""; }
+  // "Why isn't the privacy policy checked yet" after "Why did anthropic.com get a C?" got Gemma's "You have not yet checked
+  // the privacy policy for mail.yahoo.com" (Max, real Gemma on the Mac, 2026-10-25): the wrong site, and it blamed the
+  // person. Answered by code now, about the site named or the last one asked about, from background/policy-reader.js.
+  const NOT = String.raw`(?:\bnot\b|\bnever\b|\b(?:is|has|was|are|were|do|does|did|have|had|can|could|wo)n'?t\b)`;
+  const POLICY_WHY_Q = new RegExp(String.raw`\bpolic(?:y|ies)\b[^?]*(?:${NOT}|\byet\b)|${NOT}[^?]*\bpolic(?:y|ies)\b|\bwhy\b[^?]*\bpolic(?:y|ies)\b[^?]*\b(?:unread|unchecked|unknown|missing|pending)\b`, "i");
+  const POLICY_ACT_Q = /\b(?:check(?:ed)?|read|look(?:ed)?\s+at|scan(?:ned)?)\b/i;
+  const POLICY_HOW = "PrivaC reads a site's privacy policy by itself, on this computer: when a page you open on that site links to its privacy policy, " +
+    "PrivaC fetches that page from the same site (without your cookies) and Gemma checks it against 8 questions, such as whether it sells or shares your data. " +
+    "It does this at most once a week per site.";
+  const POLICY_REASONS = "It usually hasn't happened yet because:\n" +
+    "- none of the pages you opened there linked to a privacy policy on the same site (a link to another site, or a PDF, is skipped);\n" +
+    "- C's AI wasn't ready when you visited (still downloading, or switched off), so PrivaC tries again on your next visit;\n" +
+    "- \"Read privacy policies with Gemma\" is turned off in Settings.";
+  function couldGo(s) {
+    const D = (typeof window !== "undefined" ? window : self).PrivaCData;
+    if (!D || !s.range || !(s.range.max > s.score)) return "";
+    const g = D.gradeFor(s.range.max);
+    return ` Until then, ${s.domain}'s grade shows how high it could go: as high as ${s.range.max} out of 100 (${article(g)} ${g}), instead of counting the unknown as safe.`;
+  }
+  function policyWhyAnswer(q, sites, history) {
+    if (!POLICY_WHY_Q.test(q) || !POLICY_ACT_Q.test(q)) return null;
+    let s = namedSites(sites, q)[0];
+    if (!s) for (const t of recent(history).slice().reverse()) { s = namedSites(sites, t.question)[0]; if (s) break; }
+    if (!s) return `${POLICY_HOW}\n\nUntil a site's policy is read, its grade shows how high the score could go instead of counting the unknown as safe.`;
+    const p = s.policy || {};
+    const d = s.domain;
+    if (p.checkedAt && typeof p.sells !== "boolean" && typeof p.shares !== "boolean") {
+      return `PrivaC read ${d}'s privacy policy on ${readOn(p.checkedAt)}, but it doesn't say clearly whether it sells or shares your personal information [Privacy policy]. ` +
+        "So that line stays unknown, and the grade shows how high the score could go instead of counting it as safe." + couldGo(s);
+    }
+    if (p.checkedAt || typeof p.sells === "boolean" || typeof p.shares === "boolean") return null;   // read and answered: other answers cover it
+    return `PrivaC hasn't read ${d}'s privacy policy yet. ${POLICY_HOW}\n\n${POLICY_REASONS}\n\n` +
+      `What you can do: open ${d} again and let the page finish loading; the grade updates by itself once the policy is read.${couldGo(s)}`;
+  }
+
   function sellAnswer(q, sites) {
     if (!SELL_Q.test(q)) return null;
     const named = namedSites(sites, q);
@@ -1671,6 +1706,8 @@ Steps the person can take (no tag needed):
     deps = { ...deps, history: Array.isArray(deps.history) ? deps.history.map((t) => (t && typeof t.question === "string" ? { ...t, question: fixNames(t.question, vocab) } : t)) : deps.history };
     const steps = WANTS_STEPS.test(q);
     const graded = gradeAnswer(q, ((data && data.sites) || []).filter(Boolean), deps.history);
+    const policyWhy = policyWhyAnswer(q, ((data && data.sites) || []).filter(Boolean), deps.history);
+    if (policyWhy) return { answer: policyWhy, trace: [{ tool: "get_site_report", label: "Your browsing" }] };
     const part = partAnswer(q, ((data && data.sites) || []).filter(Boolean));
     if (part) return { answer: part, trace: [{ tool: "get_site_report", label: "Your browsing" }] };
     if (graded) return { answer: graded, trace: [{ tool: "get_site_report", label: "Your browsing" }] };
