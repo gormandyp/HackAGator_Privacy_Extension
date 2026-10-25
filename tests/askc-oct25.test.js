@@ -195,3 +195,24 @@ test("a high-risk company named after its web address isn't repeated in brackets
   assert.match(r.answer, /cdnwidget\.com: Tracker Radar labels it as high-risk; Shady Ads \(shady\.example\): Tracker Radar labels it as malware/);
   assert.doesNotMatch(r.answer, /cdnwidget\.com \(cdnwidget\.com\)/);
 });
+
+// G14 real-Gemma run, Oct 25 (Q24): "why?" right after "Should I trust cnn?" went to Gemma, which made up "You also accepted
+// all cookies on some sites" and gave the person cnn's grade. A bare "why?" right after a question about one site's safety or
+// grade is answered from that site's own score lines instead.
+test("a bare \"why?\" after \"Should I trust cnn?\" explains cnn.com's grade from its score lines", async () => {
+  for (const why of ["why?", "Why", "how come?", "why is that?"]) {
+    const r = await ask(why, [{ question: "Should I trust cnn?", answer: "cnn.com got a C from PrivaC... [Seen on your visit]" }]);
+    assert.strictEqual(r.calls, 0, why);
+    assert.match(r.answer, /^cnn\.com got an? [A-F]: an exposure score of \d+ out of 100/, why);
+    assert.match(r.answer, /What added points:/, why);
+  }
+  const g = await ask("why?", [{ question: "Why did wired.com get an F?", answer: "wired.com got an F... [Seen on your visit]" }]);
+  assert.match(g.answer, /^wired\.com got an? [A-F]:/);
+});
+
+test("\"why?\" after other questions still goes to Gemma with the conversation", async () => {
+  for (const before of ["Was linkedin.com hacked?", "Who is Criteo?", "What is fingerprinting?"]) {
+    const r = await ask("why?", [{ question: before, answer: "Earlier answer. [Tracker Radar]" }]);
+    assert.strictEqual(r.calls, 1, before);
+  }
+});

@@ -1012,11 +1012,15 @@ Steps the person can take (no tag needed):
   // questions starting with why/how did, and the rest went to Gemma and came back different each time.
   const SO_BAD = /\bwhy\b[^?]*\b(?:so\s+)?(?:bad|poor|low|high|good|terrible|awful)\b/i;
   function gradeIntent(q) { return GRADE_WORDS_Q.test(q) || SO_BAD.test(q) || (/\b(why|how)\b/i.test(q) && askedLetter(q) !== undefined); }
+  // A bare "why?" right after a question about one site's safety or grade is answered from that site's score lines
+  // (G14 real-Gemma run, Oct 25: Gemma answered "why?" after "Should I trust cnn?" with made-up facts).
+  const BARE_WHY = /^\s*(?:why|how come|why is that|why so|but why)\s*[?!.]*\s*$/i;
   function gradeAnswer(q, sites, history) {
     const last = recent(history).slice(-1)[0];
     const followUp = !gradeIntent(q) && last && gradeIntent(last.question) && AND_ABOUT.test(q);   // "and espn?" after a grade question
-    if (!gradeIntent(q) && !followUp) return null;
-    const named = namedSites(sites, q).slice(0, 3);
+    const why = !!last && BARE_WHY.test(q) && (gradeIntent(last.question) || SAFE_Q.test(last.question)) && namedSites(sites, last.question).length === 1;
+    if (!gradeIntent(q) && !followUp && !why) return null;
+    const named = namedSites(sites, why ? last.question : q).slice(0, 3);
     if (!named.length) {
       const domain = (q.toLowerCase().match(/\b[a-z0-9-]+(?:\.[a-z0-9-]+)+\b/) || [])[0];
       return domain ? `I haven't seen ${domain.replace(/^www\./, "")} with PrivaC on in the last 7 days, so it has no grade yet. ` +
