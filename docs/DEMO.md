@@ -1,6 +1,6 @@
 # Demo and video plan (v2, 2026-10-25 overnight; presenters Matthew, Max, Justin; recorded on the repo owner's Mac)
 Video limit: **3 minutes**. Round 1 judges see only the Devpost page, this video and the repo; Monday's finals are live.
-Every site and answer below was checked in real Chrome on the ASUS G14 (Windows, Gemma 4 E2B in the browser, main dde8558, Oct 25), and the fixes made after that (main d7e2026) were checked with the real Ask C code. Grades on the Mac will differ a little (different visits): rehearse once on the recording computer, and anything that fails twice gets cut.
+Every site and answer below was checked in real Chrome on the ASUS G14 (Windows, Gemma 4 E2B in the browser, main dde8558, Oct 25), and the fixes made after that (main 3b915b8) were checked with the real Ask C code. Grades on the Mac will differ a little (different visits): rehearse once on the recording computer, and anything that fails twice gets cut.
 
 ## Words used here
 - **Instant answer**: Ask C answers from PrivaC's own records in code, in about 0.1 s, with no AI. Safest on camera.
@@ -8,7 +8,7 @@ Every site and answer below was checked in real Chrome on the ASUS G14 (Windows,
 - **Tag**: the [Seen on your visit] / [HIBP] / [Government list] label after a fact, naming its source.
 
 ## Before recording (15 minutes)
-1. **Update**: GitHub Desktop → Fetch origin → Pull origin (main at d7e2026 or newer). Then chrome://extensions → PrivaC → the **circular reload arrow**.
+1. **Update**: GitHub Desktop → Fetch origin → Pull origin (main at 3b915b8 or newer). Then chrome://extensions → PrivaC → the **circular reload arrow**.
    - **Never click Remove**: Remove deletes C's brain (2 GB). Reload keeps it, as long as PrivaC stays loaded from the same folder.
 2. **Settings** (gear, top right of the dashboard): Show the grade box **on**; Protect me automatically **off** (so C asks on camera); every pop-up switch on; Read privacy policies with Gemma **on**.
 3. **Brain**: the Ask C tab says "Gemma 4 E2B is running in your browser." Ask one question ("Who is ByteDance?") so the first, slowest load is done before recording.
@@ -71,10 +71,21 @@ Every site and answer below was checked in real Chrome on the ASUS G14 (Windows,
 | The unsafe-site warning and the grade box (once per site per day) | chrome://extensions → PrivaC → "service worker" → Console → paste `chrome.storage.local.remove(["privacUnsafeSeen", "privacChipSeen"])` → Enter. It keeps the week's history (Clear my PrivaC data would empty the dashboard) |
 
 ## 3-minute script
-- **0:00-0:20 Justin, the problem.** "One visit to wired.com handed me to 88 outside companies, including ByteDance and Baidu from China. I never saw a cookie banner, and nobody reads the privacy policy." (Use the number your own popup shows.)
-- **0:20-1:30 Matthew, C on the page.** wired.com: C's alert (ByteDance, China), then the F warning and Go back. Popup: F 100 and why. gov.uk: C → Protect me → "Nice!". cnn.com: Beware! (only an Agree button). duckduckgo.com: an A, for contrast.
-- **1:30-2:20 Max, Ask C.** From the popup, "Ask C why it got an F" (instant, every fact tagged). "Is any site I visited connected to China or Russia?" (Gemma streams). "Was zara.com hacked?". "Does nytimes share my data?" (the sentence Gemma found in its policy). Say: "Gemma 4 runs inside Chrome on this laptop; my browsing never leaves it."
-- **2:20-3:00 Justin, what's new and the limits.** The Ask C tab: "Gemma 4 E2B is running in your browser." Gemma 4 (Mar 31, 2026) inside Chrome with LiteRT-LM (May 2026), the Pentagon 1260H list (Jun 8, 2026), RegTrack (2026, 743 sites), the 2026 California broker registry. Limits: a tracker loading doesn't prove data was sold; the rubric is ours; the AI needs a one-time 2 GB download. Close: "Without PrivaC you never know who's watching. With it, C has your back."
+The same 9 segments as the Drive pitch outline (v2.2). Record each segment separately, then join them.
+| # | Time | Who | Open | Say and show |
+|---|---|---|---|---|
+| 1 | 0:00-0:15 | Justin | Title card with C | "One visit to wired.com handed me to 88 outside companies, including ByteDance and Baidu from China. Cookie banners are confusing or missing, and nobody reads the privacy policy." (Use the number your own popup shows.) |
+| 2 | 0:15-0:30 | Justin | Chrome toolbar and PrivaC | "Gemma 4 runs inside Chrome on this laptop: no app to install, and nothing leaves it. Privacy Badger and Ghostery block quietly. PrivaC explains, grades, clicks Reject for you, and flags companies on the Pentagon's list." |
+| 3 | 0:30-1:00 | Matthew | wired.com, then the popup | C's alert (ByteDance, China), the warning with Go back / Continue anyway, the grade box. Popup: F 100 and "Why it got an F". Caption: data-broker registry check |
+| 4 | 1:00-1:25 | Matthew | gov.uk, then cnn.com | C → Protect me → "Nice!". cnn.com: Beware! (only an Agree button). Captions: "Protect me automatically"; RegTrack 2026: accepting cookies raised tracking from 48.5 to 56.2 domains per site |
+| 5 | 1:25-1:40 | Matthew | weather.com, then tass.com | The alert names Baidu (China, Pentagon 1260H list, June 2026). tass.com: "state-run media" |
+| 6 | 1:40-2:20 | Max | Dashboard → Ask C | Instant: "Why did cnn.com get a C?" (use the letter your popup shows), "Was linkedin.com hacked?", "Does nytimes share my data?". Then one Gemma answer streaming: "Is any site I visited connected to China or Russia?". Point at the tags |
+| 7 | 2:20-2:30 | Max | Sites tab, then Grades tab | Who followed you across sites; "How the grade works"; the privacy promise and "Clear my PrivaC data" |
+| 8 | 2:30-2:50 | Justin | About tab | Fresh off the frontier: Gemma 4 (Mar 31, 2026), LiteRT-LM for the web (May 18, 2026), RegTrack (Feb 2026), Pentagon 1260H list (Jun 8, 2026), the 2026 California broker registry |
+| 9 | 2:50-3:00 | Justin | C waves goodbye; repo link and "MIT open source" | Limits in one breath: a tracker loading doesn't prove data was sold; the rubric is ours; the AI needs a one-time 2 GB download. Close: "Without PrivaC, you never know who's watching. With it, C has your back." |
+
+- Gemma answers can be sped up 2-3 times with "sped up" on screen. Instant answers need no speed-up.
+- If a segment runs long, cut segment 7 to the Grades tab only.
 
 ## Lines that sell it (real numbers, Oct 25)
 - "weather.com loaded 156 trackers from 130 companies in one visit." (G14)
