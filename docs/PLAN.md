@@ -66,6 +66,21 @@ Owner areas: **core** (repo owner + Claude: background, data plumbing, merges), 
     4. Breach answers with no breach on record leave out the after-a-breach steps (give "use a different password for each site and
        two-step sign-in" only).
     Check: those 3 questions in a row give list answers with the Have I Been Pwned chip; `node --test` passes; then ask them on the Mac.
+  - [ ] **h. "Is X safe?" answered from PrivaC's records (Max, 2026-10-24 9:15 PM, real Gemma; must be done before the Sunday 11 AM freeze).**
+    On main `40d2501`, with youtube.com visited (grade A): "Is YouTube safe?" -> Gemma had youtube.com's full grade line and "Google (Tracker
+    Radar lists Youtube's trackers under Google, its owner)" in its evidence, yet answered without the grade and said Google was "tracking you
+    on YouTube"; "Is you tube safe?" got no facts at all (R19g). Steps: 1 in one answer, 4+ in the other.
+    Fix in shared/askc.js, failing test first:
+    1. "Is X safe / dangerous / trustworthy / ok to use", "Should I trust X", "Is X legit" -> an instant answer built in code, like the grade
+       and breach answers: if X is a site you visited, its grade and exposure score and the top 2-3 lines that added points (same lines as
+       "Why did X get a B?"); its Have I Been Pwned record (or "no breach on record ... doesn't prove it was never breached"); any
+       foreign-adversary or state-media flag; who owns it if it's part of a bigger company ("YouTube is owned by Google").
+    2. If X wasn't visited but is a known tracker company, say what PrivaC saw (on N of your sites, what kind of tracker) plus its breach record.
+    3. Never "safe" or "unsafe" as a verdict: "PrivaC grades how much of your data a site exposes; it doesn't check for malware or scams"
+       (unless the tracker data marks it Malware/High-risk, then say so). End with 2-3 steps that fit the findings.
+    4. Unknown X (not visited, not a known company) -> Gemma, as today.
+    Check: "Is YouTube safe?", "Is you tube safe?", "is youtube.com safe", "Should I trust cnn?" give the same kind of answer with the
+    grade and source chips; `node --test` passes; then ask them on the Mac.
   - Also waiting to merge: `max/icon-tabs` (tab icons + names).
 
 ## Sun (freeze 11 AM)
