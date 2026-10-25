@@ -1,4 +1,4 @@
-# Demo and video plan (v2.1, 2026-10-25 afternoon, main ad603c0; presenters Matthew, Max, Justin; recorded on the repo owner's Mac)
+# Demo and video plan (v3, 2026-10-25 4:10 PM ET, main 3342c4e; the video opens on the dashboard with example data on)
 Video limit: **3 minutes**. Round 1 judges see only the Devpost page, this video and the repo; Monday's finals are live.
 Every site and answer below was checked in real Chrome on the ASUS G14 (Windows, Gemma 4 E2B in the browser, main dde8558, Oct 25), and the fixes made after that (main c3036db) were checked with the real Ask C code, and with Gemma 4 E4B (Ollama) on the Mac. Sunday afternoon's Ask C, Clear and cookie pop-up fixes were checked again on the G14 with the real in-browser Gemma (main 7c54ac5 to a5abdc6; reports in the team's project files). Grades on the Mac will differ a little (different visits): rehearse once on the recording computer, and anything that fails twice gets cut.
 
@@ -76,21 +76,23 @@ Every site and answer below was checked in real Chrome on the ASUS G14 (Windows,
 | The unsafe-site warning and the grade box (once per site per day) | chrome://extensions → PrivaC → "service worker" → Console → paste `chrome.storage.local.remove(["privacUnsafeSeen", "privacChipSeen"])` → Enter. It keeps the week's history (Clear my PrivaC data would empty the dashboard) |
 
 ## 3-minute script
-The same 9 segments as the Drive pitch outline (v2.3). Record each segment separately, then join them.
-| # | Time | Who | Open | Say and show |
-|---|---|---|---|---|
-| 1 | 0:00-0:15 | Justin | Title card with C | "One visit to wired.com handed me to 88 outside companies, including ByteDance and Baidu from China. Cookie banners are confusing or missing, and nobody reads the privacy policy." (Use the number your own popup shows.) |
-| 2 | 0:15-0:30 | Justin | Chrome toolbar and PrivaC | "Gemma 4 runs inside Chrome on this laptop: no app to install, and nothing leaves it. Privacy Badger and Ghostery block quietly. PrivaC explains, grades, clicks Reject for you, and flags companies on the Pentagon's list." |
-| 3 | 0:30-1:00 | Matthew | wired.com, then the popup | C's alert (ByteDance, China), the warning with Go back / Continue anyway, the grade box. Popup: F 100 and "Why it got an F". Caption: data-broker registry check |
-| 4 | 1:00-1:25 | Matthew | gov.uk, then cnn.com | C → Protect me → "Nice!". cnn.com: Beware! (only an Agree button). Captions: "Protect me automatically"; RegTrack 2026: accepting cookies raised tracking from 48.5 to 56.2 domains per site |
-| 5 | 1:25-1:40 | Matthew | weather.com, then tass.com | The alert names Baidu (China, Pentagon 1260H list, June 2026). tass.com: "state-run media" |
-| 6 | 1:40-2:20 | Max | Dashboard → Ask C | Instant: "Why did cnn.com get a C?" (use the letter your popup shows), "Was linkedin.com hacked?", "Does nytimes share my data?". Optional: "Which sites recorded my screen?". Then one Gemma answer streaming: "Is any site I visited connected to China or Russia?". Point at the tags |
-| 7 | 2:20-2:30 | Max | Overview's "Worth knowing", Sites tab, then Grades tab | Click a "Worth knowing" item: it opens that site on the Sites tab and, when the item names one company, highlights its row (the China and Russia item highlights each company it names on that site). Who followed you across sites; "How the grade works"; the privacy promise and "Clear my PrivaC data" |
-| 8 | 2:30-2:50 | Justin | About tab | Fresh off the frontier: Gemma 4 (Mar 31, 2026), LiteRT-LM for the web (May 18, 2026), RegTrack (Feb 2026), Pentagon 1260H list (Jun 8, 2026), the 2026 California broker registry |
-| 9 | 2:50-3:00 | Justin | C waves goodbye; repo link and "MIT open source" | Limits in one breath: a tracker loading doesn't prove data was sold; the rubric is ours; the AI needs a one-time 2 GB download. Close: "Without PrivaC, you never know who's watching. With it, C has your back." |
+Version 2 of the Drive doc "PrivaC 3-Minute Demo Script" (Hackathon folder) has the full spoken lines and captions. The dashboard comes first (Preston, Oct 25): it starts on Overview with Settings > Your data > "Show example data" on, then shows C on websites in Fink's order. Record each part separately, then join them.
+| # | Time | Open | Say and show |
+|---|---|---|---|
+| 1 | 0:00-0:20 | Dashboard Overview ("Example data" badge) | The problem, PrivaC, Gemma 4 inside Chrome. Caption: "Example data: a sample month" |
+| 2 | 0:20-0:35 | Overview's "Worth knowing" | Click "ByteDance (China), Baidu (China), Tencent (China) and Yandex (Russia) tracked you on 4 sites": the Sites tab highlights them. Caption: 1260H list (Jun 8, 2026), 15 CFR 7.4 |
+| 3 | 0:35-0:55 | Overview, "Cookies your sites kept" | The small C beside _ga (13 of 14 sites) opens "C explains" (Open Cookie Database), then "Continue in Ask C" |
+| 4 | 0:55-1:20 | Ask C | Instant: "Which sites recorded my screen?" (Hotjar). Gemma, sped up: "Is any site I visited connected to China or Russia?". Point at the tags. Backups: "Which site tracked me the most?", "Who is Criteo?" |
+| 5 | 1:20-1:32 | Sites, flightdeals.example | Grade steps, companies (each with a C button), the privacy-policy line |
+| 6 | 1:32-1:44 | Safety, then C's impact, "30 days" | "31 of 195 visits were risky", "C stepped in 117 times" (read your screen) |
+| 7 | 1:44-1:54 | Grades | A rule's C button ("Explain this grading rule"): instant. Code sets the grade, never the AI |
+| 8 | 1:54-2:04 | About | Gemma 4, LiteRT-LM for the web, the 1260H update, the 2026 California broker registry, RegTrack. Caption: Tracker Radar, HIBP, Open Cookie Database, State Media Monitor |
+| 9 | 2:04-2:48 | gymshark.com, tesco.com, mcdonalds.com/us, uniqlo.com | Gymshark: Protect me, "Nice!", grade box. Tesco: C hangs by Reject. McDonald's: Beware!. Uniqlo: C's alert (fill in the company and country), the popup's breach and privacy-policy lines, "Ask C why it got" its grade. Backup for the alert: wired.com |
+| 10 | 2:48-3:00 | C waves; repo link, "MIT open source" | "A tracker loading doesn't prove data was sold, and the grade is our own rubric. C has your back." |
 
-- Gemma answers can be sped up 2-3 times with "sped up" on screen. Instant answers need no speed-up.
-- If a segment runs long, cut segment 7 to the Grades tab only.
+- Before recording: open gymshark, tesco and uniqlo once (so their policies are read), then "Clear this site's data" on each so their banners come back.
+- uniqlo.com and tesco.com return "Access Denied" to automated test browsers; they work in a normal Chrome (Fink's, Oct 25).
+- If it runs long: Tesco becomes a two-second shot; part 6 shows only Safety. Never cut the Ask C buttons, the Gemma answer or the About tab.
 
 ## Lines that sell it (real numbers, Oct 25)
 - "weather.com loaded 156 trackers from 130 companies in one visit." (G14)
