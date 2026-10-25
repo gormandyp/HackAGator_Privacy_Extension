@@ -134,7 +134,8 @@ test("Ask C's tracker purposes use the same names as the dashboard (shared/highl
 });
 
 test("cite-and-check keeps a true sentence that mentions a country, and keeps each source tag with its sentence", async () => {
-  const r = await ask("Who is Facebook and should I worry?", null,
+  // "Who is Facebook?" goes to Gemma ("... and should I worry?" is answered from the records since Oct 25, tests/askc-oct25.test.js).
+  const r = await ask("Who is Facebook?", null,
     "Facebook is an advertising company based in the United States. [Tracker Radar] Its trackers were on 31 of your sites. [Seen on your visit] Cloudflare also runs part of the web.");
   assert.match(r.answer, /^Facebook is an advertising company based in the United States\. \[Tracker Radar\] Its trackers were on 31 of your sites\./);
   assert.doesNotMatch(r.answer, /Cloudflare/);

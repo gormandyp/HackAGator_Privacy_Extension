@@ -233,3 +233,33 @@ test("\"and espn?\" after a safety question or a bare \"why?\" gets that site's 
     assert.match(r.answer, /^wired\.com got an? [A-F]:/);
   }
 });
+
+// "Who is Google and should I worry?" is the dashboard's second suggestion (dashboard/ask-c.js). Real Gemma (G14, Oct 25)
+// answered "Because of its size, it is involved in advertising and data brokering [Tracker Radar]": Google isn't a
+// registered data broker, and Tracker Radar doesn't say so. It's answered from the records now, like "Is Meta safe?".
+test("\"Who is Google and should I worry?\" is answered from the records: who it is, where it was seen, no made-up broker claim", async () => {
+  const r = await ask("Who is Google and should I worry?");
+  assert.strictEqual(r.calls, 0);
+  assert.match(r.answer, /^Google runs \d+ tracker domains, the biggest on about [\d.]+% of popular websites; based in the United States \[Tracker Radar\]\./);
+  assert.match(r.answer, /PrivaC saw trackers from Google on 4 of your 7 sites this week/);
+  assert.match(r.answer, /could see your IP address[^\n]*it doesn't prove your data was sold\./);
+  assert.match(r.answer, /no breach on record for Google \[HIBP\]/);
+  assert.doesNotMatch(r.answer, /data brok/i);
+  assert.match(r.answer, /What you can do:/);
+});
+
+test("\"Who is Criteo and should I worry?\": a registered California data broker says so, with the registry's name", async () => {
+  const withBrokers = { ...lists, brokers: { list: [{ name: "Criteo Corp.", site: "criteo.com" }] } };
+  const r = await ask("Who is Criteo and should I worry?", null, { lists: async () => withBrokers });
+  assert.strictEqual(r.calls, 0);
+  assert.match(r.answer, /^Criteo runs \d+ tracker domains?, the biggest on about [\d.]+% of popular websites; based in France \[Tracker Radar\]\./);
+  assert.match(r.answer, /Criteo is registered as a data broker in California \(as "Criteo Corp\."\) \[CA Broker Registry\]/);
+  assert.ok(r.trace.some((t) => t.label === "CA Broker Registry"));
+});
+
+test("other \"should I worry\" questions still go to Gemma: a follow-up, no company named, a tracker on a site", async () => {
+  for (const q of ["Should I worry?", "Who is tracking me the most, and should I worry?", "What does Criteo (criteo.com) do on cnn.com, and should I worry?"]) {
+    const r = await ask(q, [{ question: "Who is Criteo?", answer: "Criteo is an advertising company based in France. [Tracker Radar]" }]);
+    assert.strictEqual(r.calls, 1, q);
+  }
+});

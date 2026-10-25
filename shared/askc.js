@@ -510,6 +510,10 @@ Steps the person can take (no tag needed):
   // Like grade and breach questions, these are answered from the records: grade, what added points, flags, owner, the
   // breach list. Never "safe" or "unsafe": PrivaC measures exposure, not malware or scams.
   const SAFE_Q = /\b(safe|safely|unsafe|dangerous|danger|trust|trustworthy|trusted|legit|legitimate|secure|sketchy|shady|risky|ok(?:ay)?\s+to\s+use|fine\s+to\s+use)\b/i;
+  // The dashboard's suggestion "Who is Google and should I worry?" (dashboard/ask-c.js). Gemma said Google is "involved in
+  // advertising and data brokering [Tracker Radar]" (G14, Oct 25); it's answered from the records now, with who the company is.
+  const WHO_WORRY = /^\s*who\s+(?:is|are)\s+[^?]+?,?\s+(?:and\s+)?should\s+i\s+(?:worry|be\s+worried)\b/i;
+  const placeName = (c) => { const n = countryName(c); return /^(?:United |Netherlands$|Philippines$)/.test(n) ? "the " + n : n; };
   function hibpUpdated(lists) {
     const at = String(lists.hibp.fetchedAt || "").slice(0, 10).split("-");
     return at.length === 3 ? ` (updated ${MONTHS[+at[1] - 1]} ${+at[2]}, ${at[0]})` : "";
@@ -522,7 +526,8 @@ Steps the person can take (no tag needed):
   const BAD_CATS = new Set(["Malware", "High-risk"]);
   const stepList = (steps) => "\n\nWhat you can do:\n" + steps.slice(0, 3).map((x) => `- ${x.charAt(0).toUpperCase()}${x.slice(1)}.`).join("\n");
   function safeAnswer(q, sites, lists, atlas, extra) {
-    if (!SAFE_Q.test(q)) return null;
+    const who = WHO_WORRY.test(q);
+    if (!SAFE_Q.test(q) && !who) return null;
     const domain = (q.toLowerCase().match(/[a-z0-9-]+(?:\.[a-z0-9-]+)+/) || [])[0];
     const visited = namedSites(sites, q)[0] || (domain && sites.find((s) => s.domain === domain.replace(/^www\./, "")));
     const steps = [];
@@ -575,8 +580,18 @@ Steps the person can take (no tag needed):
     const on = sites.filter((x) => (x.trackers || []).some((t) => t && t.company === company));
     const x = atlas && atlas.domains ? companiesOf(atlas)[company] : null;
     const cat = x ? Object.entries(x.cats).sort((a, b) => b[1] - a[1])[0][0] : null;
-    const lines = [on.length ? `PrivaC saw trackers from ${label} on ${on.length} of your ${sites.length} sites this week${cat ? `, mostly ${PURPOSE[cat] ? PURPOSE[cat].toLowerCase() : cat.toLowerCase()}` : ""} [Seen on your visit] [Tracker Radar].`
-      : `PrivaC hasn't seen trackers from ${label} on your sites this week [Seen on your visit].`];
+    const lines = [];
+    if (who && x) {
+      const runs = `runs ${x.n} tracker domain${x.n > 1 ? "s" : ""}, the biggest on about ${x.prev}% of popular websites${x.ctry ? `; based in ${placeName(x.ctry)}` : ""} [Tracker Radar].`;
+      lines.push(/\(owned by /.test(label) ? `${shortLabel(label)} is owned by ${company}, which ${runs}` : `${label} ${runs}`);
+    }
+    const seenAs = who && x ? shortLabel(label) : label;
+    lines.push(on.length ? `PrivaC saw trackers from ${seenAs} on ${on.length} of your ${sites.length} sites this week${cat ? `, mostly ${PURPOSE[cat] ? PURPOSE[cat].toLowerCase() : cat.toLowerCase()}` : ""} [Seen on your visit] [Tracker Radar].`
+      : `PrivaC hasn't seen trackers from ${seenAs} on your sites this week [Seen on your visit].`);
+    if (who && on.length) lines.push(`On those sites, its trackers could see your IP address (your rough location), the page you were on and your device details, and recognize you from one site to the next; it doesn't prove your data was sold.`);
+    const LL = (typeof window !== "undefined" ? window : self).PrivaCLists;
+    const broker = LL && x ? LL.brokerFor(company, x.top, lists, atlas.entities && atlas.entities[company]) : null;
+    if (broker) lines.push(`${shortLabel(label)} is registered as a data broker in California (as "${broker.name}") [CA Broker Registry].`);
     const listed = listedCompany(company, extra);
     if (listed || (x && ADVERSARY.has(x.ctry))) lines.push(`${shortLabel(label)}${x && ADVERSARY.has(x.ctry) ? ` is based in ${countryName(x.ctry)}, a country on the U.S. foreign-adversary list` : ""}${listed ? listedText(listed) : " [Government list]"}.`);
     const hits = breachSites(shortLabel(label), lists).concat(shortLabel(label) !== company ? breachSites(company, lists) : []);
@@ -586,7 +601,7 @@ Steps the person can take (no tag needed):
     steps.push("let C decline the extra cookies on sites whose cookie banner has a reject option");
     steps.push("block third-party cookies in Chrome (Settings > Privacy and security > Third-party cookies)");
     if (hits.length) steps.push(`if you have a ${shortLabel(label)} account, change its password and turn on two-step sign-in`);
-    return { text: lines.join("\n") + stepList(steps), sources: ["site", ...(bl ? ["breach"] : [])] };
+    return { text: lines.join("\n") + stepList(steps), sources: ["site", ...(bl ? ["breach"] : []), ...(broker ? ["broker"] : [])] };
   }
 
   // ---------- "Does wired.com sell my data?" ----------
@@ -1207,7 +1222,8 @@ Steps the person can take (no tag needed):
     if (most) return { answer: most, trace: [{ tool: "get_site_report", label: "Your browsing" }] };
     const extraFacts = deps.facts ? await deps.facts() : FACT_FILES;
     const safe = safeAnswer(q, ((data && data.sites) || []).filter(Boolean), lists, atlas, extraFacts);
-    if (safe) return { answer: safe.text, trace: [{ tool: "get_site_report", label: "Your browsing" }, ...(safe.sources.includes("breach") ? [{ tool: "breaches", label: "Have I Been Pwned" }] : [])] };
+    if (safe) return { answer: safe.text, trace: [{ tool: "get_site_report", label: "Your browsing" }, ...(safe.sources.includes("breach") ? [{ tool: "breaches", label: "Have I Been Pwned" }] : []),
+      ...(safe.sources.includes("broker") ? [{ tool: "brokers", label: "CA Broker Registry" }] : [])] };
     const sells = sellAnswer(q, ((data && data.sites) || []).filter(Boolean));
     if (sells) return { answer: sells, trace: [{ tool: "get_site_report", label: "Your browsing" }] };
     const breach = breachAnswer(q, lists, deps.history, ((data && data.sites) || []).filter(Boolean), atlas);
