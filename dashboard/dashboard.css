@@ -431,31 +431,32 @@ button.fact-title:hover { text-decoration-color: var(--hair-strong); }
 .ask-form .btn:disabled { opacity: .45; cursor: wait; }
 
 /* ============ Grades ============ */
-.grades-head .lead { font-size: 17px; font-weight: 700; color: var(--text); margin: 6px 0 4px; }
-.grades-head p:not(.lead) { line-height: 1.5; }
-.rubric { display: grid; grid-template-columns: minmax(0, 1.75fr) minmax(0, 1fr); gap: 18px; align-items: start; }
+.grades-head .lead { font-size: 15px; font-weight: 700; color: var(--text); margin: 2px 0 2px; }
+.grades-head p:not(.lead) { line-height: 1.4; max-width: none; margin-top: 0; }
+.rubric { display: grid; grid-template-columns: minmax(0, 2.4fr) minmax(0, 1fr); gap: 14px; align-items: start; }
 .rubric .card { padding: 0; overflow: hidden; }
-.rubric table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+.rubric table { width: 100%; border-collapse: collapse; font-size: 13px; }
 .rubric th, .rubric td { text-align: left; vertical-align: top; }
-.rubric thead th { font-size: 13px; font-weight: 600; color: var(--text-2); padding: 12px 20px; border-bottom: 1px solid var(--hair); }
+.rubric thead th { font-size: 12px; font-weight: 600; color: var(--text-2); padding: 9px 16px; border-bottom: 1px solid var(--hair); }
 .rubric thead th:last-child { width: 150px; }
 .rubric tbody tr + tr { border-top: 1px solid var(--hair); }
-.rubric tbody td { padding: 14px 20px; }
-.rubric tbody td:first-child { box-shadow: inset 4px 0 0 var(--tile, var(--t-gray)); }
-.rubric .rule { display: flex; gap: 14px; align-items: flex-start; }
-.rubric .rule .icon-tile { flex: none; width: 44px; height: 44px; border-radius: 12px; margin-top: 2px; }
-.rubric .rule .icon-tile svg { width: 24px; height: 24px; }
-.rubric .rule-title { display: block; font-size: 15px; font-weight: 700; color: var(--text); margin-bottom: 3px; }
-.rubric .rule-body p, .rubric .rule-body li { margin: 0; color: var(--text-2); line-height: 1.45; }
+.rubric tbody td { padding: 9px 16px; }
+.rubric tbody td:first-child { box-shadow: inset 3px 0 0 var(--tile, var(--t-gray)); }
+.rubric .rule { display: flex; gap: 11px; align-items: flex-start; }
+.rubric .rule .icon-tile { flex: none; width: 30px; height: 30px; border-radius: 9px; margin-top: 1px; }
+.rubric .rule .icon-tile svg { width: 17px; height: 17px; }
+.rubric .rule-title { display: block; font-size: 13.5px; font-weight: 700; color: var(--text); margin-bottom: 1px; }
+.rubric .rule-body p, .rubric .rule-body li { margin: 0; color: var(--text-2); line-height: 1.38; }
 .rubric .rule-body p b { color: var(--text); font-weight: 650; }
-.rubric .rule-body ul { margin: 3px 0; padding-left: 18px; }
-.rubric tbody td:last-child b { display: block; font-family: var(--font-display); font-size: 18px; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; color: var(--text); }
-.rubric tbody td:last-child small { display: block; margin-top: 2px; font-size: 13px; color: var(--text-2); }
-.rubric .ask-cell { display: block; width: auto; margin-top: 8px; text-align: left !important; }
+.rubric .rule-body ul { margin: 1px 0; padding-left: 16px; }
+.rubric tbody td:last-child b { display: block; font-family: var(--font-display); font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; color: var(--text); }
+.rubric tbody td:last-child small { display: block; margin-top: 1px; font-size: 12px; color: var(--text-2); }
+.rubric tbody td:last-child { position: relative; padding-right: 44px; }
+.rubric .ask-cell { position: absolute; top: 7px; right: 10px; width: auto; }
 .grades-key { display: grid; gap: 0; padding: 4px 6px; }
-.grades-key .k { display: grid; grid-template-columns: 34px 1fr auto; gap: 12px; align-items: center; padding: 14px 14px; font-size: 14.5px; }
+.grades-key .k { display: grid; grid-template-columns: 28px 1fr auto; gap: 10px; align-items: center; padding: 10px 12px; font-size: 13.5px; }
 .grades-key .k + .k { border-top: 1px solid var(--hair); }
-.grades-key .k b { font-family: var(--font-display); font-weight: 800; font-size: 26px; line-height: 1; color: var(--g); }
+.grades-key .k b { font-family: var(--font-display); font-weight: 800; font-size: 21px; line-height: 1; color: var(--g); }
 .grades-key .k span:nth-child(2) { font-weight: 550; color: var(--text); }
 .grades-key .k span:last-child { color: var(--text-2); font-variant-numeric: tabular-nums; }
 .how-calc { margin-top: 14px; padding: 16px 18px; }
