@@ -76,7 +76,26 @@
     e.preventDefault();
     selectSite(Math.max(0, Math.min(sites.length - 1, current + (e.key === "ArrowDown" ? 1 : -1))), true);
   });
-  window.PrivaCSites = { select: (domain) => { const i = sites.findIndex((s) => s.domain === domain); if (i >= 0) selectSite(i); } };
+  // From the Overview's "Worth knowing" (Max, 2026-10-25: it opened the top of the Sites tab): selects the site, brings
+  // it into view, and when a company is named, scrolls to its row and highlights it for a moment.
+  function reveal(company) {
+    const pane = $("site-detail");
+    const row = company && [...pane.querySelectorAll(".co")].find((c) => c.firstChild && c.firstChild.textContent.trim() === company);
+    const target = row ? row.closest("li") : pane;
+    const reduce = typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
+    requestAnimationFrame(() => {
+      target.scrollIntoView({ block: row ? "center" : "start", behavior: reduce ? "auto" : "smooth" });
+      if (row) { target.classList.remove("spot"); void target.offsetWidth; target.classList.add("spot"); }
+    });
+  }
+  window.PrivaCSites = { select: (domain, company) => {
+    const i = sites.findIndex((s) => s.domain === domain);
+    if (i < 0) return;
+    selectSite(i);
+    const item = $("sites").querySelector(`[data-i="${i}"]`);
+    if (item) item.scrollIntoView({ block: "nearest" });
+    reveal(company);
+  } };
   if (sites.length) selectSite(0);
   else $("site-detail").innerHTML = `<p class="hint">Pick a site on the left once PrivaC has seen a few.</p>`;
 

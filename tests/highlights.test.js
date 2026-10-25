@@ -95,3 +95,29 @@ test("at equal reach, companies from listed countries sort first (so a trimmed t
     { domain: "mc.yandex.ru", company: "Yandex", category: "Analytics", country: "RU" }] })];
   assert.deepStrictEqual(aggregate(sites).companies.map((c) => c.name), ["Yandex", "Aardvark Ads"]);
 });
+
+// Max, 2026-10-25: clicking "Google followed you across 2 of your 5 sites" opened the first site in the list
+// (every fact opened flightdeals.example in the sample), not Google. A fact about a company now opens that company's
+// own site when you visited it (google.com), otherwise the riskiest site where it tracked you, and names the company
+// so the Sites tab can point at its row.
+const T = (company, category = "Advertising") => ({ company, category, country: "US", domain: company.toLowerCase() + "-cdn.com" });
+const visit = (domain, trackers) => scored({ domain, lastVisit: "2026-10-25", cookieChoice: "accepted", policy: {}, trackers });
+
+test("a fact about a company opens that company's own site when you visited it, and names the company", () => {
+  const sites = [visit("cnn.com", [T("Google"), T("Criteo")]), visit("espn.com", [T("Google")]), visit("google.com", []),
+    visit("weather.com", [T("Criteo"), T("Google")]), visit("zara.com", [])];
+  const reach = facts(sites).find((f) => f.kind === "reach");
+  assert.match(reach.title, /^Google followed you across 3 of your 5 sites/);
+  assert.strictEqual(reach.site, "google.com");
+  assert.strictEqual(reach.company, "Google");
+});
+
+test("without the company's own site, it opens the riskiest site where the company tracked you", () => {
+  const busy = [T("Google"), T("Criteo"), T("Hotjar", "Session recording"), T("Meta"), T("Amazon"), T("Comscore", "Analytics")];
+  const sites = [visit("calm.example", [T("Hotjar", "Session recording")]), visit("busy.example", busy), visit("quiet.example", [T("Google")])];
+  const rec = facts(sites).find((f) => f.kind === "recording");
+  assert.strictEqual(rec.company, "Hotjar");
+  assert.strictEqual(rec.site, "busy.example", "the highest-scoring site Hotjar was on");
+  const reach = facts(sites).find((f) => f.kind === "reach");
+  assert.strictEqual(reach.site, "busy.example");
+});
