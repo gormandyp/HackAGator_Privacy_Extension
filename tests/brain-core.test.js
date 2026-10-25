@@ -254,7 +254,7 @@ test("Remove deletes the downloaded file and frees the GPU", async () => {
   assert.ok(lm.calls.engineDeleted);
 });
 
-// ---------- review fixes (second opinions from ChatGPT and a fresh Claude review) ----------
+// ---------- review fixes (second opinions from two independent code reviews) ----------
 
 test("a download of the wrong size (e.g. a Wi-Fi sign-in page) is refused before it fills the disk", async () => {
   let pulled = 0;
@@ -338,7 +338,7 @@ test("speed: whether the graphics chip works is checked once, not on every statu
   assert.strictEqual(asked, 1);
 });
 
-// ---------- fixes from the independent Claude review ----------
+// ---------- fixes from the independent code review ----------
 
 test("while C's brain is downloading, a question says so and the download's progress stays on screen", async () => {
   const { brain } = brainWith({ fetch: async (url, init) => { if (url === MODEL.url) return download(SIZE, { pause: 15, signal: init.signal }); throw new TypeError("Failed to fetch"); } });

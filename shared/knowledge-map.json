@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "writtenBy": "Max Glassman (ask-c), with Claude",
+  "writtenBy": "Max Glassman (ask-c)",
   "checkedOn": "2026-10-24",
   "purpose": "Every check PrivaC runs on a site. 'code' checks are measured by the extension; 'gemma' checks are answered by Gemma from the site's privacy policy, on this computer. The dashboard shows these as 'What C checked'.",
 

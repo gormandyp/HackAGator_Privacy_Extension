@@ -88,7 +88,7 @@ test("each site's own privacy policy is labeled as the site's, so a tracker comp
   assert.match(ctx, /this site's own privacy policy says it sells personal info \[Privacy policy\]/);
 });
 
-// ---------- from the independent review (Claude reviewer, 2026-10-24) ----------
+// ---------- from the independent review (2026-10-24) ----------
 
 test("'no data brokers seen' is only said when the broker registry was actually downloaded", () => {
   const sites = [{ ...site(1), trackers: [T("LiveRamp", "Data broker")] }];

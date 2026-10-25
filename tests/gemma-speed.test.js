@@ -101,7 +101,7 @@ test("a stalled stream is hung up with a clear message", async () => {
   await assert.rejects(G.ask("Hi", { fetch: stalled, onToken: () => {}, timeoutMs: 30 }), /took too long/);
 });
 
-// ---------- from the independent review (Claude reviewer, 2026-10-24) ----------
+// ---------- from the independent review (2026-10-24) ----------
 
 test("a policy read that wakes up just as someone asks C still waits its turn", async () => {
   // Reproduction from the review: the urgent question starts in the same instant the policy read gets past its wait.

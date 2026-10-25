@@ -1,5 +1,5 @@
 # Idea inbox: Gator Hack V (UF AI Days 2026)
-_Last reviewed 2026-10-24 (Sat, ~7:45 PM ET, Max's Claude: statuses on every idea; open ones are PLAN R19). Ideas stay as the team wrote them; **Status** notes and corrections are marked. Source of truth for build details: docs/SPEC.md and docs/PLAN.md._
+_Last reviewed 2026-10-24 (Sat, ~7:45 PM ET, Max: statuses on every idea; open ones are PLAN R19). Ideas stay as the team wrote them; **Status** notes and corrections are marked. Source of truth for build details: docs/SPEC.md and docs/PLAN.md._
 
 ## Hard facts (from Devpost, checked 2026-10-23)
 - Hacking: Fri Oct 23 5:00 PM -> **Sun Oct 25 5:00 PM ET (48h). Late submissions not accepted.**

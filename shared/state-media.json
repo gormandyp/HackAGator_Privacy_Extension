@@ -1,7 +1,7 @@
 {
   "about": "State-run news outlets in the six countries on the U.S. Commerce Department's foreign-adversary list (15 CFR 7.4). Used to flag a site you visit as state-run media (PLAN F2).",
   "checkedOn": "2026-10-24",
-  "checkedBy": "Max Glassman (with Claude)",
+  "checkedBy": "Max Glassman",
   "source": {
     "name": "State Media Monitor",
     "publisher": "Media and Journalism Research Center (MJRC)",
