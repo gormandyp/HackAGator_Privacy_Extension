@@ -359,7 +359,8 @@ Steps the person can take (no tag needed):
     const namesNothing = (x) => !breachSites(x, lists).length && !/[a-z0-9-]+\.[a-z]{2,}/i.test(x) && !namedSites(sites || [], x).length && !namedCompanies(x, atlas).length;
     // "what about quest diagnostics?" names something new, even when PrivaC doesn't know the name: it got the last
     // question's site (LinkedIn) back (Max, real Gemma, 2026-10-25). Only "what about it/them/that?" means the last one.
-    const asksAbout = AND_ABOUT.test(q) ? q.replace(AND_ABOUT, "").replace(/[?.!,\s]+$/, "").trim() : "";
+    const wasHacked = q.match(/^\s*(?:was|were|has|have|did|is)\s+(.{2,40}?)\s+(?:ever\s+)?(?:been\s+|get\s+|got\s+)?(?:hacked|breached|pwned|leaked|compromised)\s*[?.!]*\s*$/i);
+    const asksAbout = AND_ABOUT.test(q) ? q.replace(AND_ABOUT, "").replace(/[?.!,\s]+$/, "").trim() : wasHacked ? wasHacked[1].trim() : "";
     const newThing = asksAbout && !FOLLOW_UP.test(asksAbout) && /[a-z]{3,}/i.test(asksAbout);
     const newName = newThing && asksAbout.split(/\s+/).length <= 5 && !/\b(?:how|why|what|when|where|who|which|should|can|could|do|does|did|is|are|was|were|my|me|mine|i|you|your|we|our)\b/i.test(asksAbout)
       ? (asksAbout === asksAbout.toLowerCase() ? asksAbout.replace(/\b[a-z]/g, (c) => c.toUpperCase()) : asksAbout) : "";
@@ -378,7 +379,9 @@ Steps the person can take (no tag needed):
     // 2026-10-24: six wordings went three different ways, one answered about a tracker company named VISIT).
     if (!domain && !visited && !company && MY_SITES.test(q)) return yourBreaches(lists, sites || [], q, now || Date.now());
     // No breach on record. Say so for anything PrivaC knows: a web address, a site you visited, or a tracker company.
-    const subject = domain ? domain.replace(/^www\./, "") : visited ? visited.domain : company ? companyLabel(q, company) : newName || null;
+    // "Was google hacked?" is about Google, not docs.google.com (a page of it you visited); "docs.google.com" names the page.
+    const pageOfCompany = visited && company && visited.domain.split(".").length > 2;
+    const subject = domain ? domain.replace(/^www\./, "") : visited && !pageOfCompany ? visited.domain : company ? companyLabel(q, company) : newName || null;
     if (!subject) return null;   // nothing PrivaC knows: Gemma answers from the rest of the evidence
     const at = String(lists.hibp.fetchedAt || "").slice(0, 10).split("-");
     const updated = at.length === 3 ? ` (updated ${MONTHS[+at[1] - 1]} ${+at[2]}, ${at[0]})` : "";
@@ -1572,6 +1575,30 @@ Steps the person can take (no tag needed):
   // (with a random one, asking twice gave two different answers).
   const SEED = 7;
 
+  // "What about puffco?" after "Was google hacked?" and "What about quest diagnostics?" went to Gemma: C only looked one
+  // question back, and that one had no breach word (Max, real Gemma on the Mac, 2026-10-25). Now "what about X?" takes the
+  // last real question from the last 3 (skipping other "what about"s) and asks it about X, so the same lookups answer it.
+  const NOT_A_NAME = /\b(?:how|why|what|when|where|who|which|should|can|could|do|does|did|is|are|was|were|my|me|mine|i|you|your|we|our)\b/i;
+  const CARRY = [
+    [BREACH_Q, (x) => `Was ${x} hacked?`],
+    [SELL_Q, (x) => `Does ${x} sell my data?`],
+    [/\b(?:grade[sd]?|grading|scored?|rating)\b|\bget\s+an?\s+[A-F]\b/i, (x) => `Why did ${x} get its grade?`],
+    // Safety questions are left out: "and wired?" after "Should I trust cnn?" already gets wired's grade lines (gradeAnswer).
+    [/\bcollect\w*\b/i, (x) => `What is ${x} collecting about me?`],
+    [/^\s*who\s+(?:is|are|owns)\b/i, (x) => `Who is ${x}?`]
+  ];
+  function carryOver(q, history) {
+    if (!AND_ABOUT.test(q)) return q;
+    const x = q.replace(AND_ABOUT, "").replace(/[?.!,\s]+$/, "").trim();
+    if (!x || FOLLOW_UP.test(x) || x.split(/\s+/).length > 5 || NOT_A_NAME.test(x)) return q;
+    for (const t of recent(history).slice().reverse()) {
+      if (AND_ABOUT.test(t.question)) continue;
+      const hit = CARRY.find(([re]) => re.test(t.question));
+      return hit ? hit[1](x) : q;
+    }
+    return q;
+  }
+
   async function answer(question, deps) {
     const asked = String(question || "").trim();
     if (!asked) return { error: "Type a question for C first." };
@@ -1582,7 +1609,7 @@ Steps the person can take (no tag needed):
     const atlas = deps.atlas ? deps.atlas() : null;
     // Names however they're typed ("tik tok", "you tube", "linkdin"), in the question and C's memory (PLAN R19g/R19i).
     const vocab = nameVocab(((data && data.sites) || []).filter(Boolean), lists, atlas);
-    const q = fixNames(asked, vocab);
+    const q = carryOver(fixNames(asked, vocab), deps.history);
     deps = { ...deps, history: Array.isArray(deps.history) ? deps.history.map((t) => (t && typeof t.question === "string" ? { ...t, question: fixNames(t.question, vocab) } : t)) : deps.history };
     const steps = WANTS_STEPS.test(q);
     const graded = gradeAnswer(q, ((data && data.sites) || []).filter(Boolean), deps.history);
