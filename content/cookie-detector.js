@@ -193,13 +193,16 @@
         '[id*="banner" i], [class*="banner" i], [id*="notif" i], [class*="notif" i], [role="region"], [role="alert"]';
     const BY_CONTINUING = /\bby (continuing to (use|browse|visit)|using|browsing|visiting|staying on)( on)? (this|our|the) (web)?site\b[^.]{0,80}?\b(agree|accept|consent)/i;
 
+    const NOTICE_MAX = 1000;   // characters (was 600, which skipped McDonald's: Max, live check Oct 24 9:45 PM)
+
     function findContinueNotice() {
         let best = null;
         for (const element of queryAll(NOTICE)) {
             const rect = element.getBoundingClientRect();
             if (!rect.width || !rect.height) continue;
             const text = (element.innerText || "").trim();
-            if (text.length > 600 || !BY_CONTINUING.test(text)) continue;
+            // McDonald's real strip is 835 characters (it explains the new terms first); a page of article text is longer.
+            if (text.length > NOTICE_MAX || !BY_CONTINUING.test(text)) continue;
             if (element.querySelectorAll('input[type="password"], input[type="email"]').length) continue;
             if (!best || text.length < best.innerText.trim().length) best = element;
         }
