@@ -67,7 +67,7 @@ PrivaC downloads whole public lists and matches them on your computer. It never 
 | `preview/` | Test pages: C on 17 kinds of cookie pop-ups, and a demo site |
 | `scripts/` | Rebuild the data files; package the Chrome Web Store zip |
 | `store/` | Chrome Web Store screenshots |
-| `tests/` | 714 automated tests (`node --test`) |
+| `tests/` | 739 automated tests (`node --test`) |
 | `docs/` | Everything below |
 
 ## Documentation
