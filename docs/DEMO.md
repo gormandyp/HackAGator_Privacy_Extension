@@ -1,4 +1,4 @@
-# Demo and video plan (v2.1, 2026-10-25 afternoon, main 534f32c; presenters Matthew, Max, Justin; recorded on the repo owner's Mac)
+# Demo and video plan (v2.1, 2026-10-25 afternoon, main fa13685; presenters Matthew, Max, Justin; recorded on the repo owner's Mac)
 Video limit: **3 minutes**. Round 1 judges see only the Devpost page, this video and the repo; Monday's finals are live.
 Every site and answer below was checked in real Chrome on the ASUS G14 (Windows, Gemma 4 E2B in the browser, main dde8558, Oct 25), and the fixes made after that (main c3036db) were checked with the real Ask C code, and with Gemma 4 E4B (Ollama) on the Mac. Sunday afternoon's Ask C, Clear and cookie pop-up fixes were checked again on the G14 with the real in-browser Gemma (main 7c54ac5 to a5abdc6; reports in the team's project files). Grades on the Mac will differ a little (different visits): rehearse once on the recording computer, and anything that fails twice gets cut.
 
@@ -8,7 +8,7 @@ Every site and answer below was checked in real Chrome on the ASUS G14 (Windows,
 - **Tag**: the [Seen on your visit] / [HIBP] / [Government list] label after a fact, naming its source.
 
 ## Before recording (15 minutes)
-1. **Update**: GitHub Desktop → Fetch origin → Pull origin (main at 534f32c or newer). Then chrome://extensions → PrivaC → the **circular reload arrow**.
+1. **Update**: GitHub Desktop → Fetch origin → Pull origin (main at fa13685 or newer). Then chrome://extensions → PrivaC → the **circular reload arrow**.
    - **On the repo owner's Mac**, Pull origin stops with a conflict in shared/askc.js: the Mac's 2 local commits from Oct 24 are already on GitHub under other names. In Terminal, run `cd ~/Documents/GitHub/HackAGator_Privacy_Extension && git pull --rebase origin main` instead. It says "skipped previously applied commit" twice, then "Successfully rebased" (tested on a copy; nothing is lost).
    - **Never click Remove**: Remove deletes C's brain (2 GB). Reload keeps it, as long as PrivaC stays loaded from the same folder.
 2. **Settings** (gear, top right of the dashboard): Show the grade box **on**; Protect me automatically **off** (so C asks on camera); every pop-up switch on; Read privacy policies with Gemma **on**.
