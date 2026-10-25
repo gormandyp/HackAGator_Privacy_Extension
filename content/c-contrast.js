@@ -4,7 +4,8 @@
 // code gets his limb lines recolored instead. Both get a white disc behind his face, since the inside of the
 // C is see-through and his navy brows and mouth would vanish on a dark page. It checks again whenever C
 // changes pose or moves, and when the page scrolls or resizes, so he switches back on a light area.
-// Wraps PrivaCPrompt.cookie and .adversary without changing c-prompt.js (same hook as c-reaction-look.js).
+// Wraps PrivaCPrompt.cookie and .adversary without changing c-prompt.js (same hook as c-reaction-look.js),
+// and also covers the unsafe-site warning (content/unsafe.js) without changing that file.
 (function () {
   if (window.PrivaCContrast || !window.PrivaCPrompt || !window.PrivaCInk) return;
   window.PrivaCContrast = true;
@@ -158,6 +159,18 @@
   }
   hook("cookie");
   hook("adversary");
+
+  // PrivaC pop-ups added straight to the page, like the unsafe-site warning (content/unsafe.js).
+  // The cookie pop-up can move inside a site's dialog, so it's caught by the hooks above instead.
+  new MutationObserver((records) => {
+    for (const r of records) {
+      for (const n of r.addedNodes || []) {
+        if (/^PRIVAC-(PROMPT|UNSAFE)$/i.test(String(n.tagName || "")) && n.shadowRoot) {
+          try { watch(n); } catch (e) { /* never break C */ }
+        }
+      }
+    }
+  }).observe(document.documentElement, { childList: true });
 
   window.addEventListener("scroll", checkSoon, { passive: true, capture: true });
   window.addEventListener("resize", checkSoon, { passive: true });

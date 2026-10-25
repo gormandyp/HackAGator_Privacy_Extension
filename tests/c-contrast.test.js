@@ -194,3 +194,21 @@ test("C's own speech bubble and PrivaC's grade box aren't mistaken for the websi
   t.P.cookie({});
   assert.ok(t.img.src.includes("/dark/"));
 });
+
+test("the unsafe-site warning (content/unsafe.js, its own pop-up) gets white limbs on a dark site too", () => {
+  const t = setup({ pageColor: "rgb(17, 24, 39)" });
+  const pageObs = t.observers.find((o) => o.target === t.ctx.document.documentElement);
+  assert.ok(pageObs, "watches the page for PrivaC pop-ups being added");
+  assert.strictEqual(pageObs.opts.childList, true);
+  assert.ok(!pageObs.opts.subtree, "only the page's top level, so it stays cheap");
+  const img = { tagName: "IMG", src: URL("c-poses/mascot-alarmed-yield-wave.svg"), getAttribute() { return this.src; }, setAttribute(n, v) { if (n === "src") this.src = v; } };
+  const c = {
+    getBoundingClientRect: () => ({ left: 900, top: 560, right: 1020, bottom: 680, width: 120, height: 120 }),
+    querySelector: (s) => (s === "img" ? img : null), querySelectorAll: () => []
+  };
+  const unsafe = { tagName: "PRIVAC-UNSAFE", isConnected: true, shadowRoot: { querySelector: (s) => (s === ".c" ? c : null) } };
+  pageObs.cb([{ addedNodes: [unsafe] }]);
+  assert.strictEqual(img.src, URL("c-poses/dark/mascot-alarmed-yield-wave.svg"));
+  // Other things added to the page are ignored.
+  pageObs.cb([{ addedNodes: [{ tagName: "DIV" }, { nodeType: 3 }] }]);
+});
