@@ -10,7 +10,7 @@ const data = { sample: true, sites: [{ domain: "news.example", grade: "D", score
 
 test("context lists each site with grade, cookies, policy and trackers", () => {
   const c = buildContext(data);
-  assert.match(c, /news\.example, visited unknown date: grade D, exposure 70\/100, cookies accepted \[Seen on your visit\]/);
+  assert.match(c, /news\.example, visited unknown date: grade D, exposure 70\/100, cookie banner: you accepted all cookies \[Seen on your visit\]/);
   assert.match(c, /LiveRamp \(Data broker, based in United States\) \[Tracker Radar\]/);
   assert.match(c, /says it sells personal info \[Privacy policy\]/);
 });

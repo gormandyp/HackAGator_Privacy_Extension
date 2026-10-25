@@ -49,17 +49,39 @@ Answer: Criteo is an advertising company based in France. [Tracker Radar] Its tr
 - Cookies marked "advertising and profiling" or "measures your visits" are not needed for a site to work. Advertising cookies build a profile of your interests that ad companies use to target you; registered data brokers sell profiles like these.
 
 Steps the person can take (no tag needed):
-- Let C decline non-essential cookies, or click "Reject all" on the site's cookie banner.
+- Only on a site whose cookie banner has a reject option: let C decline non-essential cookies ("Protect me"), or click that option yourself.
 - In Chrome, Settings > Privacy and security > Third-party cookies > Block third-party cookies.
 - Avoid entering personal details (name, email, phone, payment) on sites with an F grade or a foreign-adversary flag.
 - Use a tracker-blocking browser extension.
-- Clear a site's cookies after visiting: click the icon left of the address bar > Cookies and site data.
+- After visiting a site with no cookie banner or no reject option: clear that site's data with the "Clear" button in PrivaC's pop-up, so it can't link your next visit to this one.
 - Check the site's privacy policy for "sell" or "share" before creating an account.
 - After a site's data breach: change that password, and the same password anywhere else you used it; turn on two-step sign-in; watch for emails that pretend to be that site.`;
 
   function fmtCount(n) { return n >= 1e6 ? `${(n / 1e6).toFixed(1)} million` : n >= 1e3 ? `${Math.round(n / 1e3)} thousand` : String(n); }
   function breachText(b) {
     return `data breach on ${b.breachDate} (added to Have I Been Pwned ${b.addedDate}): ${fmtCount(b.pwnCount)} accounts; exposed ${b.dataClasses.join(", ").toLowerCase()} [HIBP]`;
+  }
+
+  // Companies checked as NOT on the 1260H list ("ByteDance (TikTok)" -> ByteDance, TikTok), from the same file.
+  function notListed(extra) {
+    const n = extra && extra.flagged && extra.flagged.notOnThisList;
+    return ((n && n.companies) || []).map((c) => ({ label: String(c), names: String(c).replace(/\)/g, "").split(/\s*\(\s*/).filter(Boolean) }));
+  }
+  const mentions = (text, name) => new RegExp(`(^|[^a-z0-9])${name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}([^a-z0-9]|$)`, "i").test(text);
+  // Gemma 4 E2B said "ByteDance is also listed on the Pentagon's Section 1260H list" although the evidence says it isn't
+  // (G14, 2026-10-25). The question's own companies get a plain line either way, right next to the question.
+  function listingFacts(q, extra) {
+    const out = [];
+    for (const c of notListed(extra)) if (c.names.some((n) => mentions(q, n))) out.push(`- ${c.label} is not on the Pentagon's Section 1260H list of Chinese military companies (June 2026); a company can still count as a foreign-adversary link through its country [Government list]`);
+    for (const c of (extra && extra.flagged && extra.flagged.companies) || []) if (mentions(q, c.atlasCompany)) out.push(`- ${c.atlasCompany} is on the Pentagon's Section 1260H list of Chinese military companies (June 2026)${/sued|contest/i.test(c.note || "") ? `, which it is contesting in court` : ""} [Government list]`);
+    return out;
+  }
+  // ...and a sentence that still puts a checked not-listed company on that list is taken out.
+  function dropFalseListings(text, extra) {
+    const names = notListed(extra).flatMap((c) => c.names);
+    if (!names.length || !/1260H/i.test(text)) return text;
+    return text.split("\n").map((par) => par.split(/(?<=[.!?](?:\s*\[[^\]]+\])*)\s+(?!\[)/)
+      .filter((x) => !(/1260H/i.test(x) && names.some((n) => mentions(x, n)) && !DENIES.test(x))).join(" ")).join("\n").trim();
   }
 
   // 1260H entry for a tracker's company, from shared/flagged-companies.json (hand-checked).
@@ -124,6 +146,10 @@ Steps the person can take (no tag needed):
   }
 
   const TRACKERS_SHOWN = 12;   // tracker companies listed per site in full detail
+  // The site's cookie banner in plain words: Gemma read the codes ("cookies no-reject", "cookies none") as anything and
+  // told people to click "Reject all" on zara.com, which showed no banner (G14 audit, 2026-10-24).
+  const BANNER_WORDS = { declined: "you declined non-essential cookies", accepted: "you accepted all cookies",
+                         "no-reject": "had no reject option", none: "none seen" };
 
   function siteLine(s, extra) {
     // The same company often loads several tracker addresses on one page: say it once, with how many.
@@ -162,7 +188,7 @@ Steps the person can take (no tag needed):
     const fp = (s.trackers || []).filter(x => (x.fingerprinting || 0) >= 2).map(x => x.company);
     const smText = stateMediaText(s.owner);
     const fpText = fp.length ? `; trackers that read device details to recognize you without cookies (fingerprinting): ${[...new Set(fp)].join(", ")} [Tracker Radar]` : "";
-    return `- ${s.domain}, visited ${day}: grade ${s.grade}${gradeWords(s.grade)}, exposure ${s.score}/100, cookies ${s.cookieChoice || "none"} [Seen on your visit]; trackers seen [Seen on your visit]: ${t}; this site's own privacy policy ${pol}${br}${ck}${fpText}${smText}${scoreText(s)}`;
+    return `- ${s.domain}, visited ${day}: grade ${s.grade}${gradeWords(s.grade)}, exposure ${s.score}/100, cookie banner: ${BANNER_WORDS[s.cookieChoice] || BANNER_WORDS.none} [Seen on your visit]; trackers seen [Seen on your visit]: ${t}; this site's own privacy policy ${pol}${br}${ck}${fpText}${smText}${scoreText(s)}`;
   }
 
   // " (Some exposure)": the grade's own words, as the popup and grade box show them, so Gemma doesn't guess them.
@@ -308,6 +334,8 @@ Steps the person can take (no tag needed):
     "europe", "european", "asia", "africa", "america", "swiss", "french", "german", "japanese", "chinese", "russian", "british"]);
 
   const MORE_Q = /\b(more|else|again|why|how so|explain)\b/i;
+  // A subject of its own: a question with one of these is about it, not about the last question's company.
+  const OWN_TOPIC = /\b(fingerprint\w*|trackers?|tracking|cookies?|ads?|advert\w*|brokers?|breach\w*|hack\w*|grades?|polic(?:y|ies)|vpn|incognito|privac\w*|data|gemma|banners?|pop-?ups?|1260h)\b/i;
   const AND_ABOUT = /^\s*(?:and|what about|how about|same for|also)\b/i;
   // sites = your browsing (data.sites), atlas = tracker data: so a name PrivaC knows gets an answer even without a breach.
   function breachAnswer(q, lists, history, sites, atlas) {
@@ -510,13 +538,17 @@ Steps the person can take (no tag needed):
         lines.push(`${ALIAS_LABEL[siteName(s.domain)]} is owned by ${alias}${on ? `, whose trackers were on ${on} of your ${sites.length} sites this week [Seen on your visit]` : ""}.`);
       }
       const flags = [];
-      if (s.owner && ADVERSARY.has(s.owner.country)) flags.push(`the site belongs to ${s.owner.company} (${countryName(s.owner.country)}${s.owner.stateMedia ? ", state-run media" : ""})`);
+      if (s.owner && ADVERSARY.has(s.owner.country)) flags.push({ name: s.owner.company, text: `the site belongs to ${s.owner.company} (${countryName(s.owner.country)}${s.owner.stateMedia ? ", state-run media" : ""})` });
       for (const t of s.trackers || []) {
         if (!t || !t.company) continue;
         const listed = t.listed || listedCompany(t.company, extra);
-        if ((ADVERSARY.has(t.country) || listed) && !flags.some((f) => f.startsWith(t.company + " "))) flags.push(`${t.company} (${[ADVERSARY.has(t.country) ? countryName(t.country) : null, listed ? "Section 1260H list" : null].filter(Boolean).join("; ")})`);
+        if ((ADVERSARY.has(t.country) || listed) && !flags.some((f) => f.name === t.company)) flags.push({ name: t.company, listed: !!listed, text: `${t.company} (${[ADVERSARY.has(t.country) ? countryName(t.country) : null, listed ? "Section 1260H list" : null].filter(Boolean).join("; ")})` });
       }
-      if (flags.length) lines.push(`Foreign-adversary links seen here [Seen on your visit] [Government list]: ${flags.slice(0, 4).join(", ")}.`);
+      // The "+15" line above may already name them ("Is wired.com safe?" named ByteDance and Baidu twice): only what it left out.
+      const D = (typeof window !== "undefined" ? window : self).PrivaCData;
+      const shownText = r.counted.slice(0, 3).filter((p) => D && D.RULES && p.rule === D.RULES.flag).map((p) => p.label).join(" ");
+      const fresh = flags.filter((f) => !shownText.includes(f.name) || (f.listed && !/1260H/.test(shownText)));
+      if (fresh.length) lines.push(`${shownText ? "Also linked here" : "Foreign-adversary links seen here"} [Seen on your visit] [Government list]: ${fresh.slice(0, 4).map((f) => f.text).join(", ")}.`);
       const bad = [...new Set((s.trackers || []).filter((t) => t && BAD_CATS.has(t.category)).map((t) => `${t.company}${t.domain ? ` (${t.domain})` : ""}: Tracker Radar labels it as ${t.category === "Malware" ? "malware" : "high-risk"}`))];
       if (bad.length) lines.push(`${bad.join("; ")} [Tracker Radar] [Seen on your visit].`);
       const b = lists && lists.hibp && lists.hibp.byDomain ? lists.hibp.byDomain[s.domain] || s.breach : s.breach;
@@ -526,7 +558,12 @@ Steps the person can take (no tag needed):
         : "PrivaC grades how much of your data a site exposes; it doesn't check the site for malware or scams.");
       if (b) steps.push(`if you have a ${s.domain} account, change its password and turn on two-step sign-in`);
       if (bad.length || flags.length || r.grade === "F") steps.push("avoid entering personal details (name, email, phone, payment) there");
-      if (["accepted", "no-reject", "none"].includes(s.cookieChoice) && (s.trackers || []).length) steps.push("let C decline the extra cookies next time you visit, or turn on Protect me automatically in Settings");
+      // C can only decline on a banner with a reject option: after "Accept all" the banner comes back once the site's data is
+      // cleared; with no banner or no reject option, clearing after each visit is what's left (overnight backtest 2026-10-25).
+      if ((s.trackers || []).length) {
+        if (s.cookieChoice === "accepted") steps.push(`click "Clear ${s.domain}'s data" in PrivaC's pop-up, so the site's cookie banner asks again and you (or C) can say no`);
+        else if (s.cookieChoice !== "declined") steps.push(`click "Clear ${s.domain}'s data" in PrivaC's pop-up after your visit, so the site can't link your next visit to this one`);
+      }
       if ((s.trackers || []).some((t) => t && t.category === "Advertising")) steps.push("block third-party cookies in Chrome (Settings > Privacy and security > Third-party cookies)");
       if (!steps.length) steps.push("use a different password for each site and turn on two-step sign-in");
       return { text: lines.join("\n") + stepList(steps), sources: b || (lists && lists.hibp) ? ["site", "breach"] : ["site"] };
@@ -546,7 +583,7 @@ Steps the person can take (no tag needed):
     const bl = hits.length ? breachLine(hits[0][0], hits[0][1], lists) : breachLine(shortLabel(label), null, lists);
     if (bl) lines.push(bl);
     lines.push(`PrivaC measures what ${shortLabel(label)}'s trackers can see on the sites you visit; it doesn't check companies for malware or scams.`);
-    steps.push("let C decline the extra cookies on sites that load them");
+    steps.push("let C decline the extra cookies on sites whose cookie banner has a reject option");
     steps.push("block third-party cookies in Chrome (Settings > Privacy and security > Third-party cookies)");
     if (hits.length) steps.push(`if you have a ${shortLabel(label)} account, change its password and turn on two-step sign-in`);
     return { text: lines.join("\n") + stepList(steps), sources: ["site", ...(bl ? ["breach"] : [])] };
@@ -610,6 +647,55 @@ Steps the person can take (no tag needed):
     const kept = body.split("\n").map((par) => par.split(/(?<=[.!?](?:\s*\[[^\]]+\])*)\s+(?!\[)/).filter((x) => !x.trim() || ok(x)).join(" ")).join("\n").replace(/\n{3,}/g, "\n\n").trim();
     if (!kept && body.trim()) return ("PrivaC has no record of that in your browsing or its lists." + (tail ? "\n\n" + tail : "")).trim();
     return (kept + (tail ? "\n\n" + tail : "")).trim();
+  }
+
+  // ---------- About PrivaC itself (the dashboard's own suggested questions ask these) ----------
+  // Only added when the question is about PrivaC or C, so the usual context keeps its room for your sites.
+  const FEATURE_Q = /\b(privac|extension|protect\s*me|beware|alerts?|warn\w*|unsafe|go back|continue anyway|clear\w*|forget|fully checked|partly checked|partially checked|block\w*|trust\w*|rubric|accurate|reliable|consent|confirm\w*|declin\w*|reject\w*|accept\w*|pop-?ups?)\b/i;
+  const PRIVAC_FACTS = `About PrivaC itself (for questions about what PrivaC or C does; no tag needed):
+- PrivaC shows which companies each site you visit connects you to, and grades the site A to F by how much of your data it exposes. It doesn't block trackers or ads: it shows them, and C declines cookie tracking when you let him.
+- "Protect me": on a cookie banner that has a reject option, C clicks that option for you, then checks the site's own consent record and says "Nice!" only if it confirms the optional cookies are off. A confirmed decline takes the cookie points off the site's grade. Settings has "Protect me automatically".
+- "Beware!": on a cookie banner with only an Accept button, C warns that the site gives you no way to say no; that adds points to its grade.
+- Foreign-adversary alert: C pops up when a page loads a tracker from a company based in a listed foreign-adversary country or on the Section 1260H list, or when the site itself belongs to one.
+- Unsafe-site warning: on a site graded F that also has such a link, or a data breach reported in the last year, C warns you with "Go back" and "Continue anyway". It never blocks the site.
+- The "Clear" button in PrivaC's pop-up deletes that site's own cookies and storage in Chrome, so it can't link your next visit to earlier ones. Other companies' cookies, your history and your passwords stay.
+- "Fully checked" next to a grade means every line of the grade has an answer for that site. "Partly checked" means something isn't known yet, usually because the site's privacy policy hasn't been read, so PrivaC shows how high the score could go instead of counting the unknown as safe.
+- The grade is PrivaC's own rubric, the same for every site, and the pop-up lists every point with its source. It measures how much of your data a site exposes, not whether the site is a scam.`;
+  const featureFacts = (question) => (FEATURE_Q.test(String(question || "")) ? `\n\n${PRIVAC_FACTS}` : "");
+
+  // What C did this week, with the dashboard's "C's impact" numbers and words (shared/stats.js, dashboard/activity.js).
+  const IMPACT_Q = /\b(?:c|privac|you)\s+(?:do|did|done|doing|help\w*|protect\w*|stop\w*|block\w*|declin\w*|catch\w*|caught|sav\w*)\b|\bimpact\b|\bstepped in\b/i;
+  const times = (n, one, many) => `${n} ${n === 1 ? one : many}`;
+  function impactFact(stats) {
+    const S = (typeof window !== "undefined" ? window : self).PrivaCStats;
+    const sum = S && stats ? S.summary(stats, "week") : null;
+    if (!sum || !sum.totals.popups) return ["- C hasn't shown any pop-ups in the last 7 days [Seen on your visit]."];
+    const n = (k) => sum.totals.events[k] || 0;
+    return [`- What C did for you in the last 7 days (the same numbers as the dashboard's "C's impact") [Seen on your visit]: C stepped in ${times(sum.totals.popups, "time", "times")}: ` +
+      `${times(n("popup-cookie"), "offer", "offers")} to decline cookies, ${times(n("popup-accept-only"), "warning", "warnings")} about banners with no reject option, ` +
+      `${times(n("popup-adversary"), "foreign-adversary alert", "foreign-adversary alerts")}, ${times(n("popup-unsafe"), "unsafe-site warning", "unsafe-site warnings")}. ` +
+      `C declined cookies for you ${times(n("decline-click"), "time", "times")} ("Protect me" or automatic), and the site's own consent record confirmed ${n("decline-confirmed")} of them. ` +
+      `You said no on a site yourself ${times(n("rejected-on-site"), "time", "times")} and accepted all cookies yourself ${times(n("accepted-on-site"), "time", "times")}.`];
+  }
+
+  // "How many breaches happen without people knowing?": nobody can count breaches no one has found, but Have I Been
+  // Pwned's own list shows how long the found ones took to come out (the breach date vs. the day it was added).
+  const DELAY_Q = /\b(?:without\s+(?:\w+\s+)?(?:knowing|noticing|realizing|realising|finding out)|unnoticed|undetected|unreported|never (?:find|found) out|find out|how long|take to (?:find|discover|notice|come out)|discovered|hidden|secret)\b/i;
+  function breachDelayFact(q, lists) {
+    if (!BREACH_Q.test(q) || !DELAY_Q.test(q) || !(lists && lists.hibp && lists.hibp.byDomain)) return [];
+    const days = [];
+    for (const b of Object.values(lists.hibp.byDomain)) {
+      for (const x of [b, ...((b && b.earlier) || [])]) {
+        const d = x ? (Date.parse(x.addedDate) - Date.parse(x.breachDate)) / 864e5 : NaN;
+        if (d >= 0) days.push(d);
+      }
+    }
+    if (days.length < 5) return [];
+    days.sort((a, b) => a - b);
+    const mid = days[Math.floor(days.length / 2)], over = days.filter((d) => d > 365).length;
+    const span = (d) => (d < 60 ? `${Math.round(d)} days` : d < 730 ? `${Math.floor(d / 30.44)} months` : `${Math.floor(d / 365.25)} years`);
+    return [`- In Have I Been Pwned's list${hibpUpdated(lists)}, ${days.length} breaches have both dates: half were added at least ${span(mid)} after the breach happened, ` +
+      `and ${over} of the ${days.length} (${Math.round((over / days.length) * 100)}%) more than a year later [HIBP]. PrivaC can't count breaches nobody has found yet.`];
   }
 
   // Facts about companies or sites named in the question, looked up in the local lists.
@@ -780,7 +866,7 @@ Steps the person can take (no tag needed):
     const sites = ((data && data.sites) || []).filter(Boolean).map(tidy).sort((a, b) => (b.score || 0) - (a.score || 0));
     // Unchanging background first, then everything about this question: Ollama can reuse the start of the last prompt.
     const date = `Today is ${today || new Date().toISOString().slice(0, 10)}.`;
-    const bg = BACKGROUND + rulesText() + regtrackLines(extra) + (facts && facts.length ? `\n\nFacts about what you asked:\n${facts.join("\n")}` : "") + memoryText(history);
+    const bg = BACKGROUND + rulesText() + regtrackLines(extra) + featureFacts(question) + (facts && facts.length ? `\n\nFacts about what you asked:\n${facts.join("\n")}` : "") + memoryText(history);
     if (!sites.length) return `${date}\n${bg}\n\nThe person hasn't visited any sites with PrivaC on yet.`;
     // Sites the question names first, then sites named in the last few questions (for follow-ups like "its cookies").
     const earlier = recent(history).map(t => t.question).reverse().join(" ");
@@ -840,7 +926,16 @@ Steps the person can take (no tag needed):
     "I'm not an online chatbot: your questions and browsing never leave this computer, and nothing is sent to Google or any AI company. " +
     "Gemma only writes the words. The grades, tracker lists, breach records and government lists come from PrivaC's own code and public data, " +
     "and each fact shows its source.";
+  // "Does my browsing leave my computer?": Gemma answered "Yes, your questions and browsing never leave your computer"
+  // (G14, 2026-10-25). PrivaC's privacy promise is answered in its own words (PRIVACY.md).
+  const PRIVATE_Q = /\b(?:leave|leaves|leaving)\s+(?:my|this|the)\s+(?:computer|device|laptop|machine|pc|mac|browser)\b|\b(?:do|does|will|can)\s+(?:you|privac|c|ask\s+c|the\s+extension)\s+(?:see|read|sell|collect|keep|save|track)\b[^?.!]*\b(?:passwords?|data|browsing|history|questions?|me)\b/i;
+  const PRIVATE_ANSWER = "No. What PrivaC learns about your browsing stays on this computer, in Chrome's storage, and my answers are written by Gemma " +
+    "running here (inside Chrome, or in the Ollama app on this computer), so your questions stay here too. PrivaC never reads your passwords " +
+    "or what you type into websites. It only downloads whole public lists (data breaches and data brokers) and my AI model, the same files for " +
+    "everyone, and it reads a site's privacy policy from that same site, without your cookies. The PrivaC team has no servers and never sees " +
+    "your data. The sites you visit and their trackers do see your visits: showing you who they are is PrivaC's job.";
   function cannedAnswer(q) {
+    if (PRIVATE_Q.test(q)) return PRIVATE_ANSWER;
     if (MODEL_WORDS.test(q) || ABOUT_MODEL.some((re) => re.test(q))) return MODEL_ANSWER;
     if (ABOUT_C.test(q)) return ABOUT_ANSWER;
     if (OFF_TOPIC_THING.test(q) && OFF_TOPIC_ASK.test(q) && !PRIVACY_WORDS.test(q)) return OFF_TOPIC_ANSWER;
@@ -930,7 +1025,9 @@ Steps the person can take (no tag needed):
     const D = (typeof window !== "undefined" ? window : self).PrivaCData;
     if (!D || !D.RULES) return "";
     return `\n\nHow the grade is counted (higher means more exposed):\n` +
-      ["trackers", "ads", "cookies", "flag", "policy", "breach"].map((k) => `- ${D.RULES[k]}.`).join("\n") + `\nGrades: ${GRADE_RANGES}.`;
+      ["trackers", "ads", "cookies", "flag", "policy", "breach"].map((k) => `- ${D.RULES[k]}.`).join("\n") + `\nGrades: ${GRADE_RANGES}.` +
+      // Gemma tagged every rubric sentence [Seen on your visit] (G14, 2026-10-25).
+      `\nThese are PrivaC's own rules, the same for every site: they need no source tag.`;
   }
 
   const dropSteps = (text) => text.replace(/\s*What you can do:[\s\S]*$/i, "").trim();
@@ -1068,12 +1165,19 @@ Steps the person can take (no tag needed):
     if (breach) return { answer: breach, trace: [{ tool: "breaches", label: "Have I Been Pwned" }] };
     // A follow-up that names nothing ("does it fingerprint me?", "tell me more") keeps the last question's facts, so
     // C doesn't lose what he knows about Criteo one question later (backtest 2026-10-24).
-    let facts = lookupFacts(q, lists, atlas);
+    let facts = lookupFacts(q, lists, atlas).concat(breachDelayFact(q, lists));
     const last = recent(deps.history).slice(-1)[0];
-    // A question that names its own subject ("Who is Meta?") is answered without the earlier questions: they changed
-    // the prompt, so asking twice gave two different answers even with the fixed seed (real Gemma, 2026-10-25).
-    const standalone = (facts.length || namedSites(((data && data.sites) || []).filter(Boolean), q).length) && !AND_ABOUT.test(q) && !FOLLOW_UP.test(q);
-    if (!facts.length && last && (FOLLOW_UP.test(q) || MORE_Q.test(q) || q.split(/\s+/).length <= 4)) facts = lookupFacts(last.question, lists, atlas);
+    // A question that names its own subject ("Who is Meta?", "Who owns zara.com?", "What is fingerprinting?") is answered
+    // without the earlier questions: they changed the prompt, so asking twice gave two different answers even with the
+    // fixed seed (real Gemma, 2026-10-25), and a short one got the last question's company ("Who owns zara.com?" got
+    // Baidu's facts after "Why is baidu.com flagged?", overnight backtest 2026-10-25).
+    const ownSites = namedSites(((data && data.sites) || []).filter(Boolean), q).length;
+    const follows = FOLLOW_UP.test(q) || AND_ABOUT.test(q);
+    const standalone = (facts.length || ownSites || OWN_TOPIC.test(q)) && !follows;
+    if (!facts.length && last && !ownSites && (follows || ((MORE_Q.test(q) || q.split(/\s+/).length <= 4) && !OWN_TOPIC.test(q)))) facts = lookupFacts(last.question, lists, atlas);
+    // What C did this week (the dashboard's "C's impact" numbers), for questions about what C or PrivaC did.
+    if (deps.stats && IMPACT_Q.test(q)) facts = facts.concat(impactFact(await deps.stats()));
+    facts = facts.concat(listingFacts(q, extraFacts));
     // "yes tell me more" after "Was LinkedIn hacked?" stays on LinkedIn (Gemma drifted to another site's breach).
     const moreBreach = last && BREACH_Q.test(last.question) && !BREACH_Q.test(q) && (FOLLOW_UP.test(q) || MORE_Q.test(q)) ? breachSites(last.question, lists) : [];
     const breachNames = and(moreBreach.map(([d, b]) => siteLabel(d, b).replace(/ \(.*$/, "")));
@@ -1086,7 +1190,7 @@ Steps the person can take (no tag needed):
       // A source tag needs evidence behind it: Gemma wrote [HIBP] with no breach facts (2026-10-24), which also showed a
       // "Have I Been Pwned" check mark C never made. Tags that aren't in the evidence are removed, so their chips don't show.
       const memo = new Map();
-      const sourcedOnly = (t) => dropUnknownNames(dropUnbackedBreaches(t, lists), context, atlas, memo).replace(/\s*\[([^\]]+)\]/g, (m, tag) => (TAGS.includes(tag) && !context.includes(`[${tag}]`) ? "" : m));
+      const sourcedOnly = (t) => dropFalseListings(dropUnknownNames(dropUnbackedBreaches(t, lists), context, atlas, memo), extra).replace(/\s*\[([^\]]+)\]/g, (m, tag) => (TAGS.includes(tag) && !context.includes(`[${tag}]`) ? "" : m));
       // While C is writing, his words get the same clean-up as the finished answer (repeats, unsupported tags, steps),
       // so nothing he showed is taken away at the end (Max, IDEA.md).
       const writing = (so) => hideHalfRepeat(sourcedOnly(cleanAnswer(steps ? so : hideSteps(so))));

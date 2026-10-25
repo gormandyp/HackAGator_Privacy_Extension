@@ -22,7 +22,9 @@ chrome.alarms.onAlarm.addListener(a => { if (a.name === "privac-lists") refreshL
 // it on to Gemma, hiding a "What you can do" part the answer won't keep).
 // history: the last few questions and answers from the Ask C panel (C's short memory).
 function askDeps(onToken, signal, history) {
-  return { load: PrivaCData.load, lists: PrivaCLists.load, atlas: () => ATLAS, signal, history, onToken,
+  return { load: PrivaCData.load, lists: PrivaCLists.load, atlas: () => ATLAS, signal,
+           stats: async () => (await chrome.storage.local.get("privacStats")).privacStats,   // "What did C do for me?"
+           history, onToken,
            ask: PrivaCAI.ask };
 }
 
