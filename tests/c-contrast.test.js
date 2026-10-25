@@ -212,3 +212,65 @@ test("the unsafe-site warning (content/unsafe.js, its own pop-up) gets white lim
   // Other things added to the page are ignored.
   pageObs.cb([{ addedNodes: [{ tagName: "DIV" }, { nodeType: 3 }] }]);
 });
+
+// A photo or video hero (like gymshark.com): its pixels can't be read, so the text laid over it is the hint.
+function hero({ tag = "VIDEO", texts }) {
+  const box = { left: 0, top: 0, right: 1280, bottom: 700, width: 1280, height: 700 };
+  const media = { tagName: tag, getBoundingClientRect: () => box };
+  const textEls = texts.map(({ color, bg = "rgba(0, 0, 0, 0)", at = { left: 100, top: 400, right: 500, bottom: 460 } }) => ({
+    tagName: "H2",
+    childNodes: [{ nodeType: 3, textContent: "SOFTSENSE" }],
+    getBoundingClientRect: () => Object.assign({ width: at.right - at.left, height: at.bottom - at.top }, at),
+    style: { color, backgroundColor: bg }
+  }));
+  const container = { tagName: "SECTION", querySelectorAll: () => textEls, parentElement: null };
+  media.parentElement = container;
+  return { media, textEls };
+}
+
+function heroSetup(h, pageColor = "rgb(245, 245, 245)") {
+  const layers = [h.media, { tagName: "BODY", bg: pageColor }, { tagName: "HTML", bg: "rgba(0, 0, 0, 0)" }];
+  const t = setup({ layers });
+  for (const el of h.textEls) t.styles.set(el, { backgroundColor: el.style.backgroundColor, backgroundImage: "none", color: el.style.color });
+  t.styles.set(h.media, { backgroundColor: "rgba(0, 0, 0, 0)", backgroundImage: "none", color: "rgb(0, 0, 0)" });
+  return t;
+}
+
+test("over a video hero with white text on it (gymshark.com), C gets white limbs", () => {
+  const h = hero({ texts: [{ color: "rgb(255, 255, 255)" }, { color: "rgb(255, 255, 255)" }] });
+  const t = heroSetup(h);
+  t.P.cookie({});
+  assert.strictEqual(t.img.src, URL("c-poses/dark/mascot-push-up.svg"));
+});
+
+test("over a photo with dark text on it, C keeps navy limbs", () => {
+  const h = hero({ tag: "IMG", texts: [{ color: "rgb(17, 17, 17)" }] });
+  const t = heroSetup(h, "rgb(0, 0, 0)");                  // even on a dark page: the photo is what's behind C
+  t.P.cookie({});
+  assert.strictEqual(t.img.src, URL("c-poses/mascot-push-up.svg"));
+});
+
+test("a button with its own solid background doesn't count as a hint about the photo", () => {
+  // White "Shop new in" button with dark text, plus white headline: the headline decides.
+  const h = hero({ texts: [{ color: "rgb(17, 17, 17)", bg: "rgb(255, 255, 255)" }, { color: "rgb(255, 255, 255)" }] });
+  const t = heroSetup(h);
+  t.P.cookie({});
+  assert.strictEqual(t.img.src, URL("c-poses/dark/mascot-push-up.svg"));
+});
+
+test("text that isn't on top of the photo isn't a hint", () => {
+  const h = hero({ texts: [{ color: "rgb(255, 255, 255)", at: { left: 100, top: 900, right: 500, bottom: 960 } }] });
+  const t = heroSetup(h);                                   // light page, no hint: look through to the page
+  t.P.cookie({});
+  assert.strictEqual(t.img.src, URL("c-poses/mascot-push-up.svg"));
+});
+
+test("a photo with no text on it (a product shot) falls back to the page color", () => {
+  const h = hero({ tag: "IMG", texts: [] });
+  const dark = heroSetup(h, "rgb(10, 10, 10)");
+  dark.P.cookie({});
+  assert.strictEqual(dark.img.src, URL("c-poses/dark/mascot-push-up.svg"));
+  const light = heroSetup(hero({ tag: "IMG", texts: [] }), "rgb(255, 255, 255)");
+  light.P.cookie({});
+  assert.strictEqual(light.img.src, URL("c-poses/mascot-push-up.svg"));
+});
