@@ -29,7 +29,7 @@ When you allow it (or turn on **Protect me automatically**), PrivaC clicks a sit
 
 ## 5. Other people's data and software
 
-PrivaC's own code is open source under the MIT license ([LICENSE](LICENSE)). It is built on public data and open-source software, each under its own license. You agree to keep their rules when you use or share PrivaC:
+PrivaC's own code is open source under the MIT license ([LICENSE](LICENSE)). It is built on public data and open-source software, each under its own license ([THIRD_PARTY_LICENSES.md](THIRD_PARTY_LICENSES.md)). You agree to keep their rules when you use or share PrivaC:
 
 | Source | License | What it means for you |
 |---|---|---|

@@ -13,7 +13,7 @@ Built in 48 hours at Gator Hack V (UF AI Days 2026, Oct 23-25) for the "Fresh of
 3. Click the C toolbar button: the site's grade (A-F), whether it was Fully or Partly checked (and how high it could go), and every reason with its source.
 4. Open the dashboard: **Sites** (who each site connected you to), **C's impact**, **Safety** (data breaches, data brokers, companies in U.S.-listed countries), **Grades** (how the grade works, point by point) and **About** (the 2026 technology, with dates and proof links).
 5. In **Ask C**, try "Why did cnn.com get a C?" with a site you visited and its letter (answered from the score itself) and "Is any site I visited connected to China or Russia?" (written by Gemma 4 on this computer, with a source label on every fact).
-6. No Chrome handy? Open `dashboard/dashboard.html` in any browser to see the interface with sample data. Tests: `node --test` (813 passing).
+6. No Chrome handy? Open `dashboard/dashboard.html` in any browser to see the interface with sample data. Tests: `node --test` (815 passing).
 
 The demo script, with the sites and questions we checked on a Mac and a Windows laptop, is [docs/DEMO.md](docs/DEMO.md).
 
@@ -68,7 +68,7 @@ PrivaC downloads whole public lists and matches them on your computer. It never 
 | `preview/` | Test pages: C on 17 kinds of cookie pop-ups, and a demo site |
 | `scripts/` | Rebuild the data files; package the Chrome Web Store zip |
 | `store/` | Chrome Web Store screenshots |
-| `tests/` | 813 automated tests (`node --test`) |
+| `tests/` | 815 automated tests (`node --test`) |
 | `docs/` | Everything below |
 
 ## Documentation
@@ -102,7 +102,7 @@ PrivaC downloads whole public lists and matches them on your computer. It never 
 Tracker data: [DuckDuckGo Tracker Radar](https://github.com/duckduckgo/tracker-radar) (CC BY-NC-SA 4.0). Breach data: [Have I Been Pwned](https://haveibeenpwned.com) (CC BY 4.0). Cookie purposes: [Open Cookie Database](https://github.com/jkwakman/Open-Cookie-Database) (Apache 2.0). Data brokers: [California Privacy Protection Agency](https://cppa.ca.gov/data_broker_registry/). RegTrack facts, the 1260H list and State Media Monitor: [docs/DATA.md](docs/DATA.md).
 
 ## License
-PrivaC's own code is open source under the [MIT](LICENSE) license. The data files keep their own licenses (listed at the end of [LICENSE](LICENSE)); Tracker Radar's is non-commercial, which is fine for a hackathon and would need replacing for a commercial product.
+PrivaC's own code is open source under the [MIT](LICENSE) license. The data files keep their own licenses, listed in [THIRD_PARTY_LICENSES.md](THIRD_PARTY_LICENSES.md); Tracker Radar's is non-commercial, which is fine for a hackathon and would need replacing for a commercial product.
 
 ## Team
 Josh Davis, Max Glassman, Matthew Finkelstein, Justin Smilowitz, and the repo owner (gormandyp). Who built what: [docs/TEAM.md](docs/TEAM.md).
