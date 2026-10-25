@@ -46,8 +46,8 @@ const raw = [
   site("gov.uk", "declined", []),
   site("github.com", "none", [])
 ];
-function build(listsIn) {
-  const data = { sample: false, sites: raw.map((s) => ({ ...s, trackers: s.trackers.map((t) => ({ ...t })) })) };
+function build(listsIn, sitesIn = raw) {
+  const data = { sample: false, sites: sitesIn.map((s) => ({ ...s, trackers: s.trackers.map((t) => ({ ...t })) })) };
   L.annotate(data, listsIn, atlas);
   D.annotateListed(data, flagged);
   data.sites = data.sites.map((s) => ({ ...s, ...D.computeScore(s, NOW) }));
@@ -164,7 +164,9 @@ test("which sites fingerprinted me: the same companies as the dashboard's finger
 });
 
 test("other questions about these purposes go to Gemma with the full list as facts, after any follow-up facts", async () => {
-  const r = await ask("Can malware steal my passwords?");
+  // A "how" question isn't a where / what-is / did / can question, so Gemma answers it ("Can malware steal my passwords?"
+  // moved to the records in R19p: G14, real Gemma, Oct 25).
+  const r = await ask("How does malware get onto a website?");
   assert.strictEqual(r.calls, 1);
   assert.match(factsIn(r.context), /^- Labelled malware on your sites \[Seen on your visit\] \[Tracker Radar\]: ECO PC - Complex Solutions \(yadro\.ru\) on tass\.com; none on your other 8 sites$/m);
   const fp = await ask("What is fingerprinting?");
@@ -251,4 +253,95 @@ test("questions about one feature, or about a site, still go to Gemma with Priva
     const r = await ask(q);
     assert.strictEqual(r.calls, 1, q);
   }
+});
+
+// ---------- R19p: the G14's real-Gemma check of main 7c54ac5 (2026-10-25 17:40 UTC) ----------
+// "What websites were using the screen recording tracker cookies?" left out Bombora (ml314.com) on dailymail.com and
+// weather.com: Tracker Radar labels it session recording, but Bombora is a registered data broker, so the dashboard counts
+// it under "Data brokers". C keeps the dashboard's count and names it after the list.
+const withBombora = { ...lists, brokers: { ...lists.brokers, list: [...lists.brokers.list, { name: "Bombora Inc.", dba: "", site: "bombora.com" }] } };
+const bomboraSites = [...raw.map((s) => (s.domain === "weather.com" ? { ...s, trackers: [...s.trackers, T("ml314.com")] } : s)), site("dailymail.com", "none", ["ml314.com", "doubleclick.net"])];
+const bombora = { load: async () => build(withBombora, bomboraSites), lists: async () => withBombora };
+
+test("a screen recorder from a registered data broker is named too, as counted under \"Data brokers\" on the dashboard", async () => {
+  assert.strictEqual(H.aggregate(build(withBombora, bomboraSites).sites).purposes.find((p) => p.label === "Recording your screen").n, 3, "the dashboard counts Bombora with data brokers");
+  const r = await ask("What websites were using the screen recording tracker cookies?", null, bombora);
+  assert.strictEqual(r.calls, 0);
+  assert.match(r.answer, /^Recording your screen \(session recording\): 3 tracker addresses on 3 of your 10 sites this week \[Seen on your visit\] \[Tracker Radar\]:/);
+  assert.match(r.answer, /\n- Yandex \(yandex\.ru, based in Russia\) on tass\.com\nTracker Radar also labels this company's tracker as session recording; the dashboard counts it under "Data brokers" \[Seen on your visit\] \[Tracker Radar\] \[CA Broker Registry\]:\n- Bombora \(ml314\.com\), registered as "Bombora Inc\.", on weather\.com and dailymail\.com\nNone of your other 6 sites loaded one\./);
+  assert.ok(labels(r).includes("CA Broker Registry"));
+  const co = await ask("Did Bombora record my screen?", null, bombora);
+  assert.strictEqual(co.calls, 0);
+  assert.match(co.answer, /^Tracker Radar labels this company's tracker as session recording; the dashboard counts it under "Data brokers" [^\n]*:\n- Bombora \(ml314\.com\), registered as "Bombora Inc\.", on weather\.com and dailymail\.com\nNone of your other 8 sites loaded one from Bombora\./);
+  assert.doesNotMatch(co.answer, /Hotjar|None of your 10 sites/);
+  const one = await ask("Did dailymail.com record my screen?", null, bombora);
+  assert.match(one.answer, /^Tracker Radar labels this company's tracker as session recording; [^\n]*:\n- Bombora \(ml314\.com\), registered as "Bombora Inc\.", on dailymail\.com$/m);
+  assert.doesNotMatch(one.answer, /dailymail\.com loaded no/);
+  const g = await ask("How does session recording work?", null, bombora);
+  assert.strictEqual(g.calls, 1);
+  assert.match(factsIn(g.context), /^- Recording your screen on your sites [^\n]*; none on your other 6 sites\n- Also labelled session recording by Tracker Radar, counted under "Data brokers" on the dashboard \[Seen on your visit\] \[Tracker Radar\] \[CA Broker Registry\]: Bombora \(ml314\.com\), registered as "Bombora Inc\.", on weather\.com and dailymail\.com$/m);
+});
+
+test("a company in the question narrows the list, and the counts say whose they are", async () => {
+  const r = await ask("Where did Hotjar record my screen?");
+  assert.match(r.answer, /^Recording your screen \(session recording\) from Hotjar: 1 tracker address on 1 of your 9 sites this week [^\n]*:\n- Hotjar \(hotjar\.com\) on puffco\.com\nNone of your other 8 sites loaded one from Hotjar\./);
+});
+
+// "Can malware steal my passwords?" went to Gemma, which didn't name yadro.ru or tass.com and gave no source.
+test("\"Can malware steal my passwords?\" is answered from the records: where, what it means for what you type, and what to do", async () => {
+  const r = await ask("Can malware steal my passwords?");
+  assert.strictEqual(r.calls, 0);
+  assert.match(r.answer, /^Labelled malware: 1 tracker address on 1 of your 9 sites this week \[Seen on your visit\] \[Tracker Radar\]:\n- ECO PC - Complex Solutions \(yadro\.ru\) on tass\.com\nNone of your other 8 sites loaded one\./);
+  assert.match(r.answer, /A script loaded from one can read what you type on that page, passwords included, but PrivaC can't see what it did on your visit\./);
+  assert.match(r.answer, /What you can do:\n- /);
+  const rec = await ask("Could the screen recorders see my credit card number?");
+  assert.strictEqual(rec.calls, 0);
+  assert.match(rec.answer, /^Recording your screen \(session recording\): 3 tracker addresses/);
+  assert.match(rec.answer, /What you can do:\n- /);
+  for (const q of ["Can you detect malware?", "Can PrivaC see screen recording?"]) assert.strictEqual((await ask(q)).calls, 1, `${q}: what PrivaC can do stays with Gemma`);
+});
+
+// "Who is Criteo?" then "Are they a data broker?" was answered about "the Data Group, LLC": that registered name cleans down
+// to "data", so the follow-up got its facts instead of Criteo's, and then every broker on your sites.
+const withDataGroup = { ...lists, brokers: { ...lists.brokers, list: [{ name: "The Data Group, LLC", dba: "", site: "thedatagroup.example" }, ...lists.brokers.list] } };
+const dataGroup = { load: async () => build(withDataGroup, bomboraSites), lists: async () => withDataGroup };
+
+test("\"Are they a data broker?\" after \"Who is Criteo?\" stays on Criteo, with only Criteo's line from the dashboard", async () => {
+  const r = await ask("Are they a data broker?", [{ question: "Who is Criteo?", answer: "Criteo is an ad company based in France. [Tracker Radar]" }], dataGroup);
+  assert.strictEqual(r.calls, 1);
+  const facts = factsIn(r.context);
+  assert.match(facts, /^- Criteo runs/m);
+  assert.match(facts, /^- Data brokers on your sites \[Seen on your visit\] \[CA Broker Registry\]: Criteo \(criteo\.com\), registered as "Criteo Corp\.", on weather\.com and wired\.com; none on your other 8 sites$/m);
+  assert.doesNotMatch(facts, /Data Group/);
+  const named = await ask("Who is The Data Group?", null, dataGroup);
+  assert.match(factsIn(named.context), /^- The Data Group, LLC is registered as a data broker in California \[CA Broker Registry\]$/m, "written as a name, it still counts");
+  const hotjar = await ask("Are they a data broker?", [{ question: "Who is Hotjar?", answer: "Hotjar records visits. [Tracker Radar]" }], dataGroup);
+  assert.match(factsIn(hotjar.context), /^- Data brokers on your sites \[Seen on your visit\] \[CA Broker Registry\]: Hotjar loaded on puffco\.com, but PrivaC didn't find Hotjar in California's Data Broker Registry$/m);
+  const fp = await ask("Does it fingerprint me?", [{ question: "Who is Criteo?", answer: "Criteo is an ad company. [Tracker Radar]" }]);
+  assert.match(factsIn(fp.context), /^- Device fingerprinting on your sites \[Seen on your visit\] \[Tracker Radar\]: Criteo loaded on weather\.com and wired\.com, but Tracker Radar doesn't rate Criteo's scripts as likely to fingerprint your device$/m);
+});
+
+// "Who is ByteDance?" (G14): "...they are listed on the Pentagon's Section 1260H list". The check only caught sentences that
+// name ByteDance; this one said "they".
+test("a sentence putting the question's not-listed company on the 1260H list as \"they\" or \"it\" is taken out too", async () => {
+  const reply = "ByteDance is a company based in China [Tracker Radar]. With the largest being for Tracking, they are listed on the Pentagon's Section 1260H list of Chinese military companies [Government list].";
+  const say = (q, text, history) => A.answer(q, { load: async () => data, lists: async () => lists, atlas: () => atlas, history: history || [], facts: async () => ({ flagged }), ask: async () => text });
+  assert.strictEqual((await say("Who is ByteDance?", reply)).answer, "ByteDance is a company based in China [Tracker Radar].");
+  const it = await say("Is it on the 1260H list?", "It is on the Section 1260H list [Government list].", [{ question: "Who is ByteDance?", answer: "ByteDance owns TikTok. [Tracker Radar]" }]);
+  assert.doesNotMatch(it.answer, /It is on the Section 1260H list/);
+  const kept = "ByteDance is not on the Section 1260H list [Government list]. Baidu is on the Pentagon's Section 1260H list [Government list].";
+  assert.strictEqual((await say("Who is ByteDance and who is Baidu?", kept)).answer, kept, "a denial, and a listed company, stay");
+  const baidu = "Baidu is based in China [Tracker Radar]. It is on the Pentagon's Section 1260H list [Government list].";
+  assert.strictEqual((await say("Who is Baidu?", baidu)).answer, baidu, "a listed company's \"it\" stays");
+});
+
+// "How safe are you PrivaC?" said "never full web addresses", but PrivaC keeps each privacy policy's address (PRIVACY.md).
+test("\"How safe are you PrivaC?\" says what it keeps the way PRIVACY.md does", async () => {
+  const r = await ask("How safe are you PrivaC?");
+  assert.doesNotMatch(r.answer, /never full web addresses/);
+  assert.match(r.answer, /site names \(never the addresses of the pages you visit\)/);
+  assert.match(r.answer, /the address of its privacy-policy page/);
+  const privacy = fs.readFileSync(path.join(__dirname, "..", "PRIVACY.md"), "utf8");
+  assert.match(privacy, /full web addresses of the pages you visit/);
+  assert.match(privacy, /the address of that policy page/);
 });

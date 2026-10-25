@@ -88,6 +88,8 @@ test("after the second tap the pop-up says what was removed, what happens on rel
   const js = fs.readFileSync(__dirname + "/../popup/popup.js", "utf8");
   assert.match(js, /id="clear-done" role="status"/, "screen readers hear it too");
   assert.match(js, /clear\.classList\.add\("done"\)/, "the button looks finished");
+  // G14 (Oct 25): in the panel, the note sat partly under the bottom bar until you scrolled.
+  assert.match(js, /done\.hidden = false;\s*done\.scrollIntoView\(\{ block: "nearest" \}\);/, "the note scrolls into view");
 });
 
 test("the card is a short list with the limit on its own line, and the button looks like a button", () => {

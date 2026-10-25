@@ -141,7 +141,7 @@ Tick each one here when done. **All 8 done (checked 2026-10-25 overnight).**
     is answered from the records (shared/askc.js `dashboardAnswer()`), like grades and breaches: every company with its tracker addresses
     and sites, counted the dashboard's way, then "None of your other N sites loaded one", the cookies those companies left (when the
     question says cookies) and what the label means. A site or company in the question narrows the list ("Did puffco.com record my
-    screen?", "Which sites did Hotjar record me on?"). Other questions about these items ("Can malware steal my passwords?") send Gemma
+    screen?", "Which sites did Hotjar record me on?"). Other questions about these items ("How does malware get onto a website?") send Gemma
     the same list as facts. Check: tests/askc-dashboard.test.js; a backtest of 55 unrelated questions gave 53 identical answers, and the
     other 2 only gained the matching list in Gemma's facts.
   - [x] **m. "Which of my sites had recent data breaches?" gets the same answer every time** **Done 2026-10-25 (Preston).** One wording
@@ -163,6 +163,25 @@ Tick each one here when done. **All 8 done (checked 2026-10-25 overnight).**
     the middle scrolls, between the bars (popup.css, popup/panel-mode.js). A reload after clearing is a new visit: if the site asks about
     cookies again and loads fewer companies, the grade can move (the half-of-visits rule, R18), not because of the clear. Check:
     tests/clear-site.test.js, tests/panel-mode.test.js, tests/popup-window.test.js; Chromium with a local copy of puffco.com.
+  - [x] **p. What the G14's real-Gemma check of l-o still found** **Done 2026-10-25 (G14 check of main 7c54ac5, 17:40 UTC).**
+    (1) The screen-recording list left out Bombora (ml314.com): Tracker Radar labels it session recording, but Bombora is a
+    registered data broker, so the dashboard counts it under "Data brokers". C keeps the dashboard's count and names such trackers
+    after the list ("Tracker Radar also labels this company's tracker as session recording; the dashboard counts it under Data
+    brokers"); the same goes for every purpose (Criteo now shows up when you ask where the advertising trackers were). (2) "Can
+    malware steal my passwords?" went to Gemma, which named neither the tracker nor its site: "Can/could [purpose]...?" questions
+    about malware, high-risk, hidden-owner, unlabelled or screen-recording trackers are answered from the records, with steps, and
+    the malware explanation now says a script from such an address can read what you type on that page. "Can you...?" and "Can
+    PrivaC...?" stay with Gemma. (3) "Are they a data broker?" after "Who is Criteo?" was answered about "The Data Group, LLC":
+    that registered name shortens to "data", so the follow-up got its facts instead of Criteo's. A registered name that shortens
+    to an everyday word now counts only when written like a name ("The Data Group"), and a question about one company (or a
+    follow-up about the last one) gets only that company's line from the dashboard lists. (4) "Who is ByteDance?" still said
+    "they are listed on the Pentagon's Section 1260H list": the check also removes such a sentence when it says "they" or "it"
+    about the question's company. (5) "How safe are you PrivaC?" said it never keeps full web addresses, but it keeps each privacy
+    policy's address (PRIVACY.md): now "never the addresses of the pages you visit", and it names the policy address. (6) After
+    "Clear", the "Removed N cookies" note scrolls into view instead of sitting under the panel's bottom bar. Not changed: puffco.com's
+    cookie banner ("Do not sell or share" / "Accept") isn't detected (content/cookie-detector.js, needs its own R9 note). Check:
+    tests/askc-dashboard.test.js, tests/clear-site.test.js; a backtest of 55 unrelated questions gave 54 identical answers (the
+    other was the Criteo follow-up, now with only Criteo's line).
   - Also waiting to merge: `max/icon-tabs` (tab icons + names).
 
 ## Sun (freeze 11 AM)

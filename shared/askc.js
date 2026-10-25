@@ -77,12 +77,16 @@ Steps the person can take (no tag needed):
     for (const c of (extra && extra.flagged && extra.flagged.companies) || []) if (mentions(q, c.atlasCompany)) out.push(`- ${c.atlasCompany} is on the Pentagon's Section 1260H list of Chinese military companies (June 2026)${/sued|contest/i.test(c.note || "") ? `, which it is contesting in court` : ""} [Government list]`);
     return out;
   }
-  // ...and a sentence that still puts a checked not-listed company on that list is taken out.
-  function dropFalseListings(text, extra) {
+  // ...and a sentence that still puts a checked not-listed company on that list is taken out, also when it calls the
+  // question's company "they" or "it" ("Who is ByteDance?": "...they are listed on the Pentagon's Section 1260H list", G14).
+  const PRONOUN = /\b(?:it|it's|its|they|they're|their|the company|this company)\b/i;
+  function dropFalseListings(text, extra, q) {
     const names = notListed(extra).flatMap((c) => c.names);
     if (!names.length || !/1260H/i.test(text)) return text;
-    return text.split("\n").map((par) => par.split(/(?<=[.!?](?:\s*\[[^\]]+\])*)\s+(?!\[)/)
-      .filter((x) => !(/1260H/i.test(x) && names.some((n) => mentions(x, n)) && !DENIES.test(x))).join(" ")).join("\n").trim();
+    const listed = ((extra && extra.flagged && extra.flagged.companies) || []).map((c) => c.atlasCompany);
+    const theirs = names.some((n) => mentions(q || "", n)) && !listed.some((n) => mentions(q || "", n));
+    const wrong = (x) => /1260H/i.test(x) && !DENIES.test(x) && (names.some((n) => mentions(x, n)) || (theirs && PRONOUN.test(x) && !listed.some((n) => mentions(x, n))));
+    return text.split("\n").map((par) => par.split(/(?<=[.!?](?:\s*\[[^\]]+\])*)\s+(?!\[)/).filter((x) => !wrong(x)).join(" ")).join("\n").trim();
   }
 
   // 1260H entry for a tracker's company, from shared/flagged-companies.json (hand-checked).
@@ -735,12 +739,15 @@ Steps the person can take (no tag needed):
   const WHERE_Q = /\b(?:which|what)\s+(?:of\s+(?:my|the|your)\s+)?(?:[a-z-]+\s+){0,3}?(?:web\s*)?(?:sites?|pages?|compan(?:y|ies)|trackers?|ones?|domains?|addresses|brokers?|recorders?)\b|\bwhere\b|\bwho\b|\b(?:came|come|comes|coming)\s+from\b|\boriginat\w*|\b(?:list|show|name)\b|\bany\s+(?:of\s+)?(?:my\s+|the\s+|these\s+)?(?:[a-z-]+\s+){0,2}?(?:web\s*)?(?:sites?|pages?|trackers?|compan(?:y|ies)|brokers?|recorders?)\b|\b(?:was|were|is|are)\s+there\b|\bhow\s+many\b/i;
   const DEFINE_Q = /^\s*(?:(?:and\s+)?(?:what|how)\s+about\b|what\s+(?:is|are|was|were|does|do)\b|what'?s\b|explain\b|describe\b|define\b|tell\s+me\s+(?:about|more)\b)/i;
   const EXISTS_Q = /^\s*(?:did|does|do|was|were|is|are|has|have|had)\b/i;
+  // "Can malware steal my passwords?" (G14: Gemma named neither the tracker nor its site). "Can you...?" and "Can PrivaC...?"
+  // are about what PrivaC does, and stay with Gemma.
+  const CAN_Q = /^\s*(?:can|could)\s+(?!(?:you|privac|c|it|i|we)\b)/i;
   const PLAIN_CAT = { "Session recording": "session recording", "Analytics": "analytics" };
   const CAT_WORDS = { "Session recording": "session recording", "Malware": "malware", "High-risk": "high-risk", "Obscure ownership": "having a hidden owner",
     "Tracking": "unlabelled tracking", "Advertising": "advertising", "Analytics": "analytics", "Social": "social media" };
   const MEANING = {
     "Session recording": "Session-recording scripts can capture what you do on a page (clicks, scrolling, mouse movement and what you type into forms) so the site can replay your visit.",
-    "Malware": "DuckDuckGo's Tracker Radar gives the malware label to addresses linked to harmful software; PrivaC can't see what a script did on your visit.",
+    "Malware": "DuckDuckGo's Tracker Radar gives the malware label to addresses linked to harmful software. A script loaded from one can read what you type on that page, passwords included, but PrivaC can't see what it did on your visit.",
     "High-risk": "Tracker Radar gives the label \"unknown high-risk behavior\" to addresses that acted in risky ways it couldn't explain.",
     "Obscure ownership": "Tracker Radar uses this label when it can't find out who owns a tracker.",
     "Tracking": "Tracker Radar lists some addresses as trackers without labelling what they're for.",
@@ -807,6 +814,15 @@ Steps the person can take (no tag needed):
     return found.length ? `\nCookies from these companies on those sites [Cookie Database]: ${found.slice(0, 6).join("; ")}.` : "";
   }
 
+  // A registered data broker counts under "Data brokers" on the dashboard whatever Tracker Radar labels it (trackerPurposes).
+  // Its trackers with this label are named after the list, so none is left out (G14: Bombora's session recorder, ml314.com).
+  const brokerAlso = (domainCat, cat) => (t) => cat !== "Data broker" && domainCat.get(t.domain) === "Data broker" && t.category === cat;
+  function alsoText(also, words, first) {
+    const what = also.length > 1 ? "these companies' trackers" : also[0].domains.length > 1 ? "this company's trackers" : "this company's tracker";
+    return `Tracker Radar ${first ? "" : "also "}labels ${what} as ${words}; the dashboard counts ${what.endsWith("tracker") ? "it" : "them"} under "Data brokers" ` +
+      `[Seen on your visit] [Tracker Radar] [CA Broker Registry]:\n${rowLines(also)}`;
+  }
+
   // { text, found }: found is false when no site in the question (or none this week) had one.
   function purposeSection(cat, sites, domainCat, scope, company, wantsCookies, brokersKnown) {
     const label = PURPOSE[cat] || cat;
@@ -814,20 +830,28 @@ Steps the person can take (no tag needed):
     if (cat === "Data broker" && !brokersKnown) return { text: "PrivaC hasn't downloaded California's Data Broker Registry yet (it downloads it once a day when Chrome starts), so I can't tell which trackers belong to registered data brokers.", found: false };
     const words = CAT_WORDS[cat] || cat.toLowerCase();
     const kind = cat === "Data broker" ? "tracker from a company registered in California's Data Broker Registry" : `tracker that Tracker Radar labels as ${words}${words.includes(label.toLowerCase()) ? "" : ` ("${label.toLowerCase()}")`}`;
-    const title = `${label}${PLAIN_CAT[cat] ? ` (${PLAIN_CAT[cat]})` : ""}`;
+    const from = company ? ` from ${company}` : "";
+    const title = `${label}${PLAIN_CAT[cat] ? ` (${PLAIN_CAT[cat]})` : ""}${from}`;
     let rows = companyRows(scope || sites, (t) => domainCat.get(t.domain) === cat);
-    if (company) rows = rows.filter((r) => r.company === company);   // "Where did Hotjar record my screen?"
-    const cookies = (where) => (wantsCookies && rows.length ? cookieLine(rows, where) : "");
+    let also = companyRows(scope || sites, brokerAlso(domainCat, cat));
+    if (company) { rows = rows.filter((r) => r.company === company); also = also.filter((r) => r.company === company); }   // "Where did Hotjar record my screen?"
+    const all = [...rows, ...also];
+    const cookies = (where) => (wantsCookies && all.length ? cookieLine(all, where) : "");
     if (scope) {   // the sites the question named, each with its answer
-      const none = scope.filter((s) => !rows.some((r) => r.sites.includes(s.domain)));
+      const none = scope.filter((s) => !all.some((r) => r.sites.includes(s.domain)));
       const lines = none.map((s) => `${s.domain} loaded no ${kind} ${tag}.`);
-      if (rows.length) lines.push(`${title} on ${and(scope.filter((s) => !none.includes(s)).map((s) => s.domain))} ${tag}:\n${rowLines(rows)}`);
-      return { text: lines.join("\n") + cookies(scope), found: rows.length > 0 };
+      if (rows.length) lines.push(`${title} on ${and(scope.filter((s) => rows.some((r) => r.sites.includes(s.domain))).map((s) => s.domain))} ${tag}:\n${rowLines(rows)}`);
+      if (also.length) lines.push(alsoText(also, words, !rows.length));
+      return { text: lines.join("\n") + cookies(scope), found: all.length > 0 };
     }
-    if (!rows.length) return { text: `None of your ${sitesWord(sites.length)} this week loaded a ${kind} ${tag}.`, found: false };
+    if (!all.length) return { text: `None of your ${sitesWord(sites.length)} this week loaded a ${kind} ${tag}.`, found: false };
+    const on = new Set(all.flatMap((r) => r.sites)).size;
+    const others = sites.length - on > 0 ? `\nNone of your other ${sitesWord(sites.length - on)} loaded one${from}.` : "";
+    if (!rows.length) return { text: alsoText(also, words, true) + others + cookies(sites), found: true };
     const n = new Set(rows.flatMap((r) => r.domains)).size;
-    const on = new Set(rows.flatMap((r) => r.sites)).size;
-    return { text: `${title}: ${n} tracker address${n === 1 ? "" : "es"} on ${on} of your ${sitesWord(sites.length)} this week ${tag}:\n${rowLines(rows)}${othersLine(sites.length - on)}` + cookies(sites), found: true };
+    const shown = new Set(rows.flatMap((r) => r.sites)).size;
+    return { text: `${title}: ${n} tracker address${n === 1 ? "" : "es"} on ${shown} of your ${sitesWord(sites.length)} this week ${tag}:\n${rowLines(rows)}` +
+      `${also.length ? `\n${alsoText(also, words, false)}` : ""}${others}` + cookies(sites), found: true };
   }
 
   // Device fingerprinting: the dashboard's companies (a script Tracker Radar rates 2 or more), with where they loaded.
@@ -852,7 +876,7 @@ Steps the person can take (no tag needed):
     if (!sites.length || SELL_Q.test(q) || BREACH_Q.test(q)) return null;
     const named = namedSites(sites, q);
     const asked = askedPurposes(q);
-    const where = WHERE_Q.test(q), define = DEFINE_Q.test(q), exists = EXISTS_Q.test(q), steps = WANTS_STEPS.test(q);
+    const where = WHERE_Q.test(q), define = DEFINE_Q.test(q), exists = EXISTS_Q.test(q), can = CAN_Q.test(q), steps = WANTS_STEPS.test(q) || can;
     const cats = asked.cats.filter((cat) => asked.label || where || (named.length && exists) || (RARE_PURPOSES.has(cat) && (define || exists || steps)));
     const fp = FINGERPRINT_Q.test(q) && !asked.cats.length && (where || (named.length && exists));
     if (!cats.length && !fp) return null;
@@ -867,7 +891,7 @@ Steps the person can take (no tag needed):
     }
     const domainCat = trackerPurposes(sites);
     for (const cat of cats) {
-      const inGroup = [...new Set(sites.flatMap((s) => (s.trackers || []).filter((t) => t && domainCat.get(t.domain) === cat).map((t) => t.company)))];
+      const inGroup = [...new Set(sites.flatMap((s) => (s.trackers || []).filter((t) => t && (domainCat.get(t.domain) === cat || brokerAlso(domainCat, cat)(t))).map((t) => t.company)))];
       const company = companiesIn(q, inGroup)[0] || null;
       const sec = purposeSection(cat, sites, domainCat, scope, company, /\bcookies?\b/i.test(q), brokersKnown);
       parts.push(sec.text);
@@ -879,21 +903,33 @@ Steps the person can take (no tag needed):
     return text + (steps && stepsFor.length ? stepList([...new Set(stepsFor)]) : "");
   }
 
-  // The same lists for Gemma, for other questions about these items ("Can malware steal my passwords?").
-  function dashboardFacts(q, sites, brokersKnown) {
+  // The same lists for Gemma, for other questions about these items ("How does malware get onto a website?"). A question
+  // about one company (or a follow-up about the last one) gets only that company's line: "Are they a data broker?" after
+  // "Who is Criteo?" got every broker on your sites, and Gemma answered about the first one (G14, 2026-10-25).
+  function dashboardFacts(q, sites, brokersKnown, about) {
     const asked = askedPurposes(q).cats;
     if (!sites.length || (!asked.length && !FINGERPRINT_Q.test(q))) return [];
-    const fact = (label, rows, tag) => {
-      const on = new Set(rows.flatMap((r) => r.sites)).size;
-      if (label === PURPOSE["Data broker"] && !brokersKnown) return `- ${label}: PrivaC hasn't downloaded California's Data Broker Registry yet, so it can't tell which trackers belong to registered data brokers`;
-      if (!rows.length) return `- ${label} on your sites ${tag}: none on your ${sitesWord(sites.length)}`;
-      return `- ${label} on your sites ${tag}: ${rows.slice(0, 8).map((r) => rowText(r, 4)).join("; ")}${rows.length > 8 ? `; and ${rows.length - 8} more companies` : ""}` +
-        (sites.length - on > 0 ? `; none on your other ${sitesWord(sites.length - on)}` : "");
+    const only = (rows) => (about && about.length ? rows.filter((r) => about.includes(r.company)) : rows);
+    const notThere = (why) => about.map((co) => {
+      const where = sites.filter((s) => (s.trackers || []).some((t) => t && t.company === co)).map((s) => s.domain);
+      return where.length ? `${co} loaded on ${where.length > 4 ? sitesWord(where.length) : and(where)}, but ${why(co)}` : `${co} didn't load on your ${sitesWord(sites.length)} this week`;
+    }).join("; ");
+    const fact = (label, rows, tag, why, also = [], words = "") => {
+      if (label === PURPOSE["Data broker"] && !brokersKnown) return [`- ${label}: PrivaC hasn't downloaded California's Data Broker Registry yet, so it can't tell which trackers belong to registered data brokers`];
+      const on = new Set([...rows, ...also].flatMap((r) => r.sites)).size;
+      const alsoLine = also.length ? [`- Also labelled ${words} by Tracker Radar, counted under "Data brokers" on the dashboard [Seen on your visit] [Tracker Radar] [CA Broker Registry]: ${also.slice(0, 8).map((r) => rowText(r, 4)).join("; ")}`] : [];
+      if (!rows.length && !also.length && about && about.length) return [`- ${label} on your sites ${tag}: ${notThere(why)}`];
+      if (!rows.length) return [`- ${label} on your sites ${tag}: none ${also.length ? "counted here on the dashboard" : `on your ${sitesWord(sites.length)}`}`, ...alsoLine];
+      return [`- ${label} on your sites ${tag}: ${rows.slice(0, 8).map((r) => rowText(r, 4)).join("; ")}${rows.length > 8 ? `; and ${rows.length - 8} more companies` : ""}` +
+        (sites.length - on > 0 ? `; none on your other ${sitesWord(sites.length - on)}` : ""), ...alsoLine];
     };
     const domainCat = trackerPurposes(sites);
-    const out = asked.map((cat) => fact(PURPOSE[cat] || cat, companyRows(sites, (t) => domainCat.get(t.domain) === cat),
-      cat === "Data broker" ? "[Seen on your visit] [CA Broker Registry]" : "[Seen on your visit] [Tracker Radar]"));
-    if (FINGERPRINT_Q.test(q)) out.push(fact("Device fingerprinting", fingerprintRows(sites), "[Seen on your visit] [Tracker Radar]"));
+    const out = asked.flatMap((cat) => fact(PURPOSE[cat] || cat, only(companyRows(sites, (t) => domainCat.get(t.domain) === cat)),
+      cat === "Data broker" ? "[Seen on your visit] [CA Broker Registry]" : "[Seen on your visit] [Tracker Radar]",
+      (co) => (cat === "Data broker" ? `PrivaC didn't find ${co} in California's Data Broker Registry` : `Tracker Radar doesn't label ${co}'s trackers there as ${CAT_WORDS[cat] || cat.toLowerCase()}`),
+      only(companyRows(sites, brokerAlso(domainCat, cat))), CAT_WORDS[cat] || cat.toLowerCase()));
+    if (FINGERPRINT_Q.test(q)) out.push(...fact("Device fingerprinting", only(fingerprintRows(sites)), "[Seen on your visit] [Tracker Radar]",
+      (co) => `Tracker Radar doesn't rate ${co}'s scripts as likely to fingerprint your device`));
     return out;
   }
 
@@ -977,6 +1013,14 @@ Steps the person can take (no tag needed):
       stepList(["use a different password for each site and turn on two-step sign-in, so a breach nobody has found yet can't open your other accounts"]);
   }
 
+  // A registered name that cleans down to an everyday word ("The Data Group, LLC" -> "data") counts only written like a
+  // name, with its capital and not as the first word: "Are they a data broker?" got The Data Group's facts instead of the
+  // last question's Criteo (G14, 2026-10-25).
+  function writtenAsName(question, n) {
+    if (n.includes(" ") || !(BREACH_STOP.has(n) || COMMON_WORDS.has(n) || GENERIC_FIRST.has(n) || EVERYDAY_NAMES.has(n) || OWN_TOPIC.test(n))) return true;
+    return [...String(question).matchAll(new RegExp(`(^|[^A-Za-z0-9])(${escapeRe(n)})(?![A-Za-z0-9])`, "gi"))].some((m) => m.index + m[1].length > 0 && /^[A-Z]/.test(m[2]));
+  }
+
   // Facts about companies or sites named in the question, looked up in the local lists.
   function lookupFacts(question, lists, atlas) {
     const L = (typeof window !== "undefined" ? window : self).PrivaCLists;
@@ -1002,7 +1046,7 @@ Steps the person can take (no tag needed):
     }
     for (const b of (lists && lists.brokers && lists.brokers.list) || []) {
       if (facts.length >= 8) break;
-      const hit = [b.name, b.dba].find(n => n && has(n) && !seen.has(L.norm(n)));
+      const hit = [b.name, b.dba].find(n => n && has(n) && !seen.has(L.norm(n)) && writtenAsName(question, L.norm(n)));
       if (hit) { seen.add(L.norm(hit)); facts.push(`- ${b.name} is registered as a data broker in California [CA Broker Registry]`); }
     }
     for (const [d, b] of breachSites(question, lists)) {
@@ -1204,7 +1248,7 @@ Steps the person can take (no tag needed):
   ];
   const SAFE_ANSWER = "Here's exactly what PrivaC can and can't do:\n" +
     "- It runs on this computer. PrivaC has no servers, no accounts, no ads and no analytics, and the PrivaC team never sees your data. What it learns about your browsing stays in Chrome's storage, and my answers are written by Gemma 4 running here, so your questions stay here too.\n" +
-    "- It keeps site names (never full web addresses), which tracker companies each site loaded, cookie names (never what's inside them) and your cookie-banner choices, and deletes each site 7 days after your last visit. It never reads your passwords or what you type into websites.\n" +
+    "- It keeps site names (never the addresses of the pages you visit), which tracker companies each site loaded, cookie names (never what's inside them), your cookie-banner choices, and what each site's privacy policy says with the address of its privacy-policy page. It deletes each site 7 days after your last visit, and never reads your passwords or what you type into websites.\n" +
     "- It downloads only whole public lists (data breaches and data brokers) and my AI model, the same files for everyone, so no site names are sent anywhere. It reads a site's privacy policy from that same site, without your cookies.\n" +
     "- Chrome says it can \"Read and change all your data on all websites\": PrivaC needs that to see which trackers each page loads, find cookie banners, and show C and the grade box. On a page it only clicks a cookie banner's reject option when you let it (or turn on automatic), and a \"Do not sell or share my personal information\" button when a page shows one. It deletes a site's cookies only when you tap \"Clear\" twice in the pop-up.\n" +
     "- It doesn't block trackers or ads: it shows you who's there and helps you say no.\n" +
@@ -1530,12 +1574,15 @@ Steps the person can take (no tag needed):
     const ownSites = namedSites(((data && data.sites) || []).filter(Boolean), q).length;
     const follows = FOLLOW_UP.test(q) || AND_ABOUT.test(q);
     const standalone = (facts.length || ownSites || OWN_TOPIC.test(q)) && !follows;
-    if (!facts.length && last && !ownSites && (follows || ((MORE_Q.test(q) || q.split(/\s+/).length <= 4) && !OWN_TOPIC.test(q)))) facts = lookupFacts(last.question, lists, atlas);
+    const followed = !facts.length && last && !ownSites && (follows || ((MORE_Q.test(q) || q.split(/\s+/).length <= 4) && !OWN_TOPIC.test(q))) ? last.question : "";
+    if (followed) facts = lookupFacts(followed, lists, atlas);
+    const subject = followed ? `${q} ${followed}` : q;   // "Is it on the 1260H list?" after "Who is ByteDance?" is about ByteDance
     // What C did this week (the dashboard's "C's impact" numbers), for questions about what C or PrivaC did.
     if (deps.stats && IMPACT_Q.test(q)) facts = facts.concat(impactFact(await deps.stats()));
-    facts = facts.concat(listingFacts(q, extraFacts));
+    facts = facts.concat(listingFacts(subject, extraFacts));
     // Other questions about those items get the same lists, so Gemma knows where each one came from.
-    facts = facts.concat(dashboardFacts(q, ((data && data.sites) || []).filter(Boolean), !!((lists && lists.brokers) || (data && data.lists && data.lists.brokersAsOf))));
+    const about = namedCompanies(q, atlas).length ? namedCompanies(q, atlas) : followed ? namedCompanies(followed, atlas) : [];
+    facts = facts.concat(dashboardFacts(q, ((data && data.sites) || []).filter(Boolean), !!((lists && lists.brokers) || (data && data.lists && data.lists.brokersAsOf)), about));
     // "yes tell me more" after "Was LinkedIn hacked?" stays on LinkedIn (Gemma drifted to another site's breach).
     const moreBreach = last && BREACH_Q.test(last.question) && !BREACH_Q.test(q) && (FOLLOW_UP.test(q) || MORE_Q.test(q)) ? breachSites(last.question, lists) : [];
     const breachNames = and(moreBreach.map(([d, b]) => siteLabel(d, b).replace(/ \(.*$/, "")));
@@ -1548,7 +1595,7 @@ Steps the person can take (no tag needed):
       // A source tag needs evidence behind it: Gemma wrote [HIBP] with no breach facts (2026-10-24), which also showed a
       // "Have I Been Pwned" check mark C never made. Tags that aren't in the evidence are removed, so their chips don't show.
       const memo = new Map();
-      const sourcedOnly = (t) => dropFalseListings(dropUnknownNames(dropUnbackedBreaches(t, lists), context, atlas, memo), extra).replace(/\s*\[([^\]]+)\]/g, (m, tag) => (TAGS.includes(tag) && !context.includes(`[${tag}]`) ? "" : m));
+      const sourcedOnly = (t) => dropFalseListings(dropUnknownNames(dropUnbackedBreaches(t, lists), context, atlas, memo), extra, subject).replace(/\s*\[([^\]]+)\]/g, (m, tag) => (TAGS.includes(tag) && !context.includes(`[${tag}]`) ? "" : m));
       // While C is writing, his words get the same clean-up as the finished answer (repeats, unsupported tags, steps),
       // so nothing he showed is taken away at the end (Max, IDEA.md).
       const writing = (so) => hideHalfRepeat(sourcedOnly(cleanAnswer(steps ? so : hideSteps(so))));

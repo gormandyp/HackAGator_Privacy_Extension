@@ -169,6 +169,7 @@
         const done = $("clear-done");
         done.textContent = clearedNote(s.domain, typeof r.cookies === "number" ? r.cookies : null);
         done.hidden = false;
+        done.scrollIntoView({ block: "nearest" });
       } else {
         clear.textContent = "Couldn't clear it. Try again.";
         armed = false;
