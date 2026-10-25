@@ -347,9 +347,21 @@
     return null;
   }
 
+  // Sites whose privacy policy C is reading right now (background/policy-reader.js): { domain: true }. A read that
+  // started over 5 minutes ago is over, even if Chrome stopped the background before it could say so.
+  async function readingPolicies() {
+    const out = {};
+    try {
+      if (typeof chrome === "undefined" || !chrome.storage || !chrome.storage.session) return out;
+      const now = (await chrome.storage.session.get("privacPolicyReading")).privacPolicyReading || {};
+      for (const [domain, at] of Object.entries(now)) if (Date.now() - at < 5 * 60000) out[domain] = true;
+    } catch (e) { /* not available here */ }
+    return out;
+  }
+
   async function clearAll() {
     if (hasChrome()) await chrome.storage.local.remove(["privacData", "privacStats", "privacChipSeen", "privacUnsafeSeen"]);   // history, daily counts, grade box and warning days
   }
 
-  window.PrivaCData = { countryOfAddress, annotateListed, load, currentDomain, clearAll, computeScore, gradeFor, GRADE_WORDS, RUBRIC_MAX, RULES, FOREIGN_ADVERSARIES };
+  window.PrivaCData = { countryOfAddress, annotateListed, load, currentDomain, readingPolicies, clearAll, computeScore, gradeFor, GRADE_WORDS, RUBRIC_MAX, RULES, FOREIGN_ADVERSARIES };
 })();

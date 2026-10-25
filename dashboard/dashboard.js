@@ -11,6 +11,7 @@
   $("ask-empty").insertAdjacentHTML("afterbegin", PrivaCMascot.svg("wave", { size: 104 }));
 
   const data = await PrivaCData.load();
+  const reading = data.sample ? {} : await PrivaCData.readingPolicies();   // "Reading the privacy policy" (see detailHtml)
   if (data.sample) $("sample-note").hidden = false;
   // Settings > "Show example data": say so on every tab, so nobody takes the example sites for real browsing.
   if (data.example) Object.assign($("sample-note"), { hidden: false, textContent: "Example data", title: "Example sites are shown next to your own. Turn off in Settings > Your data." });
@@ -41,8 +42,8 @@
         <div class="score"><b>${s.score}</b><span>of 100</span></div>
       </header>
       <div class="meter grade-${s.grade}"><span style="width:${s.score}%"></span></div>
-      ${PS ? (() => { const c = PS.checkedFor(s); return `
-      <p class="checked ${c.full ? "full" : "part"}"><b>${c.label}</b> · ${c.coverage}% of the grade checked${c.full ? "" : ` · range ${c.range.min}–${c.range.max}`}. ${esc(c.note)}</p>
+      ${PS ? (() => { const c = PS.checkedFor(s, { reading: !!reading[s.domain] }); return `
+      <p class="checked ${c.full ? "full" : "part"}"><b>${c.label}</b> · ${c.reading ? `<span class="reading-now"><i class="progress-dot" aria-hidden="true"></i>${c.status}</span>` : `${c.coverage}% of the grade checked`}${c.full ? "" : ` · range ${c.range.min}–${c.range.max}`}. ${esc(c.note)}</p>
       <details class="calc"><summary>How this grade was calculated</summary><ol>${PS.steps(s).map((t) => `<li>${esc(t)}</li>`).join("")}</ol></details>`; })() : ""}
       <div class="detail-actions"><button type="button" class="pill-btn" data-ask-pill data-ask="Why did ${esc(s.domain)} get ${an(s.grade)} ${s.grade}, and what can I do about it?">Ask C why it got ${an(s.grade)} ${s.grade}</button></div>
       <div class="detail-cols">

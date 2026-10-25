@@ -6,7 +6,8 @@
     2. htmlToText:     turn the fetched policy page into plain paragraphs.
     3. passagesFor:    for each question in shared/knowledge-map.json, keep only the paragraphs that
                        contain its find-words (plus one paragraph either side). No match = unknown, Gemma isn't asked.
-    4. Ask Gemma two questions at a time, as JSON: yes / no / unknown + the exact sentence.
+    4. Ask Gemma two questions at a time, as JSON: yes / no / unknown + the exact sentence. Selling and sharing (the
+       grade's questions) come first in the Knowledge Map; opts.onBatch gets the answers after each call but the last.
     5. verifyQuote:    the sentence must really be in the policy, or the answer becomes unknown.
        quoteFits:      and it must really say it (a "sells" sentence about personal information, not ad space).
   Result: { sells, shares, optOut, gpc, retention, preciseLocation, sensitive, otherSources,
@@ -177,6 +178,8 @@
           policy.quotes[hit.c.policyField] = String(a.quote).replace(/\s+/g, " ").trim();
         }
       }
+      // The answers so far, while more questions are left (background/policy-reader.js saves them right away).
+      if (opts.onBatch && i + PER_CALL < toAsk.length) await opts.onBatch({ ...policy, quotes: { ...policy.quotes } });
     }
     return policy;
   }

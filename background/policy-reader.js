@@ -39,7 +39,6 @@
     if (!/html|text\/plain/i.test(type)) return null;     // PDFs and the like are skipped
     return (await page.text()).slice(0, MAX_HTML);
   }
-  let queue = Promise.resolve();        // one policy at a time, so Gemma isn't flooded
   let ownChain = Promise.resolve();
 
   // Save through tracking.js's save chain when it's loaded, so writes to privacData never overlap.
@@ -50,6 +49,7 @@
       const site = data && Array.isArray(data.sites) && data.sites.find((s) => s.domain === domain);
       if (!site) return;
       site.policy = { ...(site.policy || {}), ...policy };
+      if (site.policy.checkedAt === undefined) delete site.policy.checkedAt;   // first answers only: not read yet
       await chrome.storage.local.set({ privacData: data });
     };
     if (typeof saveChain !== "undefined") {
@@ -79,28 +79,51 @@
   }
   recheckSaved();
 
-  async function check(domain, links) {
-    await mapReady;
-    if (!MAP || inFlight.has(domain)) return;
-    const prefs = (await chrome.storage.local.get("privacSettings")).privacSettings;
-    if (prefs && prefs.policyReader === false) return;     // turned off in Settings
-    const res = await chrome.storage.local.get("privacData");
-    const site = res.privacData && Array.isArray(res.privacData.sites) && res.privacData.sites.find((s) => s.domain === domain);
-    if (!site) return;                                       // only sites PrivaC has recorded
-    const p = site.policy || {};
-    if (p.checkedAt && Date.now() - Date.parse(p.checkedAt) < RECHECK_MS) return;
-    const url = PrivaCPolicy.pickPolicyLink(links, domain);  // same site only
-    if (!url) return;
+  // While C reads a site's policy, the pop-up and dashboard say "Reading the privacy policy" (shared/data.js
+  // readingPolicies). Kept in session storage: { domain: when the read started }.
+  const READING_KEY = "privacPolicyReading";
+  const reading = {};
+  function showReading(domain, on) {
+    if (on) reading[domain] = Date.now(); else delete reading[domain];
+    if (chrome.storage.session) chrome.storage.session.set({ [READING_KEY]: { ...reading } }).catch(() => {});
+  }
+  // A read that was going when Chrome paused this script isn't going any more.
+  if (chrome.storage.session) chrome.storage.session.remove(READING_KEY).catch(() => {});
 
-    inFlight.add(domain);
+  async function findSite(domain) {
+    const res = await chrome.storage.local.get("privacData");
+    return res.privacData && Array.isArray(res.privacData.sites) && res.privacData.sites.find((s) => s.domain === domain);
+  }
+
+  // Should this site's policy be read? Returns the policy link, or null.
+  async function wanted(domain, links) {
+    await mapReady;
+    if (!MAP || inFlight.has(domain)) return null;
+    const prefs = (await chrome.storage.local.get("privacSettings")).privacSettings;
+    if (prefs && prefs.policyReader === false) return null;    // turned off in Settings
+    let site = await findSite(domain);
+    // The links can arrive before tracking.js has saved this visit: wait for that save, then look again.
+    if (!site && typeof saveChain !== "undefined") { await saveChain; site = await findSite(domain); }
+    if (!site) return null;                                    // only sites PrivaC has recorded
+    const p = site.policy || {};
+    if (p.checkedAt && Date.now() - Date.parse(p.checkedAt) < RECHECK_MS) return null;
+    if (inFlight.has(domain)) return null;
+    return PrivaCPolicy.pickPolicyLink(links, domain);         // same site only
+  }
+
+  async function read(domain, url) {
     let html = null;
+    showReading(domain, true);              // the time it really started (it may have waited for another site)
     try {
       html = await fetchPolicy(domain, url);
       if (!html) return;
       // "low": Ask C questions go first; a policy read pauses while C is answering someone.
       // In-browser AI version: shared/ai.js picks Gemma in the browser (or Ollama); tests load only gemma.js.
       const AI = typeof PrivaCAI !== "undefined" ? PrivaCAI : PrivaCGemma;
-      const policy = await PrivaCPolicy.readPolicy({ html, url }, MAP, (q, o) => AI.ask(q, { ...o, priority: "low" }));
+      // Selling and sharing (the grade's questions) are asked first; their answers are saved right away, without
+      // checkedAt, so the grade updates while the other questions are read and a read cut off halfway is tried again.
+      const onBatch = (soFar) => save(domain, { ...soFar, checkedAt: undefined });
+      const policy = await PrivaCPolicy.readPolicy({ html, url }, MAP, (q, o) => AI.ask(q, { ...o, priority: "low" }), { onBatch });
       unread.delete(domain);
       await save(domain, policy);
     } catch (e) {
@@ -113,16 +136,42 @@
       console.log(`PrivaC: couldn't read the privacy policy for ${domain}`, e && e.message);   // normal; tried again next visit
     } finally {
       inFlight.delete(domain);
+      showReading(domain, false);
     }
   }
 
+  // One policy at a time, so Gemma isn't flooded. The site asked for most recently goes next: that's the one
+  // you're looking at.
+  const waiting = [];                   // { domain, url }, newest last
+  let busy = null;
+  function pump() {
+    if (busy) return busy;
+    busy = (async () => {
+      try { while (waiting.length) { const job = waiting.pop(); await read(job.domain, job.url); } }
+      finally { busy = null; }
+    })();
+    return busy;
+  }
+
+  const checking = new Set();           // link messages still being looked at
   chrome.runtime.onMessage.addListener((msg) => {
     if (!msg || msg.type !== "privac-policy-links" || !msg.domain || !Array.isArray(msg.links)) return;
     const domain = String(msg.domain).replace(/^www\./, "");
     const links = msg.links.slice(0, 40);
-    queue = queue.then(() => check(domain, links)).catch(() => {});
+    const job = wanted(domain, links).then((url) => {
+      if (!url || inFlight.has(domain)) return;
+      inFlight.add(domain);
+      showReading(domain, true);
+      waiting.push({ domain, url });
+      pump();
+    }).catch(() => {}).finally(() => checking.delete(job));
+    checking.add(job);
   });
 
   // For tests: resolves when queued policy reads (and their saves) are finished.
-  (typeof self !== "undefined" ? self : window).PrivaCPolicyReader = { idle: () => queue.then(() => (typeof saveChain !== "undefined" ? saveChain : ownChain)) };
+  async function idle() {
+    while (checking.size || busy) { await Promise.all([...checking]); await busy; }
+    await (typeof saveChain !== "undefined" ? saveChain : ownChain);
+  }
+  (typeof self !== "undefined" ? self : window).PrivaCPolicyReader = { idle };
 })();

@@ -56,19 +56,27 @@
   }
 
   // The privacy policy is read in the background and can take a minute, so its answer often arrives after the
-  // pop-up has drawn. Redraw once this site's answer is saved, so it shows without closing and reopening.
-  function redrawWhenPolicyRead(site) {
+  // pop-up has drawn. Redraw when this site's selling/sharing answers are saved (the first ones come before the read
+  // is done), when it's marked read, and when C starts or stops reading it ("Reading the privacy policy" and its dot).
+  function redrawWhenPolicyRead(site, reading) {
     if (!(chrome.storage && chrome.storage.onChanged)) return;
-    const readAt = (site.policy && site.policy.checkedAt) || null;
+    const said = (p) => [p.checkedAt || null, typeof p.sells === "boolean" ? p.sells : null, typeof p.shares === "boolean" ? p.shares : null].join();
+    const before = said(site.policy || {});
     chrome.storage.onChanged.addListener((changes, area) => {
+      if (area === "session" && changes.privacPolicyReading) {
+        const on = !!(changes.privacPolicyReading.newValue || {})[site.domain];
+        if (on !== reading) location.reload();
+        return;
+      }
       const data = area === "local" && changes.privacData && changes.privacData.newValue;
       const now = data && Array.isArray(data.sites) && data.sites.find((x) => x.domain === site.domain);
-      if (now && now.policy && now.policy.checkedAt && now.policy.checkedAt !== readAt) location.reload();
+      if (now && now.policy && said(now.policy) !== before) location.reload();
     });
   }
-  if (inExtension && !preview) redrawWhenPolicyRead(site);
+  const reading = inExtension && !preview ? await PrivaCData.readingPolicies() : {};
+  if (inExtension && !preview) redrawWhenPolicyRead(site, !!reading[site.domain]);
 
-  const s = PrivaCSiteSummary.summarize(site);
+  const s = PrivaCSiteSummary.summarize(site, { reading: !!reading[site.domain] });
   const tone = { good: "check", info: "list", warn: "alert" };
   const SOURCE_CHIP = { "Have I Been Pwned": "Have I Been Pwned", "Disclosed in privacy policy": "Privacy policy" };
   const SHOW_COMPANIES = 8;
@@ -87,7 +95,7 @@
         <div class="meter" aria-hidden="true"><span style="width:${s.score}%"></span></div>
         <span class="score"><b>${s.score}</b> of 100</span>
       </div>
-      <p class="checked ${s.checked.full ? "full" : "part"}">${I.icon(s.checked.full ? "check" : "alert", 13)}<span><b>${s.checked.label}</b> · ${s.checked.coverage}% of the grade checked. ${esc(s.checked.note)}</span></p>
+      <p class="checked ${s.checked.full ? "full" : "part"}">${I.icon(s.checked.full ? "check" : "alert", 13)}<span><b>${s.checked.label}</b> · ${s.checked.reading ? `<span class="reading-now"><i class="progress-dot" aria-hidden="true"></i>${s.checked.status}</span>` : `${s.checked.coverage}% of the grade checked`}. ${esc(s.checked.note)}</span></p>
       <p class="verdict">${esc(s.headline)}</p>
       ${s.trackerCount ? `
         <div class="who-line"><span>${s.companyCount} ${s.companyCount === 1 ? "company" : "companies"} · ${s.trackerCount} ${s.trackerCount === 1 ? "tracker" : "trackers"}</span></div>

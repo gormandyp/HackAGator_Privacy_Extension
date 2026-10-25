@@ -205,6 +205,13 @@ Tick each one here when done. **All 8 done (checked 2026-10-25 overnight).**
     example, before any record answer. Check: tests/askc-grade-rules.test.js (builds the questions from dashboard.html's table);
     Chromium with PrivaC loaded: all 6 buttons give their rule (before: the screen-recording list on one); backtest of 184 other
     questions unchanged.
+  - [x] **t. Policy reading sooner and friendlier** **Done 2026-10-25** (Preston). While C reads a site's policy, the pop-up and
+    dashboard say "Reading the privacy policy" with a small pulsing dot instead of "87% of the grade checked" (the range stays).
+    The "Privacy" link is found at document_end and whenever the page adds links (up to 15 s), not at idle + 4 s; the links can
+    arrive before the visit is saved (waits for it); selling and sharing are saved after Gemma's first answer (1 of up to 4
+    calls), without checkedAt, so a read cut off halfway is tried again; the site asked for most recently is read next. Ask C
+    still goes first (a policy question it interrupts is asked again). Not done: shipped readings for the top 50 sites.
+    Check: tests/policy-speed.test.js.
   - Also waiting to merge: `max/icon-tabs` (tab icons + names).
 
 ## Sun (freeze 11 AM)

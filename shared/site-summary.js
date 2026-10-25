@@ -98,10 +98,16 @@
   }
 
   // Fully / Partly checked, next to the score (shared/data.js range, coverage, unknowns).
-  function checkedFor(site) {
+  // opts.reading: C is reading this site's privacy policy right now (shared/data.js readingPolicies). If the policy
+  // isn't read yet, the pop-up and dashboard then say "Reading the privacy policy" with a moving dot instead of the
+  // percentage; the range stays.
+  const NOT_READ = "the privacy policy isn't read yet";
+  function checkedFor(site, opts) {
     const D = root.PrivaCData;
     const range = site.range || { min: site.score, max: site.score };
-    const unknowns = site.unknowns || [];
+    const reading = !!(opts && opts.reading) && (site.unknowns || []).includes(NOT_READ);
+    const unknowns = (site.unknowns || []).map((u) => (reading && u === NOT_READ ? "the privacy policy is still being read" : u));
+    const now = reading ? { reading: true, status: "Reading the privacy policy" } : {};
     const coverage = Math.round((site.coverage == null ? 1 : site.coverage) * 100);
     if (!unknowns.length) {
       return { full: true, label: "Fully checked", coverage, range,
@@ -110,12 +116,13 @@
     const worst = D && D.gradeFor ? D.gradeFor(range.max) : "";
     const what = unknowns.join(", and ");
     if (site.score >= 100) {
-      return { full: false, label: "Partly checked", coverage, range,
+      return { full: false, label: "Partly checked", coverage, range, ...now,
         note: `${what[0].toUpperCase()}${what.slice(1)}, but the score is already at the top (${site.score} of 100), so that can't raise it.` };
     }
     const g = worst === site.grade ? `still ${/^[AEF]/.test(worst) ? "an" : "a"} ${worst}` : worst;
-    return { full: false, label: "Partly checked", coverage, range,
-      note: `${what[0].toUpperCase()}${what.slice(1)}, so this could be as high as ${range.max} of 100 (${g}).` };
+    return { full: false, label: "Partly checked", coverage, range, ...now,
+      // Only the policy left, and C is reading it: the status already says so.
+      note: `${reading && unknowns.length === 1 ? "Until it's read," : `${what[0].toUpperCase()}${what.slice(1)}, so`} this could be as high as ${range.max} of 100 (${g}).` };
   }
 
   // "How this grade was calculated", five numbered steps with this site's own numbers (dashboard site detail).
@@ -179,7 +186,7 @@
       score: site.score,
       words: root.PrivaCData && root.PrivaCData.GRADE_WORDS ? root.PrivaCData.GRADE_WORDS[site.grade] : "",
       ...verdictFor(site, companyList.length),
-      checked: checkedFor(site),
+      checked: checkedFor(site, opts),
       alerts: alertsFor(site, now),
       reasons,
       checks,

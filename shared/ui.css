@@ -216,3 +216,9 @@ h1, h2, h3 { font-family: var(--font-display); color: var(--text); font-weight: 
 /* The wordmark and C's navy outlines turn light in dark mode so he stays visible. */
 .privac-wordmark { color: var(--text) !important; }
 [data-theme="dark"] .c-art svg [stroke="#16233f"], [data-theme="dark"] .privac-wordmark svg [stroke="#16233f"] { stroke: #dfe5ef; }
+
+/* "Reading the privacy policy" (pop-up and dashboard): a small dot that pulses while C reads it. */
+.reading-now { white-space: nowrap; color: var(--text); font-weight: 550; }
+.progress-dot { display: inline-block; width: 7px; height: 7px; margin: 0 5px 0 1px; border-radius: 99px; vertical-align: 1px; background: var(--focus); animation: progress-dot 1.2s ease-in-out infinite; }
+@keyframes progress-dot { 0%, 100% { opacity: .3; transform: scale(.75); } 50% { opacity: 1; transform: scale(1); } }
+@media (prefers-reduced-motion: reduce) { .progress-dot { animation: none; opacity: 1; } }

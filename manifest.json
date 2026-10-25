@@ -44,7 +44,6 @@
         "content/c-contrast.js",
         "content/cookie-detector.js",
         "content/alerts.js",
-        "content/policy-link.js",
         "content/panel.js",
         "content/grade-chip.js",
         "content/unsafe.js"
@@ -60,6 +59,15 @@
       ],
       "all_frames": true,
       "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "<all_urls>"
+      ],
+      "js": [
+        "content/policy-link.js"
+      ],
+      "run_at": "document_end"
     }
   ],
   "host_permissions": [

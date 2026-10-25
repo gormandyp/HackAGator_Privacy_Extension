@@ -10,8 +10,8 @@ const js = fs.readFileSync(__dirname + "/../popup/popup.js", "utf8");
 
 // Pull out the refresh function and run it with a fake Chrome.
 function load() {
-  const m = js.match(/\n  (function redrawWhenPolicyRead\(site\) \{[\s\S]*?\n  \})\n/);
-  assert.ok(m, "popup.js has redrawWhenPolicyRead(site)");
+  const m = js.match(/\n  (function redrawWhenPolicyRead\(site, reading\) \{[\s\S]*?\n  \})\n/);
+  assert.ok(m, "popup.js has redrawWhenPolicyRead(site, reading)");
   const listeners = [];
   const ctx = { reloads: 0, chrome: { storage: { onChanged: { addListener: (f) => listeners.push(f) } } } };
   ctx.location = { reload: () => { ctx.reloads++; } };
@@ -42,5 +42,5 @@ test("an already-read policy doesn't make the pop-up redraw again", () => {
 });
 
 test("the pop-up turns the refresh on only for the real site, not a ?site= preview", () => {
-  assert.match(js, /if \(inExtension && !preview\) redrawWhenPolicyRead\(site\);/);
+  assert.match(js, /if \(inExtension && !preview\) redrawWhenPolicyRead\(site, !!reading\[site\.domain\]\);/);
 });
