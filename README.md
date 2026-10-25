@@ -13,7 +13,7 @@ Built in 48 hours at Gator Hack V (UF AI Days 2026, Oct 23-25) for the "Fresh of
 3. Click the C toolbar button: the site's grade (A-F), whether it was Fully or Partly checked (and how high it could go), and every reason with its source.
 4. Open the dashboard: **Sites** (who each site connected you to), **C's impact**, **Safety** (data breaches, data brokers, companies in U.S.-listed countries), **Grades** (how the grade works, point by point) and **About** (the 2026 technology, with dates and proof links).
 5. In **Ask C**, try "Why did cnn.com get a C?" with a site you visited and its letter (answered from the score itself) and "Is any site I visited connected to China or Russia?" (written by Gemma 4 on this computer, with a source label on every fact).
-6. No Chrome handy? Open `dashboard/dashboard.html` in any browser to see the interface with sample data. Tests: `node --test` (714 passing).
+6. No Chrome handy? Open `dashboard/dashboard.html` in any browser to see the interface with sample data. Tests: `node --test` (739 passing).
 
 The demo script, with the sites and questions we checked on a Mac and a Windows laptop, is [docs/DEMO.md](docs/DEMO.md).
 
