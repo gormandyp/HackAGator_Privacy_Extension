@@ -121,7 +121,9 @@ test("Gemma's rules: a company's home country is a concern only on the foreign-a
 
 // ---------- R19k: Ask C sees the same tracker purposes as the dashboard ----------
 test("Ask C's evidence lists every tracker purpose with the dashboard's counts; malware is never cut", async () => {
-  const r = await ask("Which trackers were labelled malware and what websites did they originate from?");
+  // "Which trackers were labelled malware and what websites did they originate from?" is answered from the records since
+  // Oct 25 (tests/askc-dashboard.test.js), so a question that still goes to Gemma checks its evidence here.
+  const r = await ask("What were the trackers on my sites used for this week?");
   const c = r.seen.context;
   assert.match(c, /What the trackers were for \(tracker addresses, same as the dashboard\)/);
   assert.match(c, /Labelled malware 1: ECO PC - Complex Solutions on tass\.com/);

@@ -135,6 +135,25 @@ Tick each one here when done. **All 8 done (checked 2026-10-25 overnight).**
     sites they loaded on (cap ~6 companies and ~4 sites each; malware/high-risk and screen recording are never cut), tagged
     [Seen on your visit] [Tracker Radar]. Keep the context under MAX_CONTEXT_CHARS (these lines go before the short site lines that are
     trimmed first). Check: that question names ECO PC and tass.com; the counts match the dashboard card; `node --test` passes.
+  - [x] **l. C says where each dashboard item came from** **Done 2026-10-25 (Preston, real Gemma: C couldn't say which site the
+    dashboard's "Recording your screen" or "Labelled malware" trackers came from).** A question asking where screen recording, malware,
+    high-risk, hidden-owner or unlabelled trackers, data brokers, advertising, analytics, social media or device fingerprinting showed up
+    is answered from the records (shared/askc.js `dashboardAnswer()`), like grades and breaches: every company with its tracker addresses
+    and sites, counted the dashboard's way, then "None of your other N sites loaded one", the cookies those companies left (when the
+    question says cookies) and what the label means. A site or company in the question narrows the list ("Did puffco.com record my
+    screen?", "Which sites did Hotjar record me on?"). Other questions about these items ("Can malware steal my passwords?") send Gemma
+    the same list as facts. Check: tests/askc-dashboard.test.js; a backtest of 55 unrelated questions gave 53 identical answers, and the
+    other 2 only gained the matching list in Gemma's facts.
+  - [x] **m. "Which of my sites had recent data breaches?" gets the same answer every time** **Done 2026-10-25 (Preston).** One wording
+    was answered about a breach named "Recent" on a site never visited (everyday words matched breach names). Questions about breaches on
+    your sites now go straight to `yourBreaches()`: with "recent", "lately", "this year" or "last 12 months" it lists the sites with a
+    breach reported in the last 12 months (the same rule as the grade and alerts), then older breaches, then how many sites have none.
+    Check: 8 wordings give the same answer (tests/askc-dashboard.test.js).
+  - [x] **n. Questions about PrivaC itself** **Done 2026-10-25 (Preston: "How safe are you PrivaC?" got "it helps you manage cookies and
+    block trackers", which is false).** "Is PrivaC safe?", "Can I trust you?" and "What permissions does PrivaC need?" get PrivaC's own
+    answer, from PRIVACY.md and manifest.json; "What can you do?" and "What is PrivaC?" list the features; "How do you work?" gives the
+    4 steps, plus every grade rule when asked how the grade is calculated. Questions about one feature ("Does PrivaC block ads?") still
+    go to Gemma with PrivaC's facts, as decided earlier on Oct 25 (tests/askc-oct25.test.js).
   - Also waiting to merge: `max/icon-tabs` (tab icons + names).
 
 ## Sun (freeze 11 AM)

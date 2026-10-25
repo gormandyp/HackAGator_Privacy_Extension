@@ -339,11 +339,16 @@ Steps the person can take (no tag needed):
   const OWN_TOPIC = /\b(fingerprint\w*|trackers?|tracking|cookies?|ads?|advert\w*|brokers?|breach\w*|hack\w*|grades?|polic(?:y|ies)|vpn|incognito|privac\w*|data|gemma|banners?|pop-?ups?|1260h)\b/i;
   const AND_ABOUT = /^\s*(?:and|what about|how about|same for|also)\b/i;
   // sites = your browsing (data.sites), atlas = tracker data: so a name PrivaC knows gets an answer even without a breach.
-  function breachAnswer(q, lists, history, sites, atlas) {
+  function breachAnswer(q, lists, history, sites, atlas, now) {
     if (!(lists && lists.hibp && lists.hibp.byDomain)) return null;
     const last = recent(history).slice(-1)[0];
     const lastWasBreach = !!(last && BREACH_Q.test(last.question));
     if (!BREACH_Q.test(q) && !(lastWasBreach && AND_ABOUT.test(q))) return null;   // "what about google?" after a breach question
+    // "What sites have I been to that have had recent data breaches?" is about your own sites, whatever else its words
+    // match: it was answered about a breach named "Recent" on a site never visited (Preston, Oct 25). Your sites first.
+    if (BREACH_Q.test(q) && MY_SITES.test(q) && !/[a-z0-9-]+\.[a-z]{2,}/i.test(q) && !namedSites(sites || [], q).length && !namedCompanies(q, atlas).length) {
+      return yourBreaches(lists, sites || [], q, now || Date.now());
+    }
     let hits = breachSites(q, lists);
     if (!hits.length && FOLLOW_UP.test(q) && last && !AND_ABOUT.test(q)) hits = breachSites(last.question, lists);   // "yes, its breaches"
     // "Check the ive been pwned list" names nothing: it means the last question's site or company (PLAN R19g).
@@ -361,7 +366,7 @@ Steps the person can take (no tag needed):
     const company = namedCompanies(q, atlas)[0];
     // "Did any site I visit get hacked?", "Which of my sites leaked data?": your own sites, from the same list (backtest
     // 2026-10-24: six wordings went three different ways, one answered about a tracker company named VISIT).
-    if (!domain && !visited && !company && MY_SITES.test(q)) return yourBreaches(lists, sites || []);
+    if (!domain && !visited && !company && MY_SITES.test(q)) return yourBreaches(lists, sites || [], q, now || Date.now());
     // No breach on record. Say so for anything PrivaC knows: a web address, a site you visited, or a tracker company.
     const subject = domain ? domain.replace(/^www\./, "") : visited ? visited.domain : company ? companyLabel(q, company) : null;
     if (!subject) return null;   // nothing PrivaC knows: Gemma answers from the rest of the evidence
@@ -414,18 +419,39 @@ Steps the person can take (no tag needed):
     return text;
   }
 
-  const MY_SITES = /\b(?:web)?sites?\b|\bi\s+(?:visit|visited|went|use|go)\b|\bmy\s+(?:browsing|history)\b/i;
-  function yourBreaches(lists, sites) {
+  const MY_SITES = /\b(?:web)?sites?\b|\bi\s+(?:visit|visited|went|use|go)\b|\bi(?:'ve|\s+have)\s+(?:been|gone|used|visited)\b|\bmy\s+(?:browsing|history)\b/i;
+  // "Recent" is PrivaC's own rule, the one the grade and the alerts use: added to Have I Been Pwned in the last 12 months.
+  const RECENT_Q = /\brecent(?:ly)?\b|\blately\b|\blatest\b|\bnew(?:est|er)?\b|\bthis\s+year\b|\b(?:last|past)\s+(?:year|12\s+months|twelve\s+months|few\s+months|months?)\b/i;
+  const YEAR_MS = 365.25 * 864e5;
+  const MY_BREACH_STEPS = "\n\nWhat you can do: if you have an account on one of these sites, change its password and the same password anywhere else you used it, " +
+    "turn on two-step sign-in, and watch for emails pretending to be that site.";
+  function yourBreaches(lists, sites, q, now) {
     const by = lists.hibp.byDomain;
     const hit = sites.map((s) => [s.domain, by[s.domain] || s.breach]).filter(([, b]) => b);
-    const at = String(lists.hibp.fetchedAt || "").slice(0, 10).split("-");
-    const updated = at.length === 3 ? ` (updated ${MONTHS[+at[1] - 1]} ${+at[2]}, ${at[0]})` : "";
+    const updated = hibpUpdated(lists);
+    const isRecent = (x) => now - Date.parse(x.addedDate || x.breachDate) < YEAR_MS;
+    const all = (b) => [b, ...(b.earlier || [])].sort((x, y) => (String(x.breachDate) < String(y.breachDate) ? 1 : -1));
+    const item = (x) => `${monthYear(x.breachDate)}, ${x.title || x.name}: ${x.pwnCount ? `${fmtCount(x.pwnCount)} accounts` : "number of accounts not given"}${(x.dataClasses || []).length ? `; exposed ${x.dataClasses.join(", ").toLowerCase()}` : ""}`;
+    const clean = sites.length - hit.length;
+    const rest = clean ? `\nThe other ${clean === 1 ? "site you visited has" : `${clean} sites you visited have`} no breach on record. That doesn't prove they were never breached: the list only has breaches that became public.` : "";
+    if (q && RECENT_Q.test(q)) {   // "recent breaches on my sites": the recent ones, the older ones, and the rest
+      const newest = (xs) => xs.map((x) => String(x.addedDate || x.breachDate)).sort().pop();
+      const fresh = hit.map(([d, b]) => [d, all(b).filter(isRecent)]).filter(([, xs]) => xs.length)
+        .sort((a, b) => (newest(b[1]) > newest(a[1]) ? 1 : -1));   // the newest report first
+      const older = hit.map(([d, b]) => [d, all(b).filter((x) => !isRecent(x))]).filter(([, xs]) => xs.length);
+      const head = fresh.length
+        ? `${fresh.length} of the ${sites.length} sites you visited in the last 7 days had a data breach reported in the last 12 months, in Have I Been Pwned's list${updated} [HIBP]:\n` +
+          fresh.map(([d, xs]) => `- ${d}: ${xs.map((x) => `${item(x)} (added ${readOn(x.addedDate || x.breachDate)})`).join(". ")}.`).join("\n")
+        : `None of the ${sites.length} sites you visited in the last 7 days had a data breach reported in the last 12 months, in Have I Been Pwned's list${updated} [HIBP].`;
+      const old = older.length ? `\nOlder breaches on record for sites you visited: ${older.map(([d, xs]) => `${d} (${xs.map((x) => `${monthYear(x.breachDate)}, ${x.title || x.name}`).join("; ")})`).join(", ")}.` : "";
+      return head + old + rest + "\n\"Reported in the last 12 months\" means added to the list in that time, the same rule as PrivaC's grade and alerts." +
+        (fresh.length ? MY_BREACH_STEPS : "\n\nWhat you can do: use a different password for each site and turn on two-step sign-in, so one breach can't unlock your other accounts.");
+    }
     if (!hit.length) return `None of the ${sites.length} site${sites.length === 1 ? "" : "s"} you visited in the last 7 days is in Have I Been Pwned's list${updated} [HIBP]. ` +
       "That doesn't prove they were never breached: the list only has breaches that became public.";
     return `${hit.length} of the ${sites.length} sites you visited in the last 7 days ${hit.length === 1 ? "is" : "are"} in Have I Been Pwned's list${updated} [HIBP]:\n` +
-      hit.map(([d, b]) => `- ${d}: ` + breachList(b).map((x) => `${x.when}, ${x.title}: ${x.count}${x.kinds ? `; exposed ${x.kinds}` : ""}`).join(". ") + ".").join("\n") +
-      "\n\nWhat you can do: if you have an account on one of these sites, change its password and the same password anywhere else you used it, " +
-      "turn on two-step sign-in, and watch for emails pretending to be that site.";
+      hit.map(([d, b]) => `- ${d}${all(b).some(isRecent) ? " (reported in the last 12 months)" : ""}: ` + all(b).map(item).join(". ") + ".").join("\n") +
+      rest + MY_BREACH_STEPS;
   }
 
   // ---------- One way to recognise names, however they're typed (PLAN R19g/R19i) ----------
@@ -660,9 +686,14 @@ Steps the person can take (no tag needed):
     "Malware": "Labelled malware", "High-risk": "High-risk behavior", "Obscure ownership": "Hidden owner"
   };
   const NEVER_CUT = new Set(["Labelled malware", "High-risk behavior", "Recording your screen"]);
-  function purposeLines(sites) {
-    const domainCat = new Map();                 // the dashboard's way: each tracker address once, its first category
+  // The dashboard's way: each tracker address once, its first category ("Data broker" when its company is registered).
+  function trackerPurposes(sites) {
+    const domainCat = new Map();
     for (const s of sites) for (const t of s.trackers || []) if (t && !domainCat.has(t.domain)) domainCat.set(t.domain, t.broker ? "Data broker" : t.category);
+    return domainCat;
+  }
+  function purposeLines(sites) {
+    const domainCat = trackerPurposes(sites);
     const groups = new Map();                    // label -> { n, companies: Map(company -> Set(site)) }
     for (const cat of domainCat.values()) { const label = PURPOSE[cat] || cat || "Other"; if (!groups.has(label)) groups.set(label, { n: 0, companies: new Map() }); groups.get(label).n++; }
     for (const s of sites) for (const t of s.trackers || []) {
@@ -681,6 +712,189 @@ Steps the person can take (no tag needed):
       return `- ${label} ${g.n}: ${txt.join("; ")}${cos.length > shown.length ? `; and ${cos.length - shown.length} more compan${cos.length - shown.length === 1 ? "y" : "ies"}` : ""}`;
     });
     return `What the trackers were for (tracker addresses, same as the dashboard) [Seen on your visit] [Tracker Radar]:\n${rows.join("\n")}`;
+  }
+
+  // ---------- Where each dashboard item came from (PLAN R19l) ----------
+  // "What websites were using the screen recording tracker cookies?" (Preston, real Gemma, Oct 25): C couldn't say which
+  // site the dashboard's screen recorder or malware tracker came from. The purpose lines were in its evidence (R19k), but a
+  // small model loses one line among ~13,000 characters. A question asking where one of these came from is answered from
+  // the records, like grades and breaches: every match, counted the dashboard's way, and how many sites had none.
+  const PURPOSE_ASKED = [   // [Tracker Radar category, the words people use for it]
+    ["Session recording", /\b(?:screen|session)[\s-]*(?:record\w*|replay\w*)|\brecord\w*\s+(?:my|your|the|what\s+(?:i|you))\b[^?.!]{0,20}\bscreens?\b|\brecord(?:s|ed|ing)?\s+(?:me|us)\b/i],
+    ["Malware", /\bmal-?ware\b|\bmalicious\b/i],
+    ["High-risk", /\bhigh[\s-]*risk\b/i],
+    ["Obscure ownership", /\bhidden\s+owner\w*|\bobscure\s+owner\w*/i],
+    ["Tracking", /\bunlabell?ed\b/i],
+    ["Data broker", /\bdata[\s-]*brokers?\b/i],
+    ["Advertising", /\badvertis\w*|\bad[\s-]*trackers?\b/i],
+    ["Analytics", /\banalytics\b|\bmeasur\w*\s+(?:my|your)\s+visits\b/i],
+    ["Social", /\bsocial[\s-]*media\b/i]
+  ];
+  // Words people only use when they mean that dashboard item: any question about them is answered from the records.
+  const RARE_PURPOSES = new Set(["Session recording", "Malware", "High-risk", "Obscure ownership", "Tracking"]);
+  const WHERE_Q = /\b(?:which|what)\s+(?:of\s+(?:my|the|your)\s+)?(?:[a-z-]+\s+){0,3}?(?:web\s*)?(?:sites?|pages?|compan(?:y|ies)|trackers?|ones?|domains?|addresses|brokers?|recorders?)\b|\bwhere\b|\bwho\b|\b(?:came|come|comes|coming)\s+from\b|\boriginat\w*|\b(?:list|show|name)\b|\bany\s+(?:of\s+)?(?:my\s+|the\s+|these\s+)?(?:[a-z-]+\s+){0,2}?(?:web\s*)?(?:sites?|pages?|trackers?|compan(?:y|ies)|brokers?|recorders?)\b|\b(?:was|were|is|are)\s+there\b|\bhow\s+many\b/i;
+  const DEFINE_Q = /^\s*(?:(?:and\s+)?(?:what|how)\s+about\b|what\s+(?:is|are|was|were|does|do)\b|what'?s\b|explain\b|describe\b|define\b|tell\s+me\s+(?:about|more)\b)/i;
+  const EXISTS_Q = /^\s*(?:did|does|do|was|were|is|are|has|have|had)\b/i;
+  const PLAIN_CAT = { "Session recording": "session recording", "Analytics": "analytics" };
+  const CAT_WORDS = { "Session recording": "session recording", "Malware": "malware", "High-risk": "high-risk", "Obscure ownership": "having a hidden owner",
+    "Tracking": "unlabelled tracking", "Advertising": "advertising", "Analytics": "analytics", "Social": "social media" };
+  const MEANING = {
+    "Session recording": "Session-recording scripts can capture what you do on a page (clicks, scrolling, mouse movement and what you type into forms) so the site can replay your visit.",
+    "Malware": "DuckDuckGo's Tracker Radar gives the malware label to addresses linked to harmful software; PrivaC can't see what a script did on your visit.",
+    "High-risk": "Tracker Radar gives the label \"unknown high-risk behavior\" to addresses that acted in risky ways it couldn't explain.",
+    "Obscure ownership": "Tracker Radar uses this label when it can't find out who owns a tracker.",
+    "Tracking": "Tracker Radar lists some addresses as trackers without labelling what they're for.",
+    "Data broker": "These companies are registered in California's Data Broker Registry, which lists businesses that collect and sell or share data about people they don't have a direct relationship with.",
+    "Advertising": "Ad companies can recognize you from site to site, build a profile of your interests and target ads at you.",
+    "Analytics": "These measure how you use a site (pages, clicks, time spent), for the site and sometimes for the measuring company too.",
+    "Social": "Social networks' code (share buttons, pixels) can tell them you visited, even if you never click it."
+  };
+  const PURPOSE_STEPS = {
+    "Session recording": ["use a tracker-blocking browser extension: it stops most session recorders", "avoid typing personal details (name, email, phone, payment) on those sites"],
+    "Malware": ["avoid entering personal details (name, email, phone, payment) on those sites", "use a tracker-blocking browser extension"],
+    "other": ["let C decline the extra cookies on sites whose cookie banner has a reject option", "block third-party cookies in Chrome (Settings > Privacy and security > Third-party cookies)", "use a tracker-blocking browser extension"]
+  };
+  PURPOSE_STEPS["High-risk"] = PURPOSE_STEPS.Malware;
+  const NOT_PROOF = "A tracker loading means the company could collect this; it doesn't prove it did, or that your data was sold.";
+  const LABEL_CAT = Object.fromEntries(Object.entries(PURPOSE).map(([cat, label]) => [label.toLowerCase(), cat]));
+
+  // The purposes a question asks about: the dashboard's own label in quotes ("recording your screen"), or everyday words.
+  function askedPurposes(q) {
+    const quoted = [...String(q).matchAll(/"([^"]+)"/g)].map((m) => LABEL_CAT[m[1].toLowerCase()]).filter(Boolean);
+    if (quoted.length) return { cats: [...new Set(quoted)], label: true };
+    return { cats: PURPOSE_ASKED.filter(([, re]) => re.test(q)).map(([cat]) => cat), label: false };
+  }
+  // One row per company: its tracker addresses in this group and the sites they loaded on.
+  function companyRows(sites, keep) {
+    const rows = new Map();
+    for (const s of sites) for (const t of s.trackers || []) {
+      if (!t || !keep(t)) continue;
+      const k = t.company || t.domain;
+      let r = rows.get(k);
+      if (!r) rows.set(k, (r = { company: k, domains: [], sites: [], country: t.country, broker: t.broker || null }));
+      if (!r.domains.includes(t.domain)) r.domains.push(t.domain);
+      if (!r.sites.includes(s.domain)) r.sites.push(s.domain);
+    }
+    return [...rows.values()].sort((a, b) => b.sites.length - a.sites.length || a.company.localeCompare(b.company));
+  }
+  // "Yandex (yandex.ru, based in Russia) on tass.com"; a company named after its address isn't written twice.
+  function rowText(r, maxSites) {
+    const addr = r.domains.filter((d) => d !== String(r.company).toLowerCase());
+    const bits = [addr.length > 3 ? `${addr.slice(0, 3).join(", ")} and ${addr.length - 3} more` : addr.join(", "), ADVERSARY.has(r.country) ? `based in ${countryName(r.country)}` : ""].filter(Boolean);
+    const on = r.sites.length > maxSites ? `${r.sites.length} sites: ${r.sites.slice(0, maxSites).join(", ")} and ${r.sites.length - maxSites} more` : and(r.sites);
+    return `${r.company}${bits.length ? ` (${bits.join(", ")})` : ""}${r.broker ? `, registered as "${r.broker}",` : ""} on ${on}`;
+  }
+  const ROWS_SHOWN = 12;
+  function rowLines(rows) {
+    return rows.slice(0, ROWS_SHOWN).map((r) => `- ${rowText(r, 6)}`).join("\n") + (rows.length > ROWS_SHOWN ? `\n- and ${rows.length - ROWS_SHOWN} more companies` : "");
+  }
+  const sitesWord = (n) => `${n} site${n === 1 ? "" : "s"}`;
+  // "None of your other 6 sites loaded one."
+  const othersLine = (others) => (others > 0 ? `\nNone of your other ${sitesWord(others)} loaded one.` : "");
+
+  // Cookies the listed companies left on those sites (names only), for questions that say "cookies".
+  function cookieLine(rows, sites) {
+    const cos = new Map(rows.map((r) => [String(r.company).toLowerCase(), r]));
+    const found = [];
+    for (const s of sites) {
+      const by = new Map();
+      for (const c of s.cookies || []) {
+        const r = c && c.company && cos.get(String(c.company).toLowerCase());
+        if (r && r.sites.includes(s.domain)) { if (!by.has(r.company)) by.set(r.company, []); if (!by.get(r.company).includes(c.name)) by.get(r.company).push(c.name); }
+      }
+      for (const [co, names] of by) found.push(`${and(names.slice(0, 4))}${names.length > 4 ? ` and ${names.length - 4} more` : ""} (${co}) on ${s.domain}`);
+    }
+    return found.length ? `\nCookies from these companies on those sites [Cookie Database]: ${found.slice(0, 6).join("; ")}.` : "";
+  }
+
+  // { text, found }: found is false when no site in the question (or none this week) had one.
+  function purposeSection(cat, sites, domainCat, scope, company, wantsCookies, brokersKnown) {
+    const label = PURPOSE[cat] || cat;
+    const tag = cat === "Data broker" ? "[Seen on your visit] [CA Broker Registry]" : "[Seen on your visit] [Tracker Radar]";
+    if (cat === "Data broker" && !brokersKnown) return { text: "PrivaC hasn't downloaded California's Data Broker Registry yet (it downloads it once a day when Chrome starts), so I can't tell which trackers belong to registered data brokers.", found: false };
+    const words = CAT_WORDS[cat] || cat.toLowerCase();
+    const kind = cat === "Data broker" ? "tracker from a company registered in California's Data Broker Registry" : `tracker that Tracker Radar labels as ${words}${words.includes(label.toLowerCase()) ? "" : ` ("${label.toLowerCase()}")`}`;
+    const title = `${label}${PLAIN_CAT[cat] ? ` (${PLAIN_CAT[cat]})` : ""}`;
+    let rows = companyRows(scope || sites, (t) => domainCat.get(t.domain) === cat);
+    if (company) rows = rows.filter((r) => r.company === company);   // "Where did Hotjar record my screen?"
+    const cookies = (where) => (wantsCookies && rows.length ? cookieLine(rows, where) : "");
+    if (scope) {   // the sites the question named, each with its answer
+      const none = scope.filter((s) => !rows.some((r) => r.sites.includes(s.domain)));
+      const lines = none.map((s) => `${s.domain} loaded no ${kind} ${tag}.`);
+      if (rows.length) lines.push(`${title} on ${and(scope.filter((s) => !none.includes(s)).map((s) => s.domain))} ${tag}:\n${rowLines(rows)}`);
+      return { text: lines.join("\n") + cookies(scope), found: rows.length > 0 };
+    }
+    if (!rows.length) return { text: `None of your ${sitesWord(sites.length)} this week loaded a ${kind} ${tag}.`, found: false };
+    const n = new Set(rows.flatMap((r) => r.domains)).size;
+    const on = new Set(rows.flatMap((r) => r.sites)).size;
+    return { text: `${title}: ${n} tracker address${n === 1 ? "" : "es"} on ${on} of your ${sitesWord(sites.length)} this week ${tag}:\n${rowLines(rows)}${othersLine(sites.length - on)}` + cookies(sites), found: true };
+  }
+
+  // Device fingerprinting: the dashboard's companies (a script Tracker Radar rates 2 or more), with where they loaded.
+  const FINGERPRINT_Q = /\bfinger-?print\w*/i;
+  const FP_MEANING = "Tracker Radar rates these companies' scripts as likely to read device details (screen, fonts, graphics chip and more) that can recognize your browser without cookies. Clearing cookies doesn't stop it.";
+  function fingerprintRows(sites) { return companyRows(sites, (t) => (t.fingerprinting || 0) >= 2); }
+  function fingerprintSection(sites, scope) {
+    const tag = "[Seen on your visit] [Tracker Radar]";
+    const rows = fingerprintRows(scope || sites);
+    if (scope) {
+      const none = scope.filter((s) => !rows.some((r) => r.sites.includes(s.domain)));
+      return { text: [...none.map((s) => `${s.domain} loaded no tracker that Tracker Radar rates as likely to fingerprint your device ${tag}.`),
+        ...(rows.length ? [`Device fingerprinting on ${and(scope.filter((s) => !none.includes(s)).map((s) => s.domain))} ${tag}:\n${rowLines(rows)}`] : [])].join("\n"), found: rows.length > 0 };
+    }
+    if (!rows.length) return { text: `None of your ${sitesWord(sites.length)} this week loaded a tracker that Tracker Radar rates as likely to fingerprint your device ${tag}.`, found: false };
+    const on = new Set(rows.flatMap((r) => r.sites)).size;
+    return { text: `Device fingerprinting: ${rows.length} ${rows.length === 1 ? "company" : "companies"} on ${on} of your ${sitesWord(sites.length)} this week ${tag}:\n${rowLines(rows)}${othersLine(sites.length - on)}`, found: true };
+  }
+
+  // Which dashboard item, if any, the question asks to be shown or explained from the records.
+  function dashboardAnswer(q, sites, lists, data) {
+    if (!sites.length || SELL_Q.test(q) || BREACH_Q.test(q)) return null;
+    const named = namedSites(sites, q);
+    const asked = askedPurposes(q);
+    const where = WHERE_Q.test(q), define = DEFINE_Q.test(q), exists = EXISTS_Q.test(q), steps = WANTS_STEPS.test(q);
+    const cats = asked.cats.filter((cat) => asked.label || where || (named.length && exists) || (RARE_PURPOSES.has(cat) && (define || exists || steps)));
+    const fp = FINGERPRINT_Q.test(q) && !asked.cats.length && (where || (named.length && exists));
+    if (!cats.length && !fp) return null;
+    const scope = named.length ? named : null;
+    const brokersKnown = !!((lists && lists.brokers) || (data && data.lists && data.lists.brokersAsOf));
+    const parts = [], meanings = [], stepsFor = [];
+    if (fp) {
+      const sec = fingerprintSection(sites, scope);
+      parts.push(sec.text);
+      meanings.push(FP_MEANING);
+      if (sec.found) stepsFor.push("use a tracker-blocking browser extension: it stops many fingerprinting scripts before they run");
+    }
+    const domainCat = trackerPurposes(sites);
+    for (const cat of cats) {
+      const inGroup = [...new Set(sites.flatMap((s) => (s.trackers || []).filter((t) => t && domainCat.get(t.domain) === cat).map((t) => t.company)))];
+      const company = companiesIn(q, inGroup)[0] || null;
+      const sec = purposeSection(cat, sites, domainCat, scope, company, /\bcookies?\b/i.test(q), brokersKnown);
+      parts.push(sec.text);
+      if (cat !== "Data broker" || brokersKnown) meanings.push(MEANING[cat]);
+      if (sec.found) stepsFor.push(...(PURPOSE_STEPS[cat] || PURPOSE_STEPS.other));
+    }
+    // Advice about "those sites", and what a tracker loading does and doesn't prove, only when something was found.
+    const text = parts.join("\n\n") + (meanings.length ? `\n\n${meanings.join(" ")}${stepsFor.length ? ` ${NOT_PROOF}` : ""}` : "");
+    return text + (steps && stepsFor.length ? stepList([...new Set(stepsFor)]) : "");
+  }
+
+  // The same lists for Gemma, for other questions about these items ("Can malware steal my passwords?").
+  function dashboardFacts(q, sites, brokersKnown) {
+    const asked = askedPurposes(q).cats;
+    if (!sites.length || (!asked.length && !FINGERPRINT_Q.test(q))) return [];
+    const fact = (label, rows, tag) => {
+      const on = new Set(rows.flatMap((r) => r.sites)).size;
+      if (label === PURPOSE["Data broker"] && !brokersKnown) return `- ${label}: PrivaC hasn't downloaded California's Data Broker Registry yet, so it can't tell which trackers belong to registered data brokers`;
+      if (!rows.length) return `- ${label} on your sites ${tag}: none on your ${sitesWord(sites.length)}`;
+      return `- ${label} on your sites ${tag}: ${rows.slice(0, 8).map((r) => rowText(r, 4)).join("; ")}${rows.length > 8 ? `; and ${rows.length - 8} more companies` : ""}` +
+        (sites.length - on > 0 ? `; none on your other ${sitesWord(sites.length - on)}` : "");
+    };
+    const domainCat = trackerPurposes(sites);
+    const out = asked.map((cat) => fact(PURPOSE[cat] || cat, companyRows(sites, (t) => domainCat.get(t.domain) === cat),
+      cat === "Data broker" ? "[Seen on your visit] [CA Broker Registry]" : "[Seen on your visit] [Tracker Radar]"));
+    if (FINGERPRINT_Q.test(q)) out.push(fact("Device fingerprinting", fingerprintRows(sites), "[Seen on your visit] [Tracker Radar]"));
+    return out;
   }
 
   // ---------- Cite-and-check (PLAN R19i): every name Gemma uses must be in its evidence ----------
@@ -967,11 +1181,52 @@ Steps the person can take (no tag needed):
   const OFF_TOPIC_THING = /\b(poems?|poetry|haikus?|songs?|lyrics|stor(?:y|ies)|essays?|jokes?|riddles?|recipes?|homework|code|python|javascript|programs?)\b/i;
   const OFF_TOPIC_ASK = /\b(write|compose|make|generate|tell|give|create|sing)\b/i;
   const PRIVACY_WORDS = /privacy|data|cookie|track|site|broker|breach|grade|polic|\.[a-z]{2,}\b/i;
-  const ABOUT_ANSWER = "I'm C, PrivaC's privacy guide. I explain what PrivaC found on the sites you visit: each site's grade and why, " +
-    "which tracker companies followed you, what cookies were stored and what they're for, data breaches, registered data brokers, " +
-    "links to companies in foreign-adversary countries, and what privacy policies say about selling your data. On websites, I can " +
-    "also decline extra cookies for you. My answers are written by Gemma 4, running on this computer, so your questions stay here. " +
-    "Try asking: \"Which sites I visited are the riskiest?\"";
+  // What PrivaC does and what C can do (Preston, Oct 25: "better answers when asked about its own functionality and its
+  // possibilities"). From PRIVACY.md and the features themselves; PrivaC doesn't block anything, so C never says it does.
+  const ABOUT_ANSWER = "I'm C, PrivaC's privacy guide. Here's what PrivaC does for you:\n" +
+    "- On each site you visit, it shows which companies' trackers loaded and grades the site A to F by how much of your data it exposes. The pop-up lists every point and where it came from.\n" +
+    "- On cookie banners, I offer to click the reject option for you (\"Protect me\") and check the site's own consent record that it worked. On a banner with only an Accept button, I warn you (\"Beware!\").\n" +
+    "- I alert you when a site loads a company from a country on the U.S. foreign-adversary list, and warn you before you stay on an F site that also has one, or a data breach reported in the last year.\n" +
+    "- The dashboard shows your week: who followed you across sites, what their trackers were for, data breaches, registered data brokers, and what I did for you. \"Clear this site's data\" in the pop-up makes Chrome forget a site's cookies and storage.\n" +
+    "- Ask me about any of it: why a site got its grade, who a tracker company is, which of your sites had a data breach. My answers are written by Gemma 4, running on this computer, so your questions stay here.\n" +
+    "PrivaC doesn't block trackers or ads: it shows you who's there and helps you say no to cookie tracking. Try asking: \"Which of my sites had a recent data breach?\"";
+  // "How safe are you PrivaC?" (Preston, real Gemma, Oct 25) got "PrivaC helps you manage cookies and block trackers": it
+  // doesn't block anything. Questions about whether PrivaC itself is safe get its own answer, from PRIVACY.md and the
+  // permissions in manifest.json (docs/STORE.md explains each one).
+  const ME = String.raw`(?:privac|you|ask\s+c|this\s+(?:extension|app|add-?on|plug-?in|tool)|the\s+(?:privac\s+)?(?:extension|app|add-?on|plug-?in))`;
+  const PRIVAC_SAFE_Q = [
+    new RegExp(String.raw`\bhow\s+(?:safe|secure|private|trustworthy|trusted)\s+(?:are\s+you|is\s+${ME})\b`, "i"),
+    new RegExp(String.raw`\b(?:is|are)\s+${ME}\s+(?:really\s+|actually\s+|even\s+)?(?:safe|secure|private|trustworthy|legit\w*|spyware|malware|a\s+virus|malicious|sketchy|shady|dangerous|a\s+scam)\b`, "i"),
+    new RegExp(String.raw`\b(?:can|should|do)\s+i\s+trust\s+${ME}\s*[?.!]*\s*$`, "i"),
+    new RegExp(String.raw`\bis\s+(?:it|my\s+(?:data|browsing|information|info|privacy))\s+safe\s+(?:to\s+use\s+|with\s+|in\s+|using\s+)${ME}\b`, "i"),
+    new RegExp(String.raw`\bpermissions?\b[^?.!]*\b${ME}\b|\b${ME}\b[^?.!]*\bpermissions?\b|\bwhy\s+(?:does|do)\s+${ME}\s+need\b`, "i"),
+    /\bread\s+and\s+change\s+all\b/i
+  ];
+  const SAFE_ANSWER = "Here's exactly what PrivaC can and can't do:\n" +
+    "- It runs on this computer. PrivaC has no servers, no accounts, no ads and no analytics, and the PrivaC team never sees your data. What it learns about your browsing stays in Chrome's storage, and my answers are written by Gemma 4 running here, so your questions stay here too.\n" +
+    "- It keeps site names (never full web addresses), which tracker companies each site loaded, cookie names (never what's inside them) and your cookie-banner choices, and deletes each site 7 days after your last visit. It never reads your passwords or what you type into websites.\n" +
+    "- It downloads only whole public lists (data breaches and data brokers) and my AI model, the same files for everyone, so no site names are sent anywhere. It reads a site's privacy policy from that same site, without your cookies.\n" +
+    "- Chrome says it can \"Read and change all your data on all websites\": PrivaC needs that to see which trackers each page loads, find cookie banners, and show C and the grade box. On a page it only clicks a cookie banner's reject option when you let it (or turn on automatic), and a \"Do not sell or share my personal information\" button when a page shows one. It deletes a site's cookies only when you tap \"Clear\" twice in the pop-up.\n" +
+    "- It doesn't block trackers or ads: it shows you who's there and helps you say no.\n" +
+    "You can delete everything PrivaC keeps with Settings > \"Clear my PrivaC data\".";
+  // "How do you work?": the steps behind every grade and answer.
+  const HOW_Q = new RegExp(String.raw`^\s*how\s+(?:do(?:es)?\s+${ME}\s+(?:work|decide|grade|score|know|find\s+out|check)\b|(?:does|do)\s+${ME}\s+(?:decide|calculate|work\s+out|come\s+up\s+with)\b)[^?]*[?.!]*\s*$`, "i");
+  const howAnswer = (q) => "Here's how PrivaC works, all on this computer:\n" +
+    "1. While a page loads, it notes which outside addresses the page contacts and looks them up in DuckDuckGo's Tracker Radar, a public list of thousands of tracker addresses and the companies behind them. It lists the site's cookies by name with the Open Cookie Database, notes your cookie-banner choice, and reads the site's privacy policy when a page links to it.\n" +
+    "2. It checks public lists: Have I Been Pwned's data breaches, California's Data Broker Registry, the U.S. foreign-adversary list (15 CFR 7.4) and the Pentagon's Section 1260H list.\n" +
+    `3. It adds that up into an exposure score from 0 to 100, with the same rules for every site (${GRADE_RANGES}). The pop-up shows every point and its source.\n` +
+    "4. When you ask me something, PrivaC's code looks up the facts in your records, and Gemma 4, running on this computer, writes the answer with each fact's source.\n" +
+    "Nothing about your browsing leaves this computer." + gradeRules(q);
+  // "How do you calculate the grade?": every rule, from shared/data.js (the same table as the dashboard's "How the grade works").
+  function gradeRules(q) {
+    const D = (typeof window !== "undefined" ? window : self).PrivaCData;
+    if (!D || !D.RULES || !/\b(?:grade|grading|score|scoring|calculat\w*|points?|rat(?:e|es|ing))\b/i.test(q)) return "";
+    return "\n\nHow the grade is counted (higher means more exposed):\n" + ["trackers", "ads", "cookies", "flag", "policy", "breach"].map((k) => `- ${D.RULES[k]}.`).join("\n");
+  }
+  // "What is PrivaC?", "What does PrivaC do?", "What are your features?" (the whole question, like ABOUT_C).
+  const ABOUT_PRIVAC = /^\s*(?:what\s+(?:is|does|can)\s+(?:privac|this\s+extension|the\s+extension)(?:\s+do)?(?:\s+for\s+me)?|what\s+are\s+(?:privac'?s|your|its|the\s+extension'?s)\s+features|tell\s+me\s+about\s+(?:privac|yourself|this\s+extension)|what\s+are\s+you\s+capable\s+of)\s*[?.!]*\s*$/i;
+  // "How safe are you PrivaC?", "What can you do, C?": the name at the end is only calling C.
+  const CALLING_C = /[,\s]+(?:privac|c)\s*([?.!]*)\s*$/i;
   const OFF_TOPIC_ANSWER = "I stick to your privacy, so I can't help with that one. Try asking me about a site you visited, " +
     "a tracker company, or whether to accept cookies.";
   // "Are you made with gemma" got "You are not made with Gemma" (real Gemma, 2026-10-24). Questions about what C is or runs on
@@ -999,11 +1254,15 @@ Steps the person can take (no tag needed):
     "or what you type into websites. It only downloads whole public lists (data breaches and data brokers) and my AI model, the same files for " +
     "everyone, and it reads a site's privacy policy from that same site, without your cookies. The PrivaC team has no servers and never sees " +
     "your data. The sites you visit and their trackers do see your visits: showing you who they are is PrivaC's job.";
-  function cannedAnswer(q) {
-    if (PRIVATE_Q.test(q)) return PRIVATE_ANSWER;
-    if (MODEL_WORDS.test(q) || ABOUT_MODEL.some((re) => re.test(q))) return MODEL_ANSWER;
-    if (ABOUT_C.test(q)) return ABOUT_ANSWER;
-    if (OFF_TOPIC_THING.test(q) && OFF_TOPIC_ASK.test(q) && !PRIVACY_WORDS.test(q)) return OFF_TOPIC_ANSWER;
+  function cannedAnswer(asked) {
+    for (const q of [asked, asked.replace(CALLING_C, "$1")]) {
+      if (PRIVATE_Q.test(q)) return PRIVATE_ANSWER;
+      if (MODEL_WORDS.test(q) || ABOUT_MODEL.some((re) => re.test(q))) return MODEL_ANSWER;
+      if (PRIVAC_SAFE_Q.some((re) => re.test(q))) return SAFE_ANSWER;
+      if (HOW_Q.test(q)) return howAnswer(q);
+      if (ABOUT_C.test(q) || ABOUT_PRIVAC.test(q)) return ABOUT_ANSWER;
+      if (OFF_TOPIC_THING.test(q) && OFF_TOPIC_ASK.test(q) && !PRIVACY_WORDS.test(q)) return OFF_TOPIC_ANSWER;
+    }
     return null;
   }
   // "Why did planetfitness.com get a B?" (team doc, 2026-10-24: C said "I don't know yet"). Answered from the score
@@ -1213,6 +1472,19 @@ Steps the person can take (no tag needed):
     return tail && m[1].split(/(?<=[.!?])\s+/).some((s) => key(s).startsWith(tail)) ? m[1] : text;
   }
 
+  // What C checked, from the source tags in the answer: "Your browsing" first, then each source it cites.
+  function traceFor(text) {
+    const trace = [{ tool: "get_site_report", label: "Your browsing" }];
+    if (/\[Government list\]/.test(text)) trace.push({ tool: "background_facts", label: "Government lists" });
+    if (/\[Tracker Radar\]/.test(text)) trace.push({ tool: "lookup_company", label: "Tracker Radar" });
+    if (/\[Cookie Database\]/.test(text)) trace.push({ tool: "cookies", label: "Cookie Database" });
+    if (/\[HIBP\]/.test(text)) trace.push({ tool: "breaches", label: "Have I Been Pwned" });
+    if (/\[CA Broker Registry\]/.test(text)) trace.push({ tool: "brokers", label: "CA Broker Registry" });
+    if (/\[State Media Monitor\]/.test(text)) trace.push({ tool: "state_media", label: "State Media Monitor" });
+    if (/\[RegTrack\]/.test(text)) trace.push({ tool: "regtrack_compare", label: "RegTrack" });
+    return trace;
+  }
+
   // The same question with the same evidence gets the same answer: Gemma picks its words with a fixed seed
   // (with a random one, asking twice gave two different answers).
   const SEED = 7;
@@ -1242,8 +1514,11 @@ Steps the person can take (no tag needed):
       ...(safe.sources.includes("broker") ? [{ tool: "brokers", label: "CA Broker Registry" }] : [])] };
     const sells = sellAnswer(q, ((data && data.sites) || []).filter(Boolean));
     if (sells) return { answer: sells, trace: [{ tool: "get_site_report", label: "Your browsing" }] };
-    const breach = breachAnswer(q, lists, deps.history, ((data && data.sites) || []).filter(Boolean), atlas) || delayAnswer(q, lists);
+    const breach = breachAnswer(q, lists, deps.history, ((data && data.sites) || []).filter(Boolean), atlas, deps.now) || delayAnswer(q, lists);
     if (breach) return { answer: breach, trace: [{ tool: "breaches", label: "Have I Been Pwned" }] };
+    // Where a dashboard item came from: screen recording, malware, data brokers, fingerprinting... (PLAN R19l).
+    const shown = dashboardAnswer(q, ((data && data.sites) || []).filter(Boolean), lists, data);
+    if (shown) return { answer: shown, trace: traceFor(shown) };
     // A follow-up that names nothing ("does it fingerprint me?", "tell me more") keeps the last question's facts, so
     // C doesn't lose what he knows about Criteo one question later (backtest 2026-10-24).
     let facts = lookupFacts(q, lists, atlas);
@@ -1259,6 +1534,8 @@ Steps the person can take (no tag needed):
     // What C did this week (the dashboard's "C's impact" numbers), for questions about what C or PrivaC did.
     if (deps.stats && IMPACT_Q.test(q)) facts = facts.concat(impactFact(await deps.stats()));
     facts = facts.concat(listingFacts(q, extraFacts));
+    // Other questions about those items get the same lists, so Gemma knows where each one came from.
+    facts = facts.concat(dashboardFacts(q, ((data && data.sites) || []).filter(Boolean), !!((lists && lists.brokers) || (data && data.lists && data.lists.brokersAsOf))));
     // "yes tell me more" after "Was LinkedIn hacked?" stays on LinkedIn (Gemma drifted to another site's breach).
     const moreBreach = last && BREACH_Q.test(last.question) && !BREACH_Q.test(q) && (FOLLOW_UP.test(q) || MORE_Q.test(q)) ? breachSites(last.question, lists) : [];
     const breachNames = and(moreBreach.map(([d, b]) => siteLabel(d, b).replace(/ \(.*$/, "")));
@@ -1280,14 +1557,7 @@ Steps the person can take (no tag needed):
                                       ...(deps.onToken ? { onToken: (piece, so) => deps.onToken(piece, writing(so)) } : {}) });
       const sourced = sourcedOnly(cleanAnswer(raw));
       const text = steps ? sourced : dropSteps(sourced);
-      if (/\[Government list\]/.test(text)) trace.push({ tool: "background_facts", label: "Government lists" });
-      if (/\[Tracker Radar\]/.test(text)) trace.push({ tool: "lookup_company", label: "Tracker Radar" });
-      if (/\[Cookie Database\]/.test(text)) trace.push({ tool: "cookies", label: "Cookie Database" });
-      if (/\[HIBP\]/.test(text)) trace.push({ tool: "breaches", label: "Have I Been Pwned" });
-      if (/\[CA Broker Registry\]/.test(text)) trace.push({ tool: "brokers", label: "CA Broker Registry" });
-      if (/\[State Media Monitor\]/.test(text)) trace.push({ tool: "state_media", label: "State Media Monitor" });
-      if (/\[RegTrack\]/.test(text)) trace.push({ tool: "regtrack_compare", label: "RegTrack" });
-      return { answer: text, trace };
+      return { answer: text, trace: traceFor(text) };
     } catch (e) {
       return { error: e.message || "I couldn't reach Gemma. Is Ollama running?", trace };
     }
