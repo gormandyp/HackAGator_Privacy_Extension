@@ -148,31 +148,44 @@
       detail: sellers.length === 1 ? "Read from its own policy on this computer, with the sentence checked." : `${list(sellers.map((s) => s.domain))}. Read from their own policies, sentences checked.`,
       ask: `What does ${sellers[0].domain}'s privacy policy say about selling my information, and can I opt out?` });
 
+    // Which site a fact about a company opens (Max, 2026-10-25: "Google followed you..." opened the first site in the
+    // list): the company's own site if you visited it (google.com, then docs.google.com), else the riskiest site where
+    // it tracked you.
+    const nameKey = (n) => String(n || "").toLowerCase().replace(/\.(?:com|net|org|io)$/, "").replace(/[^a-z0-9]/g, "");
+    const baseOf = (d) => { const parts = String(d || "").toLowerCase().split("."); return parts.length >= 2 ? parts[parts.length - 2] : ""; };
+    const siteFor = (name, domains) => {
+      const key = nameKey(name);
+      const own = key.length >= 3 && sites.filter((x) => baseOf(x.domain) === key).sort((a, b) => a.domain.split(".").length - b.domain.split(".").length)[0];
+      if (own) return own.domain;
+      const seen = sites.filter((x) => domains.includes(x.domain)).sort((a, b) => (b.score || 0) - (a.score || 0));
+      return seen.length ? seen[0].domain : domains[0];
+    };
+
     // ---- Tracker behavior ----
     for (const c of agg.companies) {
       const where = [...c.sites];
       const on = where.length === 1 ? `on ${where[0]}` : `on ${where.length} of your sites`;
-      if (c.categories.has("Malware")) add({ kind: "malware", tone: "alert", weight: 88, site: where[0],
+      if (c.categories.has("Malware")) add({ kind: "malware", tone: "alert", weight: 88, site: siteFor(c.name, where), company: c.name,
         title: `DuckDuckGo's Tracker Radar labels ${c.name} as malware`,
         detail: `It loaded ${on}.`,
         ask: `Why does Tracker Radar label ${c.name} as malware, and is it a risk to me?` });
-      if (c.categories.has("Session recording")) add({ kind: "recording", tone: "warn", weight: 78, site: where[0],
+      if (c.categories.has("Session recording")) add({ kind: "recording", tone: "warn", weight: 78, site: siteFor(c.name, where), company: c.name,
         title: `${c.name} can record what you do ${on}`,
         detail: "Session-recording scripts can capture clicks, scrolling and typing on the page.",
         ask: `What can ${c.name}'s session recording capture ${on}?` });
-      if (c.broker || c.categories.has("Data broker")) add({ kind: "broker", tone: "warn", weight: 74 + Math.min(4, where.length), site: where[0],
+      if (c.broker || c.categories.has("Data broker")) add({ kind: "broker", tone: "warn", weight: 74 + Math.min(4, where.length), site: siteFor(c.name, where), company: c.name,
         title: `${c.name}, a data broker, saw you ${on}`,
         detail: c.broker ? `Registered as ${c.broker} in California's 2026 Data Broker Registry.` : "Tracker Radar lists it as a data broker.",
         ask: `What does the data broker ${c.name} do with what it sees about me?` });
     }
     const fp = agg.companies.filter((c) => c.fingerprinting >= 2);
-    if (fp.length) add({ kind: "fingerprint", tone: "warn", weight: 70, site: [...fp[0].sites][0],
+    if (fp.length) add({ kind: "fingerprint", tone: "warn", weight: 70, site: siteFor(fp[0].name, [...fp[0].sites]), company: fp[0].name,
       title: `${plural(fp.length, "company", "companies")} can recognize your device without cookies`,
       detail: `Device fingerprinting: ${list(fp.slice(0, 3).map((c) => c.name))}${fp.length > 3 ? " and more" : ""}. Clearing cookies doesn't stop it.`,
       ask: "What is device fingerprinting, and how can I protect myself from it?" });
 
     const top = agg.companies[0];
-    if (top && top.sites.size > 1) add({ kind: "reach", tone: "info", weight: top.sites.size >= 3 ? 56 : 36, site: [...top.sites][0],
+    if (top && top.sites.size > 1) add({ kind: "reach", tone: "info", weight: top.sites.size >= 3 ? 56 : 36, site: siteFor(top.name, [...top.sites]), company: top.name,
       title: `${top.name} followed you across ${top.sites.size} of your ${sites.length} sites`,
       detail: "One company on many sites can connect those visits into one picture of you.",
       ask: `Who is ${top.name}, and what can it learn from seeing me on ${top.sites.size} different sites?` });

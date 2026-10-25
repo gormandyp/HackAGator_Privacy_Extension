@@ -576,3 +576,8 @@ button.fact-title:hover { text-decoration-color: var(--hair-strong); }
   #tabs.icon-tabs button:hover::after, #tabs.icon-tabs button:focus-visible::after { opacity: 1; transform: translate(-50%, 0); transition-delay: 250ms; }
   [data-style="clean"] #tabs.icon-tabs button::after { background: var(--panel); -webkit-backdrop-filter: none; backdrop-filter: none; }
 }
+
+/* A company row picked from the Overview's "Worth knowing": glows for a moment so you can see which one. */
+@keyframes spot { 0%, 35% { background: color-mix(in oklab, var(--accent, #fa4616) 22%, transparent); } 100% { background: transparent; } }
+.detail-cols li.spot { animation: spot 2.4s ease-out; border-radius: 8px; }
+@media (prefers-reduced-motion: reduce) { .detail-cols li.spot { animation: none; background: color-mix(in oklab, var(--accent, #fa4616) 16%, transparent); } }

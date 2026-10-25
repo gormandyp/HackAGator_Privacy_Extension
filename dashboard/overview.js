@@ -71,7 +71,7 @@
     ${list.length ? `<ul class="facts">${list.map((f) => `
       <li class="fact tone-${f.tone}">
         <span class="fact-icon">${ICON[f.tone]}</span>
-        <div class="fact-text">${f.site ? `<button type="button" class="fact-title" data-site="${esc(f.site)}">${esc(f.title)}</button>` : `<b class="fact-title">${esc(f.title)}</b>`}<span>${esc(f.detail)}</span></div>
+        <div class="fact-text">${f.site ? `<button type="button" class="fact-title" data-site="${esc(f.site)}"${f.company ? ` data-company="${esc(f.company)}"` : ""}>${esc(f.title)}</button>` : `<b class="fact-title">${esc(f.title)}</b>`}<span>${esc(f.detail)}</span></div>
         ${ask(f.ask, f.title)}
       </li>`).join("")}</ul>` : `<p class="hint">Nothing stands out yet. Browse with PrivaC on and the strongest findings show up here.</p>`}`;
 
@@ -211,7 +211,7 @@
     const t = e.target.closest("[data-tab]");
     if (!window.PrivaCTabs) return;
     if (g) { const first = sites.find((x) => x.grade === g.dataset.grade); PrivaCTabs.show("sites"); if (first && window.PrivaCSites) PrivaCSites.select(first.domain); }
-    else if (s) { PrivaCTabs.show("sites"); if (window.PrivaCSites) PrivaCSites.select(s.dataset.site); }
+    else if (s) { PrivaCTabs.show("sites"); if (window.PrivaCSites) PrivaCSites.select(s.dataset.site, s.dataset.company); }
     else if (t) PrivaCTabs.show(t.dataset.tab);
   });
 })();
