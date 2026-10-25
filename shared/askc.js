@@ -1298,8 +1298,41 @@ Steps the person can take (no tag needed):
     "or what you type into websites. It only downloads whole public lists (data breaches and data brokers) and my AI model, the same files for " +
     "everyone, and it reads a site's privacy policy from that same site, without your cookies. The PrivaC team has no servers and never sees " +
     "your data. The sites you visit and their trackers do see your visits: showing you who they are is PrivaC's job.";
+  // "What makes u so special" got Gemma reading its own instructions back: "You are special because you are a privacy guide
+  // for the PrivaC browser extension..." (Max, real Gemma on the Mac, 2026-10-25). Text-speak is spelled out first ("u" ->
+  // "you"), then questions about what makes C different, his purpose, greetings and thanks get C's own answer.
+  const TEXT_SPEAK = [[/\bu\b/gi, "you"], [/\bur\b/gi, "your"], [/\br\b/gi, "are"], [/\bwat\b/gi, "what"], [/\by(?=\s+(?:are|is|should|would|do)\b)/gi, "why"]];
+  const spelledOut = (q) => TEXT_SPEAK.reduce((t, [re, w]) => t.replace(re, w), q);
+  const GOOD = String.raw`(?:so\s+|any\s+)?(?:special|different|unique|better|good|great|useful)`;
+  const SPECIAL_Q = new RegExp(String.raw`^\s*(?:what(?:'s|\s+is)?\s+(?:makes|made)\s+${ME}\s+${GOOD}|why\s+(?:are|is)\s+${ME}\s+${GOOD}|what(?:'s|\s+is)\s+(?:so\s+)?(?:special|different|unique|great|good)\s+about\s+${ME}|why\s+(?:should|would)\s+i\s+(?:use|pick|choose|download|install|get)\s+${ME}|how\s+(?:are|is)\s+${ME}\s+${GOOD}\b[^?.!]*)\s*[?.!]*\s*$`, "i");
+  const PURPOSE_Q = new RegExp(String.raw`^\s*(?:what(?:'s|\s+is)\s+(?:your|privac'?s|c'?s)\s+(?:purpose|job|point|goal|mission|role|deal)|why\s+do\s+${ME}\s+exist)\s*[?.!]*\s*$`, "i");
+  const SPECIAL_ANSWER = "I'm C, PrivaC's privacy guide. Here's what makes PrivaC different:\n" +
+    "- I don't just tell you to say no to cookies: on a cookie banner I click the reject option for you (\"Protect me\"), then check the site's own consent record that it worked.\n" +
+    "- Every site gets a grade from A to F, and the pop-up shows every point and where it came from. Anything PrivaC couldn't check says so, instead of calling the site safe.\n" +
+    "- I name companies on official U.S. lists with the list and its date, and I never guess where your data went.\n" +
+    "- My answers are written by Gemma 4 running on this computer, so your browsing and your questions stay here.\n" +
+    "PrivaC doesn't block trackers or ads: it shows you who's there and helps you say no. Try asking: \"Who tracked me the most this week?\"";
+  const GREETING = /^\s*(?:hi+|hey+|hello+|helo|yo|sup|hiya|howdy|good\s+(?:morning|afternoon|evening))(?:\s+(?:there|c|privac))?\s*[!.?,]*\s*$/i;
+  const GREETING_ANSWER = "Hi! I'm C. Ask me about any site you visited, a tracker company, or whether to accept cookies. Try: \"Which of my sites had a recent data breach?\"";
+  const THANKS = /^\s*(?:thanks?(?:\s+(?:you|so\s+much|a\s+lot))?|thank\s+you(?:\s+so\s+much)?|thx|ty|tysm|ok(?:ay)?(?:\s+(?:cool|thanks?))?|cool|nice|great|got\s+it|awesome|perfect)(?:\s+(?:c|privac))?\s*[!.,]*\s*$/i;
+  const THANKS_ANSWER = "Anytime! Ask me anything else about a site, a tracker company or your cookies.";
+  // Gemma's instructions read back as an answer ("I am a privacy guide for the PrivaC browser extension. I only help with
+  // privacy."): replaced with C's own words.
+  const ECHOED_RULES = [
+    /\b(?:you|i)\s+(?:are|am)\s+(?:c,?\s+)?(?:a\s+|the\s+)?(?:friendly\s+)?privacy\s+guide\b/i,
+    /\b(?:you|i)\s+(?:are|am)\s+only\s+privac'?s\b/i,
+    /\byou\s+only\s+help\s+with\s+privacy\b/i,
+    /\bas\s+privac'?s\s+privacy\s+guide,\s+you\b/i
+  ];
+  const echoesRules = (t) => ECHOED_RULES.some((re) => re.test(t));
+  const ECHO_ANSWER = "I'm C, PrivaC's privacy guide. I can tell you which companies saw your visits, why a site got its grade, " +
+    "whether a site had a data breach, and whether to accept cookies. Try asking: \"Who tracked me the most this week?\"";
   function cannedAnswer(asked) {
-    for (const q of [asked, asked.replace(CALLING_C, "$1")]) {
+    for (const q of [asked, asked.replace(CALLING_C, "$1"), spelledOut(asked), spelledOut(asked).replace(CALLING_C, "$1")]) {
+      if (GREETING.test(q)) return GREETING_ANSWER;
+      if (THANKS.test(q)) return THANKS_ANSWER;
+      if (SPECIAL_Q.test(q)) return SPECIAL_ANSWER;
+      if (PURPOSE_Q.test(q)) return ABOUT_ANSWER;
       if (PRIVATE_Q.test(q)) return PRIVATE_ANSWER;
       if (MODEL_WORDS.test(q) || ABOUT_MODEL.some((re) => re.test(q))) return MODEL_ANSWER;
       if (PRIVAC_SAFE_Q.some((re) => re.test(q))) return SAFE_ANSWER;
@@ -1598,12 +1631,13 @@ Steps the person can take (no tag needed):
       const sourcedOnly = (t) => dropFalseListings(dropUnknownNames(dropUnbackedBreaches(t, lists), context, atlas, memo), extra, subject).replace(/\s*\[([^\]]+)\]/g, (m, tag) => (TAGS.includes(tag) && !context.includes(`[${tag}]`) ? "" : m));
       // While C is writing, his words get the same clean-up as the finished answer (repeats, unsupported tags, steps),
       // so nothing he showed is taken away at the end (Max, IDEA.md).
-      const writing = (so) => hideHalfRepeat(sourcedOnly(cleanAnswer(steps ? so : hideSteps(so))));
+      const writing = (so) => (echoesRules(so) ? "" : hideHalfRepeat(sourcedOnly(cleanAnswer(steps ? so : hideSteps(so)))));
       const raw = await deps.ask(q, { system: SYSTEM_PROMPT, context, options: { temperature: 0.2, seed: SEED },
                                       ...(deps.signal ? { signal: deps.signal } : {}),
                                       ...(deps.onToken ? { onToken: (piece, so) => deps.onToken(piece, writing(so)) } : {}) });
       const sourced = sourcedOnly(cleanAnswer(raw));
       const text = steps ? sourced : dropSteps(sourced);
+      if (echoesRules(text)) return { answer: ECHO_ANSWER, trace: [] };
       return { answer: text, trace: traceFor(text) };
     } catch (e) {
       return { error: e.message || "I couldn't reach Gemma. Is Ollama running?", trace };

@@ -29,7 +29,8 @@ test("answer passes evidence to Gemma and returns panel shape", async () => {
 });
 
 test("Gemma failure becomes a readable error, not a crash", async () => {
-  const r = await answer("Hi", { load: async () => data, ask: async () => { throw new Error("C can't reach Gemma."); } });
+  // A real question: "Hi" now gets C's own greeting without asking Gemma (tests/askc-about-c.test.js).
+  const r = await answer("Who is LiveRamp?", { load: async () => data, ask: async () => { throw new Error("C can't reach Gemma."); } });
   assert.strictEqual(r.error, "C can't reach Gemma.");
 });
 
