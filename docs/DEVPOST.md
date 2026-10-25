@@ -1,5 +1,5 @@
 # Devpost submission draft (paste into gatorhack2026.devpost.com; due Sun Oct 25 5:00 PM ET, aim for 4 PM)
-Checked against the code on main, 2026-10-24. Before pasting, re-read docs/SPEC.md "Honesty rules" and change any number that has changed.
+Checked against the code on main, 2026-10-25 (d7e2026). Before pasting, re-read docs/SPEC.md "Honesty rules" and change any number that has changed.
 
 **Prizes to select:** Best Use of Gemma (MLH; Devpost calls it "Best Use of Gemini", the UF prizes page says "Build with Gemma, Google's open model, free on the Gemini API or run locally"), Best Open Source Project (MLH; the repo is MIT licensed since 2026-10-24), Vobile Prize. The main awards need no selection. Twinly needs Twinly's own APIs, so skip it.
 
@@ -25,9 +25,10 @@ One website visit can quietly hand you to dozens of companies. Cookie banners ar
 
 ## How we built it
 - A plain-JavaScript Chrome extension (Manifest V3), no build step, so all five of us could read and change it.
-- **Gemma 4 E2B runs inside Chrome** on the computer's graphics chip with Google's LiteRT-LM web runtime (WebGPU). On our MacBook Pro the first words of an answer appear in about 0.8 seconds. Ollama with Gemma 4 E4B is the fallback. Nothing leaves the computer.
+- **Gemma 4 E2B runs inside Chrome** on the computer's graphics chip with Google's LiteRT-LM web runtime (WebGPU). On our MacBook Pro the first words of an answer appear in about 0.8 seconds (about 1.7 seconds on a Windows gaming laptop). Ollama with Gemma 4 E4B is the fallback. Nothing leaves the computer.
 - The grade is computed by code, not by the AI, so it is the same every time and every point can be traced to evidence. Gemma explains and reads; it never sets the score.
-- 425 automated tests (Node's built-in test runner), plus live checks on real sites logged in docs/STATUS.md.
+- Questions with a factual answer (grades, "Is this site safe?", breaches, "Does this site sell my data?") are answered from PrivaC's own records by code, in a tenth of a second; Gemma explains everything else, from the same evidence.
+- 710 automated tests (Node's built-in test runner), plus live checks on real sites logged in docs/STATUS.md.
 
 ## What's new (Fresh off the frontier)
 Each of these was first made public in the 12 months before the hackathon and does real work in PrivaC (dashboard > About lists dates, proof links and the files that use each one):
@@ -38,10 +39,11 @@ Each of these was first made public in the 12 months before the hackathon and do
 - **California Data Broker Registry** (2026 registrations).
 
 ## Challenges we ran into
-- Running Gemma in the browser: loading the model froze Chrome for 15 to 20 seconds while it built about 150 graphics programs; we now build them the non-blocking way first (check the `brain-no-freeze` fix is on main before pasting).
+- Running Gemma in the browser: loading the model froze Chrome for 15 to 20 seconds while it built about 150 graphics programs; we now build them the non-blocking way first.
 - Every consent tool saves your choice differently, and some pop-ups live inside frames or shadow roots where a normal content script can't see them.
 - U.S. visitors rarely see cookie banners, so we test on U.K. sites and our own demo page.
-- Gemma sometimes invented source labels; code now cleans the answer and every evidence line carries its tag.
+- Gemma sometimes invented facts and source labels (once, that a site's policy says it sells data before PrivaC had even read it). Code now cleans every answer, and questions with a factual answer are answered from the records instead.
+- Reading policies honestly: "We sell premium advertising space" was first read as selling your data. A "sells" answer now needs a sentence that really says so, and saved answers are checked again.
 - Five beginners sharing one Git repo: zip uploads and a scary "Force push" button taught us to pull first and push small.
 More in docs/DIFFICULTIES.md.
 
@@ -57,7 +59,7 @@ More in docs/DIFFICULTIES.md.
 ## What's next
 - A Chrome Web Store release, with tracker data we're licensed to use commercially (Tracker Radar is non-commercial).
 - More consent tools and button wordings, collected from real sites.
-- A warning page before you open a site with an F grade and a flagged owner.
+- Reading terms of service the same way C reads privacy policies.
 
 ## Limitations (say these out loud)
 - The grading rubric is ours, not a validated measure.

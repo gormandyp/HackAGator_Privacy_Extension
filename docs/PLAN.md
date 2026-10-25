@@ -10,10 +10,10 @@ Added 2026-10-24 ~9:25 PM for Max (team ask-c/ui ideas from real-Gemma testing; 
 3. [x] **R19b** (done on main): Ask C answers stop shrinking when they finish (clean the text while it streams).
 4. [x] **R19a** (done on main): McDonald's-type "by continuing you agree" notices get C's "Beware!".
 5. [x] **R19c** (done on main): C's face instead of the plain "C" icon.
-6. Merge branch `max/icon-tabs` (dashboard tabs with icons + names; merges cleanly).
+6. [x] Merge branch `max/icon-tabs` (merged; dashboard tabs with icons + names; merges cleanly).
 7. [x] **R19d + R19e** (done on main) (home page declutter, bigger card titles): renderings for Max or the repo owner first, not straight to main.
-8. Merge branch `cookie-mcd` (2026-10-24 ~10 PM, Max's Claude): C still stayed silent on the real mcdonalds.com/us strip (835 characters, has an Accept button; the 600-character limit skipped it). Limit 1,000 + test with the real text; checked in Chromium on a copy of the real strip. Merges cleanly with main and `askc-r19`.
-Tick each one here when done.
+8. [x] Merge branch `cookie-mcd` (merged as fe38a35; 2026-10-24 ~10 PM, Max's Claude): C still stayed silent on the real mcdonalds.com/us strip (835 characters, has an Accept button; the 600-character limit skipped it). Limit 1,000 + test with the real text; checked in Chromium on a copy of the real strip. Merges cleanly with main and `askc-r19`.
+Tick each one here when done. **All 8 done (checked 2026-10-25 overnight).**
 
 ## Done (Fri night) — what changed from plan v2
 - [x] 1. Repo on GitHub, `node --test` (39 tests passing).
