@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -2 120 156" width="200" height="260" role="img" aria-label="C, the PrivaC mascot, hanging from the bottom of the popup and looking uneasy">
+    <path d="M33 43 L19 22 L30 7" fill="none" stroke="#ffffff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"></path>
+    <path d="M87 42 L101 22 L90 7" fill="none" stroke="#ffffff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"></path>
+    <g transform="translate(0 11)">
+      
+      <path d="M50 96 L47 124 L41 126" fill="none" stroke="#ffffff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" transform="rotate(-7 50 96)">
+        
+      </path>
+      <path d="M70 96 L73 124 L79 126" fill="none" stroke="#ffffff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" transform="rotate(-7 70 96)">
+        
+      </path>
+      <circle data-privac-face="" cx="60" cy="58" r="30" fill="#fff"/><path d="M86.9 31.1 A38 38 0 1 0 86.9 84.9" fill="none" stroke="#fa4616" stroke-width="19" stroke-linecap="round"/>
+      <path d="M48 43 L57 39.5 M72 43 L63 39.5" stroke="#16233f" stroke-width="3.5" stroke-linecap="round"/>
+      <circle cx="53" cy="52" r="6.5" fill="#fff" stroke="#16233f" stroke-width="2.5"/>
+      <circle cx="67" cy="52" r="6.5" fill="#fff" stroke="#16233f" stroke-width="2.5"/>
+      <circle cx="54.5" cy="54.5" r="3.2" fill="#16233f"/>
+      <circle cx="68.5" cy="54.5" r="3.2" fill="#16233f"/>
+      <path d="M51 69 Q55.5 65 60 69 T69 69" fill="none" stroke="#16233f" stroke-width="4" stroke-linecap="round"/>
+    </g>
+    <path d="M30 7 L30 2 Q30 -1 34 -1 M90 7 L90 2 Q90 -1 86 -1" fill="none" stroke="#ffffff" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
+  </svg>

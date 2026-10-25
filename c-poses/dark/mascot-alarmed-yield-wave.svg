@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -32 184 164" width="292" height="260" role="img" aria-label="C, the PrivaC mascot, looking alarmed and waving a yield sign">
+      
+      <path d="M23 64 L8 54" stroke="#ffffff" stroke-width="4" stroke-linecap="round"/><path d="M8 54 L3 47 M8 54 L1 54" stroke="#ffffff" stroke-width="3" stroke-linecap="round"/>
+      
+    <g>
+      <animateTransform attributeName="transform" type="rotate" values="-11 93 80;13 93 80;-11 93 80" keyTimes="0;0.5;1" dur="1.1s" repeatCount="indefinite" calcMode="spline" keySplines="0.45 0 0.55 1;0.45 0 0.55 1"/>
+      <path d="M118 30 L118 94" stroke="#7d879c" stroke-width="4" stroke-linecap="round"/>
+      <path d="M93 80 L114 67" fill="none" stroke="#ffffff" stroke-width="4" stroke-linecap="round"/>
+      <circle cx="118" cy="66" r="4.6" fill="#ffffff"/>
+      <path d="M84 -20 L152 -20 L118 36 Z" fill="#ffcc00" stroke="#16233f" stroke-width="3.5" stroke-linejoin="round"/>
+      <path d="M93 -14 L143 -14 L118 27 Z" fill="none" stroke="#16233f" stroke-width="1.5" stroke-linejoin="round"/>
+      <text x="118" y="-2" text-anchor="middle" font-family="Arial Black, Arial, Helvetica, sans-serif" font-weight="900" font-size="10" letter-spacing="0.3" fill="#16233f">YIELD</text>
+    </g>
+      <path d="M50 96 L45 124 L38 125" fill="none" stroke="#ffffff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M70 96 L75 124 L82 125" fill="none" stroke="#ffffff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+      <circle data-privac-face="" cx="60" cy="58" r="30" fill="#fff"/><path d="M86.9 31.1 A38 38 0 1 0 86.9 84.9" fill="none" stroke="#fa4616" stroke-width="19" stroke-linecap="round"/>
+      <path d="M47 37 Q52 33 57 35 M73 37 Q68 33 63 35" stroke="#16233f" stroke-width="3.5" stroke-linecap="round"/>
+      
+      <circle cx="53" cy="52" r="7.5" fill="#fff" stroke="#16233f" stroke-width="2.5"/>
+      <circle cx="67" cy="52" r="7.5" fill="#fff" stroke="#16233f" stroke-width="2.5"/>
+      <circle cx="54.5" cy="53" r="2.6" fill="#16233f"/>
+      <circle cx="68.5" cy="53" r="2.6" fill="#16233f"/>
+      <ellipse cx="60" cy="69" rx="5" ry="6.5" fill="#16233f"/>
+    </svg>
