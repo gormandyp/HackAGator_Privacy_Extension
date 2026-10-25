@@ -140,3 +140,17 @@ test("the grade box waits for C's pop-up to go away, and gives up (no box) if C 
   ctx.PrivaCGradeChip.afterC((gone) => now.push(gone), 1200);
   assert.deepStrictEqual(now, [true], "no C: right away");
 });
+
+// Seen on the G14 (2026-10-25): after a cookie choice, the grade box appeared when C left and was replaced 0.3 s later by
+// the "You declined extra cookies" note, so it flickered. When a note is coming, the grade box stands aside.
+test("after a cookie choice the note takes the box's place, so the grade box doesn't flash first", async () => {
+  const ctx = { console, setTimeout: () => 0, clearTimeout() {}, addEventListener() {}, location: { hostname: "www.gov.uk", protocol: "https:" },
+    document: { readyState: "loading", addEventListener() {}, querySelector: () => null },
+    chrome: { runtime: { id: "x" }, storage: { local: { get: async () => ({}) }, onChanged: { addListener() {} } } } };
+  ctx.window = ctx; ctx.top = ctx;
+  vm.runInNewContext(SRC, ctx);
+  const P = ctx.PrivaCGradeChip;
+  assert.strictEqual(P.noteComing(), false);
+  await P.explain("declined");
+  assert.strictEqual(P.noteComing(), true);
+});

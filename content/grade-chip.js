@@ -142,12 +142,14 @@
 
   // After a cookie choice: waits for C's own answer ("Nice!") to finish first, then explains. Once per page.
   const explained = new Set();
+  let noteComing = false;   // a note is on its way, so the grade box stands aside instead of flashing first
   async function explain(choice) {
     if (explained.has(choice) || !/^https?:$/.test(location.protocol)) return;
     explained.add(choice);
     try {
       const n = meaning(await chrome.storage.local.get("privacSettings"), choice);
       if (!n) return;
+      noteComing = true;
       const draw = () => show({ badge: n.icon, color: n.color, title: n.title, line: n.text, note: true, time: 12000,
         label: `${n.title}. ${n.text} Open PrivaC.` });
       // Not on top of C: wait (up to 8 s) for his pop-up to go away.
@@ -167,14 +169,14 @@
       // C's cookie pop-up can sit in the top right too (zara.com/us): wait up to a minute for it to go away, and
       // skip the box if it doesn't (it then shows on the next visit, as it wasn't marked seen).
       afterC(async (gone) => {
-        if (!gone) return;
+        if (!gone || noteComing) return;
         try { await chrome.storage.local.set({ privacChipSeen: remember(store.privacChipSeen, domain, today) }); } catch (e) { return; }
         showGrade(chip);
       }, 60000);
     } catch (e) { /* PrivaC was reloaded or storage isn't there: no box */ }
   }
 
-  window.PrivaCGradeChip = { pick, remember, meaning, explain, lineFor, afterC };
+  window.PrivaCGradeChip = { pick, remember, meaning, explain, lineFor, afterC, noteComing: () => noteComing };
   const start = () => setTimeout(run, DELAY);
   if (document.readyState === "complete") start(); else window.addEventListener("load", start, { once: true });
 })();
