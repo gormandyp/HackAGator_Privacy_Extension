@@ -108,6 +108,27 @@
     return Ink.over(acc, canvas());
   }
 
+  // document.elementsFromPoint skips layers with pointer-events: none, like the near-black ad strip in CNN's
+  // click-through header (Mac check, 2026-10-25), so C kept navy limbs on it. While C looks, a style sheet that
+  // makes every layer count is added to the page's adopted sheets, then the page's own list is put back. Nothing
+  // is drawn in between, and the page's own <style> tags aren't touched.
+  // Adding it restyles the whole page (about 5 ms per 1,000 elements in Chromium), so very big pages skip it.
+  const SEE_ALL_MAX = 8000;
+  let seeAll = null;
+  function lookingThrough(look) {
+    const d = document;
+    let before = null;
+    try {
+      const big = typeof d.getElementsByTagName === "function" && d.getElementsByTagName("*").length > SEE_ALL_MAX;
+      if (!big && typeof CSSStyleSheet === "function" && Array.isArray(d.adoptedStyleSheets)) {
+        if (!seeAll) { seeAll = new CSSStyleSheet(); seeAll.replaceSync("* { pointer-events: auto !important; }"); }
+        before = [...d.adoptedStyleSheets];
+        d.adoptedStyleSheets = [...before, seeAll];
+      }
+    } catch (e) { before = null; }
+    try { return look(); } finally { if (before) { try { d.adoptedStyleSheets = before; } catch (e) { /* ignore */ } } }
+  }
+
   // Where C's arms and legs are: his sides, his feet, and just above his head.
   function inkBehind(c) {
     const r = c.getBoundingClientRect();
@@ -119,12 +140,14 @@
     ];
     const w = window.innerWidth || 0, h = window.innerHeight || 0;
     let white = 0, navy = 0;
-    for (const [x, y] of pts) {
-      if (x < 0 || y < 0 || (w && x >= w) || (h && y >= h)) continue;
-      const color = colorAt(x, y);
-      if (!color) continue;
-      if (Ink.inkFor(color) === "white") white++; else navy++;
-    }
+    lookingThrough(() => {
+      for (const [x, y] of pts) {
+        if (x < 0 || y < 0 || (w && x >= w) || (h && y >= h)) continue;
+        const color = colorAt(x, y);
+        if (!color) continue;
+        if (Ink.inkFor(color) === "white") white++; else navy++;
+      }
+    });
     if (white === navy) return null;              // no clear answer: keep what he has
     return white > navy ? "white" : "navy";
   }
@@ -165,14 +188,20 @@
     paint(c, ink);
   }
 
-  let queued = false;
+  // At most one check every 150 ms, so a C that moves every frame (sliding in, following a pop-up, scrolling)
+  // doesn't make the page restyle every frame.
+  const CHECK_GAP_MS = 150;
+  let queued = false, lastCheck = -Infinity;
   function checkSoon() {
     if (queued || !watched.size) return;
     queued = true;
-    requestAnimationFrame(() => {
+    const run = () => requestAnimationFrame(() => {
       queued = false;
+      lastCheck = Date.now();
       for (const host of [...watched]) { try { check(host); } catch (e) { /* never break C */ } }
     });
+    const wait = lastCheck + CHECK_GAP_MS - Date.now();
+    if (wait > 0) setTimeout(run, wait); else run();
   }
 
   function watch(host) {
@@ -187,6 +216,7 @@
       for (const n of ["animationend", "transitionend"]) host.shadowRoot.addEventListener(n, checkSoon);
     }
     check(host);
+    lastCheck = Date.now();
   }
 
   function hook(name) {

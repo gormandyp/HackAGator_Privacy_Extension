@@ -21,7 +21,7 @@ function shape(tag, attrs) {
   };
 }
 
-function setup({ pageColor = "rgb(255, 255, 255)", layers = null, under = null, imgFile = "mascot-push-up.svg", inline = false } = {}) {
+function setup({ pageColor = "rgb(255, 255, 255)", layers = null, under = null, imgFile = "mascot-push-up.svg", inline = false, clickThrough = null } = {}) {
   const observers = [];
   class FakeObserver { constructor(cb) { this.cb = cb; observers.push(this); } observe(target, opts) { this.target = target; this.opts = opts; } disconnect() {} }
 
@@ -51,7 +51,7 @@ function setup({ pageColor = "rgb(255, 255, 255)", layers = null, under = null, 
   const page = layers || [{ tagName: "BODY", bg: pageColor }, { tagName: "HTML", bg: "rgba(0, 0, 0, 0)" }];
   const card = { tagName: "PRIVAC-GRADE" };
   const stack = [host, card, ...(under ? under.map((i) => page[i]) : page)];
-  const styles = new Map(page.map((el) => [el, { backgroundColor: el.bg, backgroundImage: el.image || "none", color: el.color || "rgb(0, 0, 0)" }]));
+  const styles = new Map(page.concat(clickThrough || []).map((el) => [el, { backgroundColor: el.bg, backgroundImage: el.image || "none", color: el.color || "rgb(0, 0, 0)" }]));
   styles.set(document_root(), { backgroundColor: "rgba(0, 0, 0, 0)", backgroundImage: "none", color: "rgb(0,0,0)", colorScheme: "normal" });
   function document_root() { return page[page.length - 1]; }
 
@@ -64,7 +64,10 @@ function setup({ pageColor = "rgb(255, 255, 255)", layers = null, under = null, 
   const ctx = {
     document: {
       querySelectorAll: () => hosts.slice(),
-      elementsFromPoint: () => stack,
+      // clickThrough: layers with pointer-events: none, which elementsFromPoint only returns while a style turns that off.
+      adoptedStyleSheets: [],
+      elementsFromPoint: () => (clickThrough && ctx.document.adoptedStyleSheets.some((x) => /pointer-events:\s*auto\s*!important/.test(x.text))
+        ? [host, card, ...clickThrough, ...stack.slice(2)] : stack),
       documentElement: document_root(),
       body: page.find((el) => el.tagName === "BODY") || null,
       createElementNS: (ns, tag) => shape(tag, {})
@@ -76,7 +79,8 @@ function setup({ pageColor = "rgb(255, 255, 255)", layers = null, under = null, 
     MutationObserver: FakeObserver,
     requestAnimationFrame: (f) => f(),
     setTimeout: (f) => f(), clearTimeout: () => {},
-    chrome: { runtime: { getURL: URL } }
+    chrome: { runtime: { getURL: URL } },
+    CSSStyleSheet: class { replaceSync(t) { this.text = t; } }
   };
   ctx.window = ctx; ctx.window.PrivaCPrompt = P;
   vm.runInNewContext(fs.readFileSync(__dirname + "/../shared/c-ink.js", "utf8"), ctx);
@@ -294,4 +298,48 @@ test("a photo with no text on it (a product shot) falls back to the page color",
   const light = heroSetup(hero({ tag: "IMG", texts: [] }), "rgb(255, 255, 255)");
   light.P.cookie({});
   assert.strictEqual(light.img.src, URL("c-poses/mascot-push-up.svg"));
+});
+
+// Mac check, 2026-10-25: on cnn.com C stood on a near-black ad strip with navy limbs. The strip sits in a header with
+// pointer-events: none, which document.elementsFromPoint skips, so C saw the white page under it. For the lookup only,
+// a style C's code adds and takes away again makes those layers count; the page's own style sheets are left as they were.
+test("a dark strip the mouse clicks through (pointer-events: none) still counts as what's behind C", () => {
+  const t = setup({ pageColor: "rgb(255, 255, 255)", clickThrough: [{ tagName: "DIV", bg: "rgb(12, 12, 12)" }, { tagName: "HEADER", bg: "rgba(0, 0, 0, 0)" }] });
+  const pageSheet = { text: "the site's own adopted sheet" };
+  t.ctx.document.adoptedStyleSheets = [pageSheet];
+  t.P.cookie({});
+  assert.strictEqual(t.img.src, URL("c-poses/dark/mascot-push-up.svg"));
+  assert.deepStrictEqual(Array.from(t.ctx.document.adoptedStyleSheets), [pageSheet], "the page's style sheets are put back");
+});
+
+test("without that style support, C still checks the page the usual way", () => {
+  const t = setup({ pageColor: "rgb(17, 24, 39)" });
+  delete t.ctx.CSSStyleSheet;
+  t.P.cookie({});
+  assert.strictEqual(t.img.src, URL("c-poses/dark/mascot-push-up.svg"));
+});
+
+// The look-through style makes the browser restyle the whole page, about 5 ms per 1,000 elements (Chromium, 2026-10-25),
+// so on a very big page C checks the usual way, and checks are spaced out instead of running every frame while he moves.
+test("on a very big page C doesn't add the look-through style", () => {
+  const t = setup({ pageColor: "rgb(255, 255, 255)", clickThrough: [{ tagName: "DIV", bg: "rgb(12, 12, 12)" }] });
+  let added = 0;
+  const sheets = [];
+  Object.defineProperty(t.ctx.document, "adoptedStyleSheets", { get: () => sheets, set: (v) => { added++; sheets.splice(0, sheets.length, ...v); } });
+  t.ctx.document.getElementsByTagName = () => ({ length: 20000 });
+  t.P.cookie({});
+  assert.strictEqual(added, 0);
+  assert.strictEqual(t.img.src, URL("c-poses/mascot-push-up.svg"), "checked the usual way");
+});
+
+test("checks are spaced out while C moves: at most one every 150 ms", () => {
+  const t = setup({ pageColor: "rgb(17, 24, 39)" });
+  const timers = [];
+  t.ctx.setTimeout = (f, ms) => { timers.push(ms || 0); f(); };
+  let now = 1000;
+  t.ctx.Date = { now: () => now };
+  t.P.cookie({});
+  const obs = t.observers.find((o) => o.target && o.target.querySelector);
+  obs.cb([]);                       // moved right after the first check
+  assert.ok(timers.some((ms) => ms > 0 && ms <= 150), `waited before checking again (${timers.join(", ")})`);
 });
