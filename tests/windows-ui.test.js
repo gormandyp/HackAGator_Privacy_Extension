@@ -19,3 +19,9 @@ test("what people read doesn't assume a Mac", () => {
     assert.doesNotMatch(read(f), /\b(your|this) Mac\b|Mac's/, f);
   }
 });
+
+test("rounded scroll areas use thin scrollbars (Windows' arrow buttons were cut off by the Settings sheet's rounded corner)", () => {
+  for (const cls of ["sheet-body", "site-list"]) {
+    assert.ok(rulesFor(cls).some((b) => /scrollbar-width:\s*thin/.test(b)), `.${cls} needs scrollbar-width: thin`);
+  }
+});
