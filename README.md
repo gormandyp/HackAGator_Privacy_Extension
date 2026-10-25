@@ -18,7 +18,7 @@ Built in 48 hours at Gator Hack V (UF AI Days 2026, Oct 23-25) for the "Fresh of
 The demo script, with the sites and questions we checked on a Mac and a Windows laptop, is [docs/DEMO.md](docs/DEMO.md).
 
 ## What's recent (and central)
-- **Gemma 4** (Google, released March 31, 2026): C's brain, running inside Chrome with Google's **LiteRT-LM web runtime** (first published May 18, 2026; we use 0.18.0 from Oct 6, 2026), or through Ollama.
+- **Gemma 4** (Google, released March 31, 2026; we use **Gemma 4 E2B** in Chrome and Gemma 4 E4B through Ollama): C's brain, running inside Chrome with Google's **LiteRT-LM web runtime** (first published May 18, 2026; we use 0.18.0 from Oct 6, 2026), or through Ollama.
 - **RegTrack** (NDSS MADWeb, February 2026; arXiv 2603.02679): measured how accepting cookies changes tracking on 743 websites. C quotes it.
 - **Pentagon 1260H list** (updated June 8, 2026, adds Alibaba and Baidu): powers the foreign-adversary flag.
 - **California Data Broker Registry 2026** and **Have I Been Pwned**: downloaded fresh every day.

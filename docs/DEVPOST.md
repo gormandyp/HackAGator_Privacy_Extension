@@ -1,7 +1,7 @@
 # Devpost submission draft (paste into gatorhack2026.devpost.com; due Sun Oct 25 5:00 PM ET, aim for 4 PM)
 Checked against the code on main, 2026-10-25 afternoon (534f32c, 776 tests). Before pasting, re-read docs/SPEC.md "Honesty rules" and change any number that has changed.
 
-**Prizes to select:** Best Use of Gemma (MLH; Devpost calls it "Best Use of Gemini", the UF prizes page says "Build with Gemma, Google's open model, free on the Gemini API or run locally"), Best Open Source Project (MLH; the repo is MIT licensed since 2026-10-24), Vobile Prize. The main awards need no selection. Twinly needs Twinly's own APIs, so skip it.
+**Prizes to select** (rules re-checked 2026-10-25 2:45 PM ET): Best Use of Gemma (MLH; Devpost requires naming the Gemma model in the README, which names Gemma 4 E2B and E4B), Best Open Source Project (MLH; needs a public GitHub repo with a clear open-source license: github.com/gormandyp/PrivaC is public and MIT licensed), Vobile Prize. The main awards need no selection. Twinly needs Twinly's own APIs, so skip it.
 
 ---
 
