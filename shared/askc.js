@@ -332,6 +332,43 @@ Steps the person can take (no tag needed):
       "\n\nWhat you can do: use a different password for each site and turn on two-step sign-in, so one breach can't unlock your other accounts.";
   }
 
+  // Breach claims Gemma can't back (real Gemma on the G14, 2026-10-25: "Zara.com also had a data breach recently"
+  // after a LinkedIn question, with no Zara breach on the list). A sentence saying a named site or company was
+  // breached, hacked or leaked stays only when the breach list has it. Sentences that say there was no breach, or
+  // explain what a breach is, name nobody and stay.
+  const BREACH_CLAIM = /\b(?:had|has|have|suffered|experienced|was|were|been|got)\b[^.!?]*\b(?:breach\w*|hack\w*|leak\w*|pwn\w*|compromis\w*)/i;
+  const DENIES = /\b(?:no|not|never|none)\b|n't\b/i;
+  const NAMES_SOMEONE = /[a-z0-9-]+\.[a-z]{2,}\b|(?:^|\s)(?!(?:A|An|The|This|That|It|Its|You|Your|I|If|When|Some|Many|Most|Any|Each|Every|One|They|Their|There|These|Those|What|In|On|At|Since|After|Before|Also|And|But|So|Yes|No)\b)[A-Z][A-Za-z0-9]+/;
+  function dropUnbackedBreaches(text, lists) {
+    // A sentence keeps the source tags that follow it ("... passwords. [HIBP] Zara.com ...").
+    return String(text || "").split("\n").map((par) => par.split(/(?<=[.!?](?:\s*\[[^\]]+\])*)\s+/).filter((sentence) => {
+      if (!BREACH_CLAIM.test(sentence) || DENIES.test(sentence) || breachSites(sentence, lists).length) return true;
+      return !NAMES_SOMEONE.test(sentence.replace(/\[[^\]]*\]/g, ""));
+    }).join(" ")).join("\n");
+  }
+
+  // "Which site tracks me the most?" is about a site, not a company (real Gemma answered "Google" and then listed
+  // Google again among the others). Counted from your browsing, so every wording gets the same answer.
+  const and = (xs) => (xs.length > 1 ? `${xs.slice(0, -1).join(", ")} and ${xs[xs.length - 1]}` : xs[0] || "");
+  const MOST_SITE = /\b(?:which|what)\s+(?:of\s+my\s+)?(?:web)?sites?\b[^?]*\bmost\b|\bmost[-\s]+tracked\s+(?:web)?sites?\b/i;
+  function mostTrackedAnswer(q, sites) {
+    if (!MOST_SITE.test(q) || !/\btrack/i.test(q)) return null;
+    if (!sites.length) return "You haven't visited any sites with PrivaC on yet, so there's no site to name yet.";
+    const count = (s) => (s.trackers || []).filter(Boolean).length;
+    const ranked = sites.filter(count).sort((a, b) => count(b) - count(a) || (b.score || 0) - (a.score || 0) || (a.domain < b.domain ? -1 : 1));
+    if (!ranked.length) return `None of the ${sites.length} sites you visited in the last 7 days loaded a tracker PrivaC knows [Seen on your visit].`;
+    const many = (n, word) => `${n} ${word}${n === 1 ? "" : "s"}`;
+    const top = ranked[0];
+    const cos = [...new Set(top.trackers.filter(Boolean).map((t) => t.company).filter(Boolean))];
+    const named = cos.length > 5 ? `${cos.slice(0, 5).join(", ")} and ${cos.length - 5} more` : and(cos);
+    let text = `${top.domain} tracked you the most: it loaded ${many(count(top), "tracker")} from ${cos.length} ${cos.length === 1 ? "company" : "companies"}` +
+      `${named ? ` (${named})` : ""} [Seen on your visit].`;
+    const next = ranked.slice(1, 3);
+    if (next.length === 2 && count(next[0]) === count(next[1])) text += ` Next were ${and(next.map((s) => s.domain))}, with ${many(count(next[0]), "tracker")} each.`;
+    else if (next.length) text += ` Next ${next.length > 1 ? "were" : "was"} ${and(next.map((s) => `${s.domain} (${many(count(s), "tracker")})`))}.`;
+    return text;
+  }
+
   const MY_SITES = /\b(?:web)?sites?\b|\bi\s+(?:visit|visited|went|use|go)\b|\bmy\s+(?:browsing|history)\b/i;
   function yourBreaches(lists, sites) {
     const by = lists.hibp.byDomain;
@@ -739,6 +776,8 @@ Steps the person can take (no tag needed):
     const data = await deps.load();
     const graded = gradeAnswer(q, ((data && data.sites) || []).filter(Boolean), deps.history);
     if (graded) return { answer: graded, trace: [{ tool: "get_site_report", label: "Your browsing" }] };
+    const most = mostTrackedAnswer(q, ((data && data.sites) || []).filter(Boolean));
+    if (most) return { answer: most, trace: [{ tool: "get_site_report", label: "Your browsing" }] };
     const lists = deps.lists ? await deps.lists() : null;
     const breach = breachAnswer(q, lists, deps.history, ((data && data.sites) || []).filter(Boolean), deps.atlas ? deps.atlas() : null);
     if (breach) return { answer: breach, trace: [{ tool: "breaches", label: "Have I Been Pwned" }] };
@@ -747,18 +786,25 @@ Steps the person can take (no tag needed):
     // C doesn't lose what he knows about Criteo one question later (backtest 2026-10-24).
     let facts = lookupFacts(q, lists, atlas);
     const last = recent(deps.history).slice(-1)[0];
+    // A question that names its own subject ("Who is Meta?") is answered without the earlier questions: they changed
+    // the prompt, so asking twice gave two different answers even with the fixed seed (real Gemma, 2026-10-25).
+    const standalone = (facts.length || namedSites(((data && data.sites) || []).filter(Boolean), q).length) && !AND_ABOUT.test(q) && !FOLLOW_UP.test(q);
     if (!facts.length && last && (FOLLOW_UP.test(q) || MORE_Q.test(q) || q.split(/\s+/).length <= 4)) facts = lookupFacts(last.question, lists, atlas);
+    // "yes tell me more" after "Was LinkedIn hacked?" stays on LinkedIn (Gemma drifted to another site's breach).
+    const moreBreach = last && BREACH_Q.test(last.question) && !BREACH_Q.test(q) && (FOLLOW_UP.test(q) || MORE_Q.test(q)) ? breachSites(last.question, lists) : [];
+    const breachNames = and(moreBreach.map(([d, b]) => siteLabel(d, b).replace(/ \(.*$/, "")));
     const extra = deps.facts ? await deps.facts() : FACT_FILES;
     const trace = [{ tool: "get_site_report", label: "Your browsing" }];
     try {
-      const context = buildContext(data, null, facts, extra, q, deps.history) +
-        (steps ? "" : `\n\nFor this question: Don't add a "What you can do" line; just answer it.`);
+      const context = buildContext(data, null, facts, extra, q, standalone ? [] : deps.history) +
+        (steps ? "" : `\n\nFor this question: Don't add a "What you can do" line; just answer it.`) +
+        (breachNames ? `\n\nFor this question: they want more about ${breachNames}'s breach record. Answer only about ${breachNames}, from its [HIBP] facts; don't bring up other sites' breaches.` : "");
       const raw = await deps.ask(q, { system: SYSTEM_PROMPT, context, options: { temperature: 0.2, seed: SEED },
                                       ...(deps.signal ? { signal: deps.signal } : {}),
                                       ...(deps.onToken ? { onToken: (piece, so) => deps.onToken(piece, steps ? so : hideSteps(so)) } : {}) });
       // A source tag needs evidence behind it: Gemma wrote [HIBP] with no breach facts (2026-10-24), which also showed a
       // "Have I Been Pwned" check mark C never made. Tags that aren't in the evidence are removed, so their chips don't show.
-      const sourced = cleanAnswer(raw).replace(/\s*\[([^\]]+)\]/g, (m, tag) => (TAGS.includes(tag) && !context.includes(`[${tag}]`) ? "" : m));
+      const sourced = dropUnbackedBreaches(cleanAnswer(raw), lists).replace(/\s*\[([^\]]+)\]/g, (m, tag) => (TAGS.includes(tag) && !context.includes(`[${tag}]`) ? "" : m));
       const text = steps ? sourced : dropSteps(sourced);
       if (/\[Government list\]/.test(text)) trace.push({ tool: "background_facts", label: "Government lists" });
       if (/\[Tracker Radar\]/.test(text)) trace.push({ tool: "lookup_company", label: "Tracker Radar" });

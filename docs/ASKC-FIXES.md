@@ -144,6 +144,12 @@ PrivaC's code and public lists. Each pattern needs C ("you", "C", "PrivaC", "Ask
 "Is my data sent to Google?" or "What can you tell me about Google?" still go to Gemma. C's intro ("Who are you?") and Gemma's
 background facts now say it too. Tests: `tests/askc-model.test.js`. (`askc-breach` isn't needed any more: main already has Fix 7.)
 
+## Fix 9 (real Gemma on the G14, 2026-10-25 ~12 AM UTC): a made-up breach, "which site" answered with a company, two answers to one question
+The run was good on repeats and "I don't know". Answers took 18 to 70 seconds on the AMD built-in graphics. Three problems, fixed on main (tests/askc-realgemma.test.js):
+1. **Made-up breach.** "yes tell me more" after "Was LinkedIn hacked?" drifted to "Zara.com also had a data breach recently", which wasn't backed by the breach list. Now any sentence in Gemma's answer that says a named site or company was breached, hacked or leaked is removed unless Have I Been Pwned's list has it. Sentences saying there was *no* breach, or explaining what a breach is, stay. The follow-up also tells Gemma to talk only about LinkedIn's breach record.
+2. **"Which site tracks me the most?"** got a company (Google) and then Google again as an "other" tracker. Now it's answered instantly from your browsing: the site with the most trackers, its companies, and the next two sites. "*Who* tracked me the most?" (a company) still goes to Gemma.
+3. **"Who is Meta?" asked twice gave different facts.** The last 3 questions were part of Gemma's prompt, so the prompt changed and the fixed seed couldn't keep the answer the same. A question that names its own subject is now asked without the earlier questions. Follow-ups that need them ("does it fingerprint me?", "and Google?") keep them.
+
 ## Also seen live (add to PLAN R13's list of bad answers; no code fix yet)
 - "Who tracked me the most this week?" got one sentence, "Google tracked you the most. [Tracker Radar]", with no count of sites,
   and labeled [Tracker Radar] instead of [Seen on your visit]. The evidence already has "on N of M sites" in the "Companies seen
@@ -170,4 +176,5 @@ those go in PLAN R13's list of bad answers.
 - [x] Fix 7: breach questions (LinkedIn, then Google and any known company or site), branch `askc-breach` (built on `askc-fixes`, so merging it brings fixes 1-6 too)
 - [x] Backtest root causes 1-9 (above), on every branch
 - [x] Fix 8: questions about C's AI, branch `askc-model`
+- [x] Fix 9: unbacked breach claims, "which site tracks me the most", same answer to a standalone question (main)
 - [ ] Real-Gemma check on the Mac
