@@ -288,7 +288,8 @@
         key: `${greedy ? "g" : `${req.temperature}/${req.seed}`}|${req.maxTokens || 600}|${req.system || ""}`,
         config: {
           preface: { messages: req.system ? [{ role: "system", content: req.system }] : [], extra_context: { enable_thinking: false } },
-          // Text only: with the audio reader on, the runtime set it up (mel_filterbank.cc) for every conversation.
+          // Text only: C never sends audio or images. (The runtime still sets up its audio reader; its
+          // "mel_filterbank.cc" warning is quieted in offscreen/brain.js.)
           sessionConfig: { samplerParams, maxOutputTokens: req.maxTokens || 600, audioModalityEnabled: false, visionModalityEnabled: false },
           prefillPrefaceOnInit: true
         }

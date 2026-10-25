@@ -15,8 +15,12 @@ function watchGpu() {
   } catch (e) { /* the runtime isn't loaded yet */ }
 }
 
-// The runtime reads this when it starts: its routine lines go to the console as plain logs, not as extension errors.
-self.Module = { printErr: (line) => console[PrivaCBrainCore.logLevel(line)](line) };
+// The runtime reads these when it starts: its routine lines go to the console as plain logs, not as extension errors.
+// Most lines come through printErr; its debug prints (the "mel_filterbank.cc Missing 10 bands" warning, from
+// Gemma's audio reader, which the runtime sets up even for text) use a global dbg() and fall back to console.warn.
+const runtimeLine = (...parts) => { const line = parts.join(" "); console[PrivaCBrainCore.logLevel(line)](line); };
+self.Module = { printErr: runtimeLine };
+self.dbg = runtimeLine;
 
 const brain = PrivaCBrainCore.create({
   lm: LM,
