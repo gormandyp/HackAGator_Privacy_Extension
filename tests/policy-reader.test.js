@@ -148,3 +148,14 @@ test("a policy that couldn't be read is logged quietly, not listed as an error o
   assert.deepStrictEqual(loud, []);
   assert.strictEqual(quiet.length, 1);
 });
+
+test("answers saved before the quote checks are checked again when PrivaC starts (G14: bbc 'sells' from 'We sell premium advertising space')", async () => {
+  const policy = { sells: true, shares: null, checkedAt: new Date().toISOString(), source: "https://www.bbc.com/privacy",
+    quotes: { sells: "We sell premium advertising space on our services directly to our advertising clients." } };
+  const r = load({ sites: [{ domain: "bbc.com", trackers: [], policy }], ask: async () => ({ answers: [] }) });
+  await r.idle();
+  const p = r.store().privacData.sites[0].policy;
+  assert.strictEqual(p.sells, null);
+  assert.strictEqual(p.quotes.sells, undefined);
+  assert.strictEqual(p.checkedAt, policy.checkedAt, "not read again just for this");
+});

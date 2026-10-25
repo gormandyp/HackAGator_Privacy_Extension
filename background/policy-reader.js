@@ -60,6 +60,25 @@
     return ownChain;
   }
 
+  // Answers saved before the quote checks (G14, Oct 25: bbc's "We sell premium advertising space" saved as selling
+  // personal information) are checked again whenever PrivaC starts. One that fails becomes unknown, so the grade shows
+  // a range; the policy isn't read again just for this.
+  function recheckSaved() {
+    const work = async () => {
+      const data = (await chrome.storage.local.get("privacData")).privacData;
+      if (!data || !Array.isArray(data.sites)) return;
+      let changed = false;
+      for (const site of data.sites) {
+        const p = site && site.policy ? PrivaCPolicy.recheck(site.policy) : null;
+        if (p && p !== site.policy) { site.policy = p; changed = true; }
+      }
+      if (changed) await chrome.storage.local.set({ privacData: data });
+    };
+    if (typeof saveChain !== "undefined") { saveChain = saveChain.then(work).catch((e) => console.warn("PrivaC: could not recheck policies", e)); return; }
+    ownChain = ownChain.then(work).catch((e) => console.warn("PrivaC: could not recheck policies", e));
+  }
+  recheckSaved();
+
   async function check(domain, links) {
     await mapReady;
     if (!MAP || inFlight.has(domain)) return;

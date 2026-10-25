@@ -8,6 +8,7 @@
                        contain its find-words (plus one paragraph either side). No match = unknown, Gemma isn't asked.
     4. Ask Gemma two questions at a time, as JSON: yes / no / unknown + the exact sentence.
     5. verifyQuote:    the sentence must really be in the policy, or the answer becomes unknown.
+       quoteFits:      and it must really say it (a "sells" sentence about personal information, not ad space).
   Result: { sells, shares, optOut, gpc, retention, preciseLocation, sensitive, otherSources,
             quotes: { field: sentence }, source: policy URL without query, checkedAt }
   true = yes, false = no, null = unknown (never shown as safe).
@@ -90,6 +91,48 @@
     return q.length >= MIN_QUOTE_CHARS && norm(text).includes(q);
   }
 
+  // A yes or no also needs a sentence that really says it (G14 test with real Gemma, Oct 25 2026): "We sell premium
+  // advertising space" (bbc) and "We sell premium Services" (linkedin) were saved as selling personal information, and
+  // so was "business transactions such as sales or a merger" (github); the "Do not sell or share my personal
+  // information" link (dailymail) was saved as a promise not to, and the menu words "Sports Health Science" as
+  // collecting sensitive information. A sentence that fails these checks leaves the answer unknown (never safe).
+  const MIN_QUOTE_WORDS = 5;
+  const LINK_NAME = /^(?:do not|don't) (?:sell|share)(?: or (?:sell|share))?(?: my)? personal (?:information|data)$/;
+  const PERSONAL = /\bpersonal (?:information|data|info)\b|\byour (?:information|data|info)\b|\b(?:information|data) about you\b|\bconsumer (?:information|data)\b/;
+  const SELL_WORD = /\b(?:sell|sells|selling|sold|sale|sales)\b|valuable consideration|in exchange for/;
+  const SHARE_WORD = /\b(?:share|shares|sharing|shared|disclose|discloses|disclosed|disclosure|provide|provides|make available)\b/;
+  const AD_WORD = /advertis|marketing|targeted|interest-based|cross-context|behaviou?ral|data brokers?/;
+  const BUSINESS_SALE = /merger|acquisition|bankruptcy|reorgani[sz]|business transactions?|sale of (?:all|part|substantially|the|our|a)\b|such as (?:a )?sales?\b/;
+  const RIGHTS = /\bright to\b[^.]{0,80}\b(?:opt[- ]?out|instruct|direct|request|limit|stop|tell)\b|\bopt[- ]?out of (?:the )?(?:sale|selling|sharing)\b/;
+  const DEFINES = /\bwe mean\b|\bis defined as\b/;
+  const DENY = {
+    sells: /\b(?:do|does|will|shall|did)\s+not\s+(?:and will not\s+)?sell\b|\b(?:don't|doesn't|won't|never)\s+sell\b|\bhave not sold\b|\bno sale\b/,
+    shares: /\b(?:do|does|will|shall|did)\s+not\s+(?:and will not\s+)?(?:sell (?:or|and)\s+)?share\b|\b(?:don't|doesn't|won't|never)\s+(?:sell (?:or|and)\s+)?share\b/
+  };
+  function quoteFits(field, answer, quote) {
+    const q = norm(quote);
+    if (q.split(" ").length < MIN_QUOTE_WORDS) return false;
+    if (field !== "sells" && field !== "shares") return true;
+    if (LINK_NAME.test(q) || DEFINES.test(q)) return false;
+    if (answer === "no") return DENY[field].test(q);
+    if (DENY[field].test(q) || RIGHTS.test(q)) return false;
+    return field === "sells" ? SELL_WORD.test(q) && PERSONAL.test(q) && !BUSINESS_SALE.test(q) : SHARE_WORD.test(q) && AD_WORD.test(q);
+  }
+
+  // Answers saved before quoteFits existed are checked once more (background/policy-reader.js, when PrivaC starts).
+  // Returns the same object when nothing changes.
+  function recheck(policy) {
+    if (!policy || !policy.quotes) return policy;
+    let out = policy;
+    for (const [field, quote] of Object.entries(policy.quotes)) {
+      if (typeof policy[field] !== "boolean" || quoteFits(field, policy[field] ? "yes" : "no", quote)) continue;
+      if (out === policy) out = { ...policy, quotes: { ...policy.quotes } };
+      out[field] = null;
+      delete out.quotes[field];
+    }
+    return out;
+  }
+
   function systemPrompt(map) {
     const f = map.answerFormat || {};
     return [
@@ -129,7 +172,7 @@
         const hit = batch.find((x) => x.c.id === a.id);
         if (!hit) continue;
         const answer = String(a.answer || "").toLowerCase();
-        if ((answer === "yes" || answer === "no") && verifyQuote(a.quote, text)) {
+        if ((answer === "yes" || answer === "no") && verifyQuote(a.quote, text) && quoteFits(hit.c.policyField, answer, a.quote)) {
           policy[hit.c.policyField] = answer === "yes";
           policy.quotes[hit.c.policyField] = String(a.quote).replace(/\s+/g, " ").trim();
         }
@@ -138,5 +181,5 @@
     return policy;
   }
 
-  (typeof window !== "undefined" ? window : self).PrivaCPolicy = { pickPolicyLink, htmlToText, passagesFor, verifyQuote, readPolicy, cleanUrl };
+  (typeof window !== "undefined" ? window : self).PrivaCPolicy = { pickPolicyLink, htmlToText, passagesFor, verifyQuote, quoteFits, recheck, readPolicy, cleanUrl };
 })();
