@@ -157,13 +157,13 @@
       try {
         const r = await fetchFn(HIBP_URL, { headers: { Accept: "application/json" } });
         if (r.ok) next.hibp = { fetchedAt: stamp, byDomain: compactBreaches(await r.json()) };
-      } catch (e) { console.warn("PrivaC: breach list refresh failed; keeping the last copy", e); }
+      } catch (e) { console.log("PrivaC: breach list refresh failed (offline?); keeping the last copy", e); }
     }
     if (stale(cur.brokers)) {
       try {
         const r = await fetchFn(BROKER_URL);
         if (r.ok) next.brokers = { fetchedAt: stamp, list: compactBrokers(await r.text()) };
-      } catch (e) { console.warn("PrivaC: broker list refresh failed; keeping the last copy", e); }
+      } catch (e) { console.log("PrivaC: broker list refresh failed (offline?); keeping the last copy", e); }
     }
     await store.set({ privacLists: next });
     return next;

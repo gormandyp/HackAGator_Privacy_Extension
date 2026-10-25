@@ -63,6 +63,20 @@ test("refresh downloads both lists once a day and keeps the old copy if a downlo
   assert.ok(store.privacLists.hibp.byDomain["wired.com"]);
 });
 
+// Being offline (hackathon Wi-Fi) is normal, not an extension problem: chrome://extensions lists every
+// console.warn and console.error as an error, so a failed download is a plain log.
+test("a list download that fails while offline is a plain log, not an extension warning", async () => {
+  const store = {};
+  const storage = { get: async (k) => ({ [k]: store[k] }), set: async (o) => Object.assign(store, o) };
+  const said = { log: 0, warn: 0, error: 0 };
+  const real = { log: console.log, warn: console.warn, error: console.error };
+  for (const k of Object.keys(said)) console[k] = () => { said[k]++; };
+  try {
+    await L.refresh({ fetch: async () => { throw new Error("offline"); }, storage, now: Date.parse("2026-10-25T10:00:00Z") });
+  } finally { Object.assign(console, real); }
+  assert.deepStrictEqual(said, { log: 2, warn: 0, error: 0 });
+});
+
 require("../shared/cookies.js");
 const cookieDb = JSON.parse(fs.readFileSync(__dirname + "/../shared/cookie-db.json", "utf8"));
 
