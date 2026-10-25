@@ -589,6 +589,47 @@ Steps the person can take (no tag needed):
     return { text: lines.join("\n") + stepList(steps), sources: ["site", ...(bl ? ["breach"] : [])] };
   }
 
+  // ---------- "Does wired.com sell my data?" ----------
+  // Answered from the site's own policy record (background/policy-reader.js): its quoted sentence when PrivaC read one, a
+  // plain "I don't know yet" when it didn't. Gemma said wired.com's policy says it sells data when PrivaC had never read it
+  // (G14, Oct 25). What was seen on the visit is added, without claiming a tracker proves a sale (docs/SPEC.md Honesty rules).
+  const SELL_Q = /\b(?:sell|sells|selling|sold|share|shares|sharing)\b[^?.!]*\b(?:data|info\w*|details|me)\b/i;
+  const SAYS = {
+    sells: { yes: "sells personal information", no: "doesn't sell personal information", verb: "sells" },
+    shares: { yes: "shares personal information with partners for advertising", no: "doesn't share personal information for advertising", verb: "shares" }
+  };
+  function readOn(iso) { const [y, m, d] = String(iso || "").slice(0, 10).split("-"); return d ? `${MONTHS[+m - 1]} ${+d}, ${y}` : ""; }
+  function sellAnswer(q, sites) {
+    if (!SELL_Q.test(q)) return null;
+    const named = namedSites(sites, q);
+    const domain = (q.toLowerCase().match(/\b[a-z0-9-]+(?:\.[a-z0-9-]+)*\.[a-z]{2,}\b/) || [])[0];
+    if (!named.length) return domain ? `I don't know: PrivaC hasn't seen ${domain.replace(/^www\./, "")} on your visits in the last 7 days, so it hasn't read its privacy policy. When you open it, PrivaC reads the policy the page links to, on this computer, and I can tell you what it says.` : null;
+    if (named.length > 1) return null;
+    const s = named[0], p = s.policy || {}, d = s.domain;
+    const quote = (f) => (p.quotes && p.quotes[f] ? `: "${String(p.quotes[f]).slice(0, 300)}"` : "");
+    const known = (f) => p[f] === true || p[f] === false;
+    const [main, other] = /\bshar/i.test(q) && !/\b(?:sell\w*|sold)\b/i.test(q) ? ["shares", "sells"] : ["sells", "shares"];
+    const lines = [];
+    if (known(main)) lines.push(`${p[main] ? "Yes, by its own words. " : ""}${d}'s privacy policy says it ${p[main] ? SAYS[main].yes : SAYS[main].no}${quote(main)} [Privacy policy]`);
+    else if (p.checkedAt || known(other)) lines.push(`${d}'s privacy policy${p.checkedAt ? ` (read on ${readOn(p.checkedAt)})` : ""} doesn't say clearly whether it ${known(other) ? SAYS[main].verb : "sells or shares"} your personal information [Privacy policy].`);
+    else lines.push(`I don't know yet: PrivaC hasn't read ${d}'s privacy policy. It reads a site's policy on this computer when a page you visit links to it, at most once a week.`);
+    if (known(other)) lines.push(`${!p[other] ? "It says it " : p[main] === true ? "It also says it " : p[main] === false ? "But it says it " : "It says it "}${p[other] ? SAYS[other].yes : SAYS[other].no}${quote(other)} [Privacy policy]`);
+    if (p.optOut === true && (p.sells || p.shares)) lines.push(`It explains how to opt out${quote("optOut")} [Privacy policy]`);
+    const r = scoreParts(s);
+    if (!known("sells") && !known("shares") && r && r.unknowns && r.unknowns.length) lines.push(checkedLine(r));
+    // What the visit showed: advertising companies, and those registered as data brokers in California.
+    const names = (xs) => { const u = [...new Set(xs)]; return and(u.length > 4 ? u.slice(0, 3).concat(`${u.length - 3} more`) : u); };
+    const ads = (s.trackers || []).filter((t) => t && t.company && t.category === "Advertising").map((t) => t.company);
+    const brokers = (s.trackers || []).filter((t) => t && t.broker).map((t) => t.broker);
+    const nAds = new Set(ads).size, nBrokers = new Set(brokers).size;
+    if (nAds || nBrokers) {
+      lines.push(`On your visit, ${d} loaded ${nAds ? `${nAds} advertising ${nAds === 1 ? "company" : "companies"} (${names(ads)}) [Seen on your visit] [Tracker Radar]` : "no advertising companies [Seen on your visit]"}` +
+        (nBrokers ? `${nAds ? ", and" : " but"} ${nBrokers} registered California data ${nBrokers === 1 ? "broker" : "brokers"} (${names(brokers)}) [CA Broker Registry]` : "") +
+        ". A tracker loading means that company could collect data about your visit; it doesn't prove your data was sold.");
+    }
+    return lines.join("\n");
+  }
+
   // ---------- What the trackers were for: the same groups and counts as the dashboard (PLAN R19k) ----------
   // Ask C said "no record" of a malware tracker the dashboard showed: a tracker only reached Gemma from its 4 detailed sites
   // or the top-10 companies. Every purpose is listed now; malware, high-risk and screen recording are never cut.
@@ -1161,6 +1202,8 @@ Steps the person can take (no tag needed):
     const extraFacts = deps.facts ? await deps.facts() : FACT_FILES;
     const safe = safeAnswer(q, ((data && data.sites) || []).filter(Boolean), lists, atlas, extraFacts);
     if (safe) return { answer: safe.text, trace: [{ tool: "get_site_report", label: "Your browsing" }, ...(safe.sources.includes("breach") ? [{ tool: "breaches", label: "Have I Been Pwned" }] : [])] };
+    const sells = sellAnswer(q, ((data && data.sites) || []).filter(Boolean));
+    if (sells) return { answer: sells, trace: [{ tool: "get_site_report", label: "Your browsing" }] };
     const breach = breachAnswer(q, lists, deps.history, ((data && data.sites) || []).filter(Boolean), atlas);
     if (breach) return { answer: breach, trace: [{ tool: "breaches", label: "Have I Been Pwned" }] };
     // A follow-up that names nothing ("does it fingerprint me?", "tell me more") keeps the last question's facts, so
