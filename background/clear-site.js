@@ -12,9 +12,13 @@
     if (!DOMAIN.test(domain)) { reply({ ok: false }); return; }
     const origins = [];
     for (const scheme of ["https", "http"]) for (const host of [domain, "www." + domain]) origins.push(`${scheme}://${host}`);
-    chrome.browsingData.remove({ origins }, {
+    // How many of the site's cookies Chrome is about to forget (it clears them for the whole site, subdomains too), so
+    // the pop-up can say what it removed. Only the count is used: no cookie names or values are kept or sent.
+    const counted = chrome.cookies && chrome.cookies.getAll
+      ? chrome.cookies.getAll({ domain }).then((all) => all.length, () => null) : Promise.resolve(null);
+    counted.then((cookies) => chrome.browsingData.remove({ origins }, {
       cookies: true, localStorage: true, indexedDB: true, cacheStorage: true, serviceWorkers: true, cache: true
-    }).then(() => reply({ ok: true }), () => reply({ ok: false }));
+    }).then(() => reply(cookies === null ? { ok: true } : { ok: true, cookies }), () => reply({ ok: false })));
     return true;   // answers once Chrome is done
   });
 })();

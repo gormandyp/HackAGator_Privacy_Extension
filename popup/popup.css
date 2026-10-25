@@ -118,9 +118,16 @@ main { display: grid; gap: 8px; margin-top: 8px; }
 .co small { color: var(--flag); font-size: 10.5px; font-weight: 650; }
 .co.more { color: var(--text-3); padding-left: 9px; }
 .honesty { margin: 10px 0 0; font-size: 11px; color: var(--text-3); line-height: 1.4; }
-.clear-what { margin: 6px 0 10px; font-size: 12px; color: var(--text-2); line-height: 1.45; }
-.clear-btn { width: 100%; }
-.clear-btn.armed { background: var(--danger); color: #fff; }
+.clear-list { list-style: none; margin: 2px 0 10px; padding: 0; display: grid; gap: 4px; }
+.clear-list li { display: flex; gap: 7px; align-items: flex-start; font-size: 12px; color: var(--text-2); line-height: 1.4; }
+.clear-list li svg { flex: none; margin-top: 2px; }
+/* A real button: red words like Settings' "Clear my PrivaC data", solid red once armed, green once it's done. */
+.clear-btn { width: 100%; color: var(--danger); box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--danger) 30%, transparent); }
+.clear-btn.armed { background: var(--danger); color: #fff; box-shadow: none; }
+.clear-btn.done, .clear-btn.done:hover { background: color-mix(in oklab, var(--t-green) 16%, transparent); color: var(--text); box-shadow: none; transform: none; }
+.clear-btn.done svg { color: var(--t-green); }
+.clear-btn:disabled { cursor: default; }
+.clear-done { margin: 8px 0 0; font-size: 12px; color: var(--text-2); line-height: 1.45; }
 .calm { display: flex; gap: 6px; align-items: center; margin: 4px 0 0; color: var(--text-2); font-size: 12.5px; }
 .calm svg { color: var(--t-green); }
 
@@ -135,7 +142,14 @@ main { display: grid; gap: 8px; margin-top: 8px; }
 /* ---- In the rounded panel over a website (content/panel.js, popup/panel-mode.js) ----
    The panel is the glass: it blurs the real page behind it, so Liquid glass drops its wallpaper here.
    Width comes from the panel; a matching gap under the button bar. */
-:root.in-panel body { width: auto; padding-bottom: 8px; }
+/* Only the middle scrolls, between the two bars, so cards never slide under the see-through bars or show in the gap
+   above them (Mac check, Oct 25: "27 companies" peeked out above the logo). popup/panel-mode.js reports the height
+   everything needs, so the panel is only as tall as the window allows. */
+:root.in-panel { height: 100%; }
+:root.in-panel body { width: auto; height: 100%; box-sizing: border-box; padding-bottom: 8px; display: flex; flex-direction: column; overflow: hidden; }
+:root.in-panel .bar { position: relative; top: auto; bottom: auto; flex: none; }
+:root.in-panel .bar.bottom { margin-top: 0; }
+:root.in-panel main { flex: 0 1 auto; min-height: 0; overflow-y: auto; margin: 8px -9px 0; padding: 0 9px 8px; scrollbar-width: thin; }
 :root.in-panel[data-style="glass"] body { background: transparent; }
 :root.in-panel[data-style="glass"] .backdrop { display: none; }
 /* Glass color (Settings > Appearance) shows here as a light wash of its two colors; Aurora keeps the plain glass. */

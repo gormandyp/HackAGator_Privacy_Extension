@@ -7,6 +7,10 @@
   const root = document.documentElement;
   root.classList.add("in-panel");   // popup.css: no wallpaper, so the website shows through the glass
   let ready = false, last = "";
+  // Only the middle scrolls in the panel (popup.css), so the page is as tall as the panel. The panel needs the height
+  // everything would take unscrolled: the page plus what's scrolled out of sight in the middle.
+  const middle = typeof document.querySelector === "function" ? document.querySelector("main") : null;
+  const fullHeight = () => document.body.getBoundingClientRect().height + (middle ? middle.scrollHeight - middle.clientHeight : 0);
 
   function post(msg) {
     try { parent.postMessage({ privacPanel: 1, ...msg }, "*"); } catch (e) { /* the page went away */ }
@@ -14,7 +18,7 @@
   function report() {
     const msg = {
       type: "size",
-      height: Math.ceil(document.body.getBoundingClientRect().height),
+      height: Math.ceil(fullHeight()),
       theme: root.dataset.theme === "dark" ? "dark" : "light",
       style: root.dataset.style === "clean" ? "clean" : "glass",
       ready
@@ -27,6 +31,8 @@
 
   new ResizeObserver(report).observe(document.body);
   new MutationObserver(report).observe(root, { attributes: true, attributeFilter: ["data-theme", "data-style"] });
+  // The middle's content can grow while the page's own size stays put (a clear's result, a redraw).
+  if (middle) new MutationObserver(report).observe(middle, { childList: true, subtree: true, characterData: true, attributes: true });
   document.addEventListener("privac-popup-ready", () => { ready = true; report(); });
   addEventListener("keydown", (e) => { if (e.key === "Escape") post({ type: "close" }); });
   // These open the dashboard in a new tab (popup.js); Chrome's pop-up closes then, and so does the panel.

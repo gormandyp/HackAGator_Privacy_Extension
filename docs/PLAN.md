@@ -154,6 +154,15 @@ Tick each one here when done. **All 8 done (checked 2026-10-25 overnight).**
     answer, from PRIVACY.md and manifest.json; "What can you do?" and "What is PrivaC?" list the features; "How do you work?" gives the
     4 steps, plus every grade rule when asked how the grade is calculated. Questions about one feature ("Does PrivaC block ads?") still
     go to Gemma with PrivaC's facts, as decided earlier on Oct 25 (tests/askc-oct25.test.js).
+  - [x] **o. "Clear this site's data" looked like it did nothing** **Done 2026-10-25 (Preston; checked on puffco.com, cnn.com and 3
+    more real sites on the Mac).** Clearing worked (puffco.com: 30 cookies to 0, saved data emptied), but the card looked the same
+    afterwards, the grey button didn't look like a button, and in the panel, scrolling down to it slid the cards under the see-through
+    top bar. Now the button is red, the card's three points are a short list, and after clearing it turns green ("Cleared") and says
+    "Removed 30 cookies and puffco.com's saved data. Reload the page to start fresh; the site will set new cookies as it loads. Clearing
+    doesn't change the grade..." (background/clear-site.js counts the site's cookies first; only the number is used). In the panel only
+    the middle scrolls, between the bars (popup.css, popup/panel-mode.js). A reload after clearing is a new visit: if the site asks about
+    cookies again and loads fewer companies, the grade can move (the half-of-visits rule, R18), not because of the clear. Check:
+    tests/clear-site.test.js, tests/panel-mode.test.js, tests/popup-window.test.js; Chromium with a local copy of puffco.com.
   - Also waiting to merge: `max/icon-tabs` (tab icons + names).
 
 ## Sun (freeze 11 AM)

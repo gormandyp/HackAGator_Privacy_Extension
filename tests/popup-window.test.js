@@ -27,3 +27,11 @@ test("the rounded panel over a website keeps its floating look", () => {
   assert.match(CSS, /\.bar \{[^}]*border-radius: 16px;/);
   assert.match(CSS, /\.bar\.top \{ top: 8px;/);
 });
+
+// Mac check, Oct 25: scrolled down to "Clear this site's data", the cards slid under the panel's see-through top bar and
+// showed in the gap above it. In the panel the bars stay in place and only the middle scrolls between them.
+test("in the rounded panel only the middle scrolls, between the bars, so cards never slide under them", () => {
+  assert.match(rule(':root.in-panel body'), /height: 100%;[^}]*display: flex;[^}]*flex-direction: column;[^}]*overflow: hidden;/);
+  assert.match(rule(':root.in-panel .bar'), /position: relative;/);
+  assert.match(rule(':root.in-panel main'), /min-height: 0;[^}]*overflow-y: auto;/);
+});

@@ -7,8 +7,8 @@ const fs = require("node:fs");
 const vm = require("node:vm");
 
 const EXT = "chrome-extension://abc";
-function background() {
-  const removed = [];
+function background(siteCookies) {
+  const removed = [], asked = [];
   let listener = null;
   const ctx = {
     chrome: {
@@ -16,13 +16,15 @@ function background() {
       browsingData: { remove: async (opts, what) => { removed.push(JSON.parse(JSON.stringify([opts, what]))); } }
     }
   };
+  // Chrome's cookie list for the site, when a test gives one (names only; PrivaC never reads values).
+  if (siteCookies) ctx.chrome.cookies = { getAll: async (q) => { asked.push(JSON.parse(JSON.stringify(q))); return siteCookies; } };
   ctx.self = ctx;
   vm.runInNewContext(fs.readFileSync(__dirname + "/../background/clear-site.js", "utf8"), ctx);
   const send = (msg, url = EXT + "/popup/popup.html") => new Promise((resolve) => {
     const kept = listener(msg, { id: "abc", url }, (r) => resolve(JSON.parse(JSON.stringify(r))));
     if (kept !== true) setImmediate(() => resolve(undefined));
   });
-  return { removed, send };
+  return { removed, asked, send };
 }
 
 test("clears that site's cookies, storage and cache, for both its addresses with and without www", async () => {
@@ -56,4 +58,44 @@ test("the popup explains what clearing does before you do it, and asks for a sec
   assert.match(js, /other companies' tracking cookies aren't removed/i, "honest about what it can't clear (docs/SPEC.md Honesty rules)");
   assert.match(js, /Tap again to clear/);
   assert.match(js, /sendMessage\(\{ type: "privac-clear-site", domain: s\.domain \}\)/);
+});
+
+// Mac check on real sites (puffco.com, cnn.com, Oct 25): clearing worked (puffco went from 30 cookies to 0), but the
+// pop-up looked the same afterwards, so it seemed to do nothing. It now says what was removed and what happens next.
+test("it answers with how many of the site's cookies Chrome removed, so the pop-up can say what it did", async () => {
+  const bg = background([{ name: "_ga" }, { name: "_fbp" }, { name: "cart" }]);
+  assert.deepStrictEqual(await bg.send({ type: "privac-clear-site", domain: "www.puffco.com" }), { ok: true, cookies: 3 });
+  assert.deepStrictEqual(bg.asked, [{ domain: "puffco.com" }], "the whole site, like Chrome clears its cookies");
+  assert.strictEqual(bg.removed.length, 1);
+});
+
+function clearedNote() {
+  const js = fs.readFileSync(__dirname + "/../popup/popup.js", "utf8");
+  const m = js.match(/\n  (function clearedNote\(domain, cookies\) \{[\s\S]*?\n  \})\n/);
+  assert.ok(m, "popup.js has clearedNote(domain, cookies)");
+  const ctx = {};
+  vm.runInNewContext(m[1] + "\nthis.clearedNote = clearedNote;", ctx);
+  return ctx.clearedNote;
+}
+
+test("after the second tap the pop-up says what was removed, what happens on reload, and that the grade stays", () => {
+  const note = clearedNote();
+  assert.strictEqual(note("puffco.com", 30), "Removed 30 cookies and puffco.com's saved data. Reload the page to start fresh; the site will set new cookies as it loads. " +
+    "Clearing doesn't change the grade: it's about what the site loads on your visits.");
+  assert.match(note("puffco.com", 1), /^Removed 1 cookie and puffco\.com's saved data\./);
+  assert.match(note("puffco.com", 0), /^Removed puffco\.com's saved data \(it had no cookies\)\./);
+  assert.match(note("puffco.com", null), /^Removed puffco\.com's cookies and saved data\./);
+  const js = fs.readFileSync(__dirname + "/../popup/popup.js", "utf8");
+  assert.match(js, /id="clear-done" role="status"/, "screen readers hear it too");
+  assert.match(js, /clear\.classList\.add\("done"\)/, "the button looks finished");
+});
+
+test("the card is a short list with the limit on its own line, and the button looks like a button", () => {
+  const js = fs.readFileSync(__dirname + "/../popup/popup.js", "utf8");
+  const card = js.slice(js.indexOf('<section class="card glass clear">'), js.indexOf("</section>", js.indexOf('<section class="card glass clear">')));
+  assert.strictEqual((card.match(/<li /g) || []).length, 3);
+  assert.match(card, /<li class="chk-warn">[^\n]*Other companies' tracking cookies aren't removed/);
+  const css = fs.readFileSync(__dirname + "/../popup/popup.css", "utf8");
+  assert.match(css, /\.clear-btn \{[^}]*color: var\(--danger\);/, "red words, like Settings' \"Clear my PrivaC data\"");
+  assert.match(css, /\.clear-btn\.done[^{]*\{[^}]*--t-green/, "green once it's done");
 });

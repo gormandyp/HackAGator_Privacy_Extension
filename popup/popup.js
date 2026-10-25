@@ -134,9 +134,23 @@
     ${inExtension ? `
     <section class="card glass clear">
       <div class="card-top"><div class="head-title">${I.tile("trash", "gray", "sm")}<h2>Clear this site's data</h2></div></div>
-      <p class="clear-what">Chrome forgets ${esc(s.domain)}'s own cookies, saved data and cache, so the site can't link your next visit to earlier ones. It also signs you out of ${esc(s.domain)}. Your history and passwords stay. Other companies' tracking cookies aren't removed; Chrome's "Block third-party cookies" setting stops those.</p>
+      <ul class="clear-list">
+        <li class="chk-good">${I.icon(tone.good, 13)}<span>Chrome forgets ${esc(s.domain)}'s own cookies, saved data and cache, so the site can't link your next visit to earlier ones.</span></li>
+        <li class="chk-warn">${I.icon(tone.warn, 13)}<span>Other companies' tracking cookies aren't removed: Chrome's "Block third-party cookies" setting stops those.</span></li>
+        <li class="chk-info">${I.icon(tone.info, 13)}<span>It also signs you out of ${esc(s.domain)}. Your history and passwords stay.</span></li>
+      </ul>
       <button type="button" class="btn-quiet clear-btn" id="clear-site">Clear ${esc(s.domain)}'s data</button>
+      <p class="clear-done" id="clear-done" role="status" hidden></p>
     </section>` : ""}`;
+
+  // What the pop-up says once Chrome is done. On real sites the card looked the same after clearing, so it seemed to
+  // do nothing; and on reload the site sets new cookies, which looked like clearing had failed (Mac check, Oct 25).
+  function clearedNote(domain, cookies) {
+    const what = cookies > 0 ? `${cookies} cookie${cookies === 1 ? "" : "s"} and ${domain}'s saved data`
+      : cookies === 0 ? `${domain}'s saved data (it had no cookies)` : `${domain}'s cookies and saved data`;
+    return `Removed ${what}. Reload the page to start fresh; the site will set new cookies as it loads. ` +
+      "Clearing doesn't change the grade: it's about what the site loads on your visits.";
+  }
 
   // Clear this site's data: the first tap asks, the second clears (background/clear-site.js).
   const clear = $("clear-site");
@@ -145,11 +159,21 @@
     clear.addEventListener("click", async () => {
       if (!armed) { armed = true; clear.textContent = "Tap again to clear"; clear.classList.add("armed"); return; }
       clear.disabled = true;
+      clear.textContent = "Clearing…";
       let r = null;
       try { r = await chrome.runtime.sendMessage({ type: "privac-clear-site", domain: s.domain }); } catch (e) { r = null; }
       clear.classList.remove("armed");
-      clear.textContent = r && r.ok ? "Cleared. Reload the page to start fresh." : "Couldn't clear it. Try again.";
-      if (!(r && r.ok)) { armed = false; clear.disabled = false; }
+      if (r && r.ok) {
+        clear.classList.add("done");
+        clear.innerHTML = `${I.icon("check", 15)}<span>Cleared</span>`;
+        const done = $("clear-done");
+        done.textContent = clearedNote(s.domain, typeof r.cookies === "number" ? r.cookies : null);
+        done.hidden = false;
+      } else {
+        clear.textContent = "Couldn't clear it. Try again.";
+        armed = false;
+        clear.disabled = false;
+      }
     });
   }
 

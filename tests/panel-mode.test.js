@@ -11,24 +11,25 @@ const SRC = fs.readFileSync(__dirname + "/../popup/panel-mode.js", "utf8");
 
 const plain = (x) => JSON.parse(JSON.stringify(x));   // objects made inside vm have another realm's prototypes
 
-function load({ search = "?panel=1", embedded = true, theme = "light", style = "glass", height = 612.4 } = {}) {
-  const posted = [], winOn = {}, docOn = {};
+function load({ search = "?panel=1", embedded = true, theme = "light", style = "glass", height = 612.4, main = null } = {}) {
+  const posted = [], winOn = {}, docOn = {}, watching = new Map();
   let resized = null, restyled = null;
   const classes = new Set();
   const root = { dataset: { theme, style }, classList: { add: (c) => classes.add(c), contains: (c) => classes.has(c) } };
   const body = { h: height, getBoundingClientRect() { return { height: this.h }; } };
   const ctx = {
     location: { search },
-    document: { documentElement: root, body, addEventListener: (n, f) => { docOn[n] = f; } },
+    document: { documentElement: root, body, addEventListener: (n, f) => { docOn[n] = f; }, querySelector: (sel) => (sel === "main" ? main : null) },
     ResizeObserver: class { constructor(cb) { resized = cb; } observe() {} },
-    MutationObserver: class { constructor(cb) { restyled = cb; } observe() {} },
+    MutationObserver: class { constructor(cb) { this.cb = cb; if (!restyled) restyled = cb; } observe(target) { watching.set(target, this.cb); } },
     parent: { postMessage: (m, to) => posted.push([m, to]) },
     addEventListener: (n, f) => { winOn[n] = f; }
   };
   ctx.window = ctx;
   ctx.top = embedded ? {} : ctx;
   vm.runInNewContext(SRC, ctx);
-  return { root, body, posted, winOn, docOn, classes, resize: () => resized && resized(), restyle: () => restyled && restyled() };
+  return { root, body, posted, winOn, docOn, classes, resize: () => resized && resized(), restyle: () => restyled && restyled(),
+    changed: () => main && watching.get(main) && watching.get(main)() };
 }
 
 test("inside the panel it marks the page, so popup.css drops the wallpaper and the website shows through the glass", () => {
@@ -82,4 +83,17 @@ test("opened the usual way (Chrome's window, or the file on its own in a frame) 
     assert.deepStrictEqual(plain(t.posted), []);
     assert.strictEqual(t.winOn.keydown, undefined);
   }
+});
+
+// Mac check, Oct 25: on a long page you scrolled to "Clear this site's data" and the cards slid under the top bar and
+// showed through the gap above it. In the panel only the middle scrolls now (popup.css), so the page is as tall as the
+// panel; it reports the height everything needs unscrolled, and again when the content changes (a clear's result).
+test("when the middle scrolls inside the panel, it reports the height everything needs, and again when the content changes", () => {
+  const main = { scrollHeight: 900, clientHeight: 300 };
+  const t = load({ height: 640, main });
+  t.resize();
+  assert.strictEqual(t.posted.slice(-1)[0][0].height, 1240);
+  main.scrollHeight = 950;
+  t.changed();
+  assert.strictEqual(t.posted.slice(-1)[0][0].height, 1290);
 });
