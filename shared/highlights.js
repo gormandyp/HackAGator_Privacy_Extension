@@ -145,7 +145,7 @@
     const sellers = sites.filter((s) => s.policy && s.policy.sells === true);
     if (sellers.length) add({ kind: "sells", tone: "warn", weight: 72, site: sellers[0].domain,
       title: sellers.length === 1 ? `${sellers[0].domain}'s privacy policy says it sells personal information` : `${sellers.length} sites' privacy policies say they sell personal information`,
-      detail: sellers.length === 1 ? "Read from its own policy on this Mac, with the sentence checked." : `${list(sellers.map((s) => s.domain))}. Read from their own policies, sentences checked.`,
+      detail: sellers.length === 1 ? "Read from its own policy on this computer, with the sentence checked." : `${list(sellers.map((s) => s.domain))}. Read from their own policies, sentences checked.`,
       ask: `What does ${sellers[0].domain}'s privacy policy say about selling my information, and can I opt out?` });
 
     // ---- Tracker behavior ----

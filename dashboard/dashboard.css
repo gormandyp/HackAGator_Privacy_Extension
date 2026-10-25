@@ -257,7 +257,7 @@ button.fact-title:hover { text-decoration-color: var(--hair-strong); }
 /* The glass panel stays still and the list scrolls inside it, so the panel's rounded rim (.glass::before) doesn't
    scroll away with the list (tests/glass-scroll.test.js). */
 .site-index { display: flex; flex-direction: column; max-height: calc(100vh - 190px); position: sticky; top: 80px; }
-.site-list { flex: 1; min-height: 0; padding: 6px; overflow-y: auto; border-radius: 19px; overscroll-behavior: contain; }
+.site-list { flex: 1; min-height: 0; padding: 6px; overflow-y: auto; overflow-x: hidden; border-radius: 19px; overscroll-behavior: contain; }
 .site-item {
   width: 100%; display: grid; grid-template-columns: 32px minmax(0, 1fr) auto; gap: 11px; align-items: center;
   padding: 8px 10px; border: 0; border-radius: 12px; background: transparent; text-align: left; color: inherit;
@@ -471,7 +471,7 @@ button.fact-title:hover { text-decoration-color: var(--hair-strong); }
 .sheet.open { transform: none; opacity: 1; }
 /* The settings scroll inside the sheet: when the sheet itself scrolled, its rounded rim scrolled away with the rows
    and seemed to end halfway down (repo owner, 2026-10-24). The rounded corners clip the rows as they scroll by. */
-.sheet-body { flex: 1; min-height: 0; overflow-y: auto; padding: 14px 14px 22px; border-radius: 23px; overscroll-behavior: contain; }
+.sheet-body { flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; padding: 14px 14px 22px; border-radius: 23px; overscroll-behavior: contain; }
 .sheet-head { display: flex; justify-content: space-between; align-items: center; margin: 2px 2px 4px 8px; }
 .sheet-head h2 { font-size: 19px; font-weight: 700; letter-spacing: -0.02em; }
 .group-title { font-size: 12px; font-weight: 600; color: var(--text-3); margin: 16px 12px 6px; }

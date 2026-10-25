@@ -1,7 +1,7 @@
 /*
   PrivaC settings ("privacSettings" in chrome.storage.local). Read by the dashboard, the popup,
   content/c-events.js (which C pop-ups may show) and background/policy-reader.js.
-    appearance: "system" | "light" | "dark"   (system follows the Mac's light/dark mode)
+    appearance: "system" | "light" | "dark"   (system follows the computer's light/dark mode)
     style:      "glass" | "clean"              (Liquid glass, or solid panels)
     popups:     { cookie, acceptOnly, adversary }  (true = C may show that pop-up on websites)
     policyReader: true                          (Gemma reads privacy policies on this computer)
