@@ -4,7 +4,7 @@ PrivaC's main download runs **Gemma 4 E2B inside Chrome**, on your computer's gr
 **LiteRT-LM** web runtime. Nothing to install besides the extension. The `ollama` branch is the version that uses only Ollama.
 
 ## Install (about 2 minutes)
-1. Download the zip: https://github.com/gormandyp/HackAGator_Privacy_Extension/archive/refs/heads/main.zip and unzip it.
+1. Download the zip: https://github.com/gormandyp/PrivaC/archive/refs/heads/main.zip and unzip it.
 2. In Chrome, open `chrome://extensions`, turn on **Developer mode** (top right), click **Load unpacked**, and pick the unzipped folder.
    - If the Ollama version of PrivaC is also loaded, turn it off first (both would show C's pop-ups).
 3. Click the PrivaC icon, open the dashboard, go to **Ask C**, and click **Download C's brain** (2.0 GB, one time;

@@ -5,7 +5,7 @@ C also answers your questions about what it saw, using **Gemma 4 running inside 
 
 Built in 48 hours at Gator Hack V (UF AI Days 2026, Oct 23-25) for the "Fresh off the frontier" challenge, by a team of five mostly first-time hackers.
 
-> **This is the main download: the in-browser AI version.** Prefer the Ollama app? Download the [`ollama` branch](https://github.com/gormandyp/HackAGator_Privacy_Extension/archive/refs/heads/ollama.zip) (frozen on Oct 24; main has every later fix).
+> **This is the main download: the in-browser AI version.** Prefer the Ollama app? Download the [`ollama` branch](https://github.com/gormandyp/PrivaC/archive/refs/heads/ollama.zip) (frozen on Oct 24; main has every later fix).
 
 ## For judges: a 3-minute tour
 1. Load PrivaC (see **Install** below) and pin it from the puzzle-piece menu.
@@ -28,10 +28,11 @@ The dashboard's **About** tab lists each one with its date, a link to proof, and
 ## What it does
 - **Sees** which trackers each page loads (3,721 known tracker domains from DuckDuckGo Tracker Radar) and which cookies it sets (labeled with the Open Cookie Database).
 - **Grades** each site with a rules-based exposure score (0-100) where every point is explained. See "How the grade works" on the dashboard and [docs/SPEC.md](docs/SPEC.md).
-- **Acts on cookie banners.** C finds the Reject button, clicks it for you, and checks the site saved your choice (OneTrust, Ensighten, CookieYes, Cookiebot, Didomi, GOV.UK). He warns about banners that have no Reject button.
+- **Acts on cookie banners.** C finds the Reject button, clicks it for you, and checks the site saved your choice (OneTrust, Ensighten, CookieYes, Cookiebot, Didomi, GOV.UK), including pop-ups drawn inside frames or shadow roots. He warns about banners that have no Reject button.
 - **Flags** data breaches (Have I Been Pwned), registered data brokers (California) and companies based in U.S.-listed foreign-adversary countries (15 CFR 7.4) or on the Pentagon's 1260H list.
 - **Warns** before you stay on a site graded F that also loads a listed company or had a breach reported in the last year: C names the reasons and offers "Go back" or "Continue anyway" (never blocks).
-- **Ask C** answers questions from the evidence, with a source label on every fact. Questions with a factual answer (grades, breaches, "Is this site safe?", "Does this site sell my data?") are answered by code in a tenth of a second; Gemma explains the rest.
+- **Ask C** answers questions from the evidence, with a source label on every fact. Questions with a factual answer (grades, breaches, "Is this site safe?", "Does this site sell my data?", where each dashboard item came from, and questions about C himself such as "Are you tracking me?") are answered by code in a tenth of a second; Gemma explains the rest.
+- **Clears one site** from the pop-up: "Clear this site's data" makes Chrome forget that site's cookies and saved data, then says how many cookies it removed.
 
 ## How it works
 The grade is computed by code, never by the AI, so it's the same every time and every point traces back to evidence. Gemma reads privacy policies and explains; code checks its quotes and source tags afterwards.
@@ -40,8 +41,8 @@ A diagram of the parts, the data shape and the message API: [docs/ARCHITECTURE.m
 ## Install
 | Version | C's AI runs on | Download |
 |---|---|---|
-| **PrivaC** (main, recommended) | Gemma 4 E2B inside Chrome (WebGPU): nothing else to install; Ollama works as a fallback | [main.zip](https://github.com/gormandyp/HackAGator_Privacy_Extension/archive/refs/heads/main.zip) · setup: [docs/IN-BROWSER-AI.md](docs/IN-BROWSER-AI.md) |
-| **PrivaC (Ollama)** | Gemma 4 E4B through the Ollama app on your computer | [ollama.zip](https://github.com/gormandyp/HackAGator_Privacy_Extension/archive/refs/heads/ollama.zip) · setup: [docs/OLLAMA.md](docs/OLLAMA.md) |
+| **PrivaC** (main, recommended) | Gemma 4 E2B inside Chrome (WebGPU): nothing else to install; Ollama works as a fallback | [main.zip](https://github.com/gormandyp/PrivaC/archive/refs/heads/main.zip) · setup: [docs/IN-BROWSER-AI.md](docs/IN-BROWSER-AI.md) |
+| **PrivaC (Ollama)** | Gemma 4 E4B through the Ollama app on your computer | [ollama.zip](https://github.com/gormandyp/PrivaC/archive/refs/heads/ollama.zip) · setup: [docs/OLLAMA.md](docs/OLLAMA.md) |
 
 1. Unzip, open `chrome://extensions`, turn on **Developer mode**, click **Load unpacked** and pick the unzipped folder. Load one version at a time.
 2. Pin PrivaC (puzzle-piece menu), browse a few sites, then click the C icon and open the dashboard.

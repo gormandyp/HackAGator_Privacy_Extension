@@ -1,5 +1,5 @@
 # Devpost submission draft (paste into gatorhack2026.devpost.com; due Sun Oct 25 5:00 PM ET, aim for 4 PM)
-Checked against the code on main, 2026-10-25 (c3036db). Before pasting, re-read docs/SPEC.md "Honesty rules" and change any number that has changed.
+Checked against the code on main, 2026-10-25 afternoon (534f32c, 776 tests). Before pasting, re-read docs/SPEC.md "Honesty rules" and change any number that has changed.
 
 **Prizes to select:** Best Use of Gemma (MLH; Devpost calls it "Best Use of Gemini", the UF prizes page says "Build with Gemma, Google's open model, free on the Gemini API or run locally"), Best Open Source Project (MLH; the repo is MIT licensed since 2026-10-24), Vobile Prize. The main awards need no selection. Twinly needs Twinly's own APIs, so skip it.
 
@@ -17,18 +17,19 @@ One website visit can quietly hand you to dozens of companies. Cookie banners ar
 ## What it does
 - **Sees** which tracker companies each page loads (3,721 known tracker domains from DuckDuckGo Tracker Radar) and which cookies it sets, labeled by purpose with the Open Cookie Database. It stores names only, never cookie contents or full web addresses.
 - **Grades** every site from A to F with a rules-based score in which every point is explained: trackers, data brokers, breaches, cookie banners with no Reject button, and links to companies in countries on the U.S. foreign-adversary list.
-- **Acts on cookie banners.** C appears beside the pop-up and offers "Protect me", clicks Reject for you, and checks the site really saved your choice (OneTrust, Ensighten, CookieYes, Cookiebot, Didomi and GOV.UK records). C says "Beware!" when a banner only lets you accept.
+- **Acts on cookie banners.** C appears beside the pop-up and offers "Protect me", clicks Reject for you, and checks the site really saved your choice (OneTrust, Ensighten, CookieYes, Cookiebot, Didomi and GOV.UK records), including pop-ups drawn inside frames or shadow roots (Consentmo on Shopify stores). C says "Beware!" when a banner only lets you accept.
 - **Flags foreign-adversary links.** When a page loads a service from a company on the Pentagon's Section 1260H list (updated June 8, 2026), C names the company, the list and its date.
 - **Warns on unsafe sites.** A site graded F that also loads a listed company or had a data breach reported in the last year gets C's warning with "Go back" or "Continue anyway". It never blocks.
 - **Checks public records** downloaded whole every day: Have I Been Pwned breaches and the 2026 California Data Broker Registry (603 companies). PrivaC never looks up a single site, so nobody learns what you visit.
-- **Ask C**: questions answered by Gemma 4 from what PrivaC saw, with a source tag on every fact. C also reads privacy policies for "sells" and "shares" and only shows a quote if it appears word for word in the policy.
+- **Ask C**: questions answered by Gemma 4 from what PrivaC saw, with a source tag on every fact. C says where every dashboard item came from ("Which sites recorded my screen?" names the company, its address and the site), and answers questions about himself ("Are you tracking me?") from PrivaC's own privacy policy. C also reads privacy policies for "sells" and "shares" and only shows a quote if it appears word for word in the policy.
+- **Clears one site**: "Clear this site's data" in the pop-up makes Chrome forget that site's cookies and saved data, and says how many cookies it removed.
 
 ## How we built it
 - A plain-JavaScript Chrome extension (Manifest V3), no build step, so all five of us could read and change it.
 - **Gemma 4 E2B runs inside Chrome** on the computer's graphics chip with Google's LiteRT-LM web runtime (WebGPU). On our MacBook Pro the first words of an answer appear in about 0.8 seconds (about 1.7 seconds on a Windows gaming laptop). Ollama with Gemma 4 E4B is the fallback. Nothing leaves the computer.
 - The grade is computed by code, not by the AI, so it is the same every time and every point can be traced to evidence. Gemma explains and reads; it never sets the score.
-- Questions with a factual answer (grades, "Is this site safe?", breaches, "Does this site sell my data?") are answered from PrivaC's own records by code, in a tenth of a second; Gemma explains everything else, from the same evidence.
-- 776 automated tests (Node's built-in test runner), plus live checks on real sites logged in docs/history/STATUS.md.
+- Questions with a factual answer (grades, "Is this site safe?", breaches, "Does this site sell my data?", where a dashboard item came from) are answered from PrivaC's own records by code, in a tenth of a second; Gemma explains everything else, from the same evidence.
+- 776 automated tests (Node's built-in test runner), plus real-browser checks on a MacBook Pro and a Windows gaming laptop with the in-browser Gemma (docs/DEMO.md lists the sites and questions).
 
 ## What's new (Fresh off the frontier)
 Each of these was first made public in the 12 months before the hackathon and does real work in PrivaC (dashboard > About lists dates, proof links and the files that use each one):
@@ -43,6 +44,7 @@ Each of these was first made public in the 12 months before the hackathon and do
 - Every consent tool saves your choice differently, and some pop-ups live inside frames or shadow roots where a normal content script can't see them.
 - U.S. visitors rarely see cookie banners, so we test on U.K. sites and our own demo page.
 - Gemma sometimes invented facts and source labels (once, that a site's policy says it sells data before PrivaC had even read it). Code now cleans every answer, and questions with a factual answer are answered from the records instead.
+- Gemma is told to call the person "you", so "Are you tracking me?" was answered about the sites' trackers. C now answers questions about himself from PrivaC's own privacy policy.
 - Reading policies honestly: "We sell premium advertising space" was first read as selling your data. A "sells" answer now needs a sentence that really says so, and saved answers are checked again.
 - Five beginners sharing one Git repo: zip uploads and a scary "Force push" button taught us to pull first and push small.
 More in docs/DIFFICULTIES.md.
@@ -71,6 +73,6 @@ More in docs/DIFFICULTIES.md.
 javascript, chrome-extension, manifest-v3, gemma, litert-lm, webgpu, ollama, duckduckgo-tracker-radar, have-i-been-pwned, open-cookie-database, node.js
 
 ## Links
-- Code: https://github.com/gormandyp/HackAGator_Privacy_Extension (MIT license; download main.zip; setup in README)
+- Code: https://github.com/gormandyp/PrivaC (MIT license; download main.zip; setup in README)
 - Privacy policy: PRIVACY.md in the repo
 - Video: (paste the YouTube or Vimeo link, 3:00 or shorter)
