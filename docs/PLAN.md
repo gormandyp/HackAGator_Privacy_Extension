@@ -79,7 +79,15 @@ Owner areas: **core** (repo owner + Claude: background, data plumbing, merges), 
     3. Never "safe" or "unsafe" as a verdict: "PrivaC grades how much of your data a site exposes; it doesn't check for malware or scams"
        (unless the tracker data marks it Malware/High-risk, then say so). End with 2-3 steps that fit the findings.
     4. Unknown X (not visited, not a known company) -> Gemma, as today.
-    Check: "Is YouTube safe?", "Is you tube safe?", "is youtube.com safe", "Should I trust cnn?" give the same kind of answer with the
+    5. **More real-Gemma answers (Max, 9:18 PM), the worst first.** "Is FaceBook safe?" -> "Facebook has a history of data breaches, which means
+       your personal information could have been exposed. You should change your password immediately": made up, no source chip, and two
+       questions later "Has meta had any data breaches?" -> "Have I Been Pwned's list ... has no breach on record for Facebook". "Is Meta
+       safe?" -> "Because Meta is based in the United States, you should be aware of the data collection practices" (nothing in the evidence
+       says the US is a risk). 1-4 above fix these questions; also add a guard for every Gemma answer: if it says a named site or company
+       had a breach/was hacked while its Have I Been Pwned record is empty (or isn't in the evidence), replace that sentence with the record's
+       own line ("no breach on record ... doesn't prove it was never breached") and drop the after-a-breach steps. Test with this exact
+       Facebook answer.
+    Check: "Is YouTube safe?", "Is you tube safe?", "is youtube.com safe", "Should I trust cnn?", "Is FaceBook safe?", "Is Meta safe?" give the same kind of answer with the
     grade and source chips; `node --test` passes; then ask them on the Mac.
   - Also waiting to merge: `max/icon-tabs` (tab icons + names).
 
