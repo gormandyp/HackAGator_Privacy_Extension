@@ -47,9 +47,13 @@
     return rows;
   }
 
+  // The registry's website field sometimes holds two addresses ("acculeads.com; https://..."): the first is the site.
   function hostOf(url) {
-    try { return new URL(/^https?:/i.test(url) ? url : "https://" + url).hostname.toLowerCase().replace(/^www\./, ""); }
-    catch (e) { return null; }
+    const first = String(url || "").trim().split(/[\s;,]+/)[0];
+    try {
+      const host = new URL(/^https?:/i.test(first) ? first : "https://" + first).hostname.toLowerCase().replace(/^www\./, "");
+      return /^[a-z0-9-]+(?:\.[a-z0-9-]+)*\.[a-z]{2,}$/.test(host) ? host : null;
+    } catch (e) { return null; }
   }
 
   function compactBrokers(csv) {

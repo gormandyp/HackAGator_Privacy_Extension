@@ -98,3 +98,15 @@ test("earlier breaches of the same site are kept (newest first), so all can be l
   assert.strictEqual(by["a.example"].name, "A2024");
   assert.deepStrictEqual(by["a.example"].earlier.map(b => b.name), ["A2019", "A2016"]);
 });
+
+// G14, Oct 25: 20 stored broker sites had junk tails like "acculeads.com;%20https". The registry's website field
+// sometimes holds two addresses ("acculeads.com; https://..."); the first one is the broker's site.
+test("a broker website field with two addresses keeps the first site, never a junk host", () => {
+  const csv = 'Data broker name:,DBA:,Data broker primary website:\n' +
+    'Acculeads Inc.,,acculeads.com; https://www.acculeads.com/privacy\n' +
+    'Two Sites LLC,,"https://www.first.example, https://second.example"\n' +
+    'Spaced Co,,  www.spaced.example/opt-out page \n' +
+    'No Site Co,,n/a\n';
+  const list = L.compactBrokers(csv);
+  assert.deepStrictEqual(list.map((b) => b.site), ["acculeads.com", "first.example", "spaced.example", null]);
+});
