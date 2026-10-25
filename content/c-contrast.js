@@ -40,6 +40,42 @@
     return bg;
   }
 
+  // Photos and videos (like a store's hero video) can't be read: images from other sites are off limits to
+  // page code. Sites put light text on dark imagery and dark text on light imagery, so the text laid over the
+  // photo is the hint: mostly light text means a dark photo. Buttons with their own solid background don't
+  // count. No text on it (a product shot): null, and the page color behind it decides.
+  const MEDIA = /^(IMG|VIDEO|CANVAS|PICTURE|IFRAME|EMBED|OBJECT)$/i;
+  const mediaHint = new WeakMap();
+  function photoGuess(media) {
+    if (mediaHint.has(media)) return mediaHint.get(media);
+    let guess = null;
+    try {
+      const box = media.getBoundingClientRect();
+      let node = media.parentElement;
+      for (let depth = 0; node && depth < 5 && !guess; depth++, node = node.parentElement) {
+        let light = 0, dark = 0, seen = 0;
+        for (const t of node.querySelectorAll("h1, h2, h3, h4, h5, h6, p, span, a, button, strong, em, li, div")) {
+          if (++seen > 300) break;
+          const text = [...(t.childNodes || [])].filter((n) => n.nodeType === 3).map((n) => n.textContent).join("").trim();
+          if (!text || ours(t)) continue;
+          const r = t.getBoundingClientRect();
+          if (!r.width || r.right < box.left || r.left > box.right || r.bottom < box.top || r.top > box.bottom) continue;
+          const cs = getComputedStyle(t);
+          const own = Ink.parseColor(cs.backgroundColor);
+          if (own && own.a > 0.5) continue;                 // a solid button: says nothing about the photo
+          const color = Ink.parseColor(cs.color);
+          if (!color || color.a < 0.5) continue;
+          const weight = Math.min(text.length, 40);
+          if (Ink.luminance(color) > 0.5) light += weight; else dark += weight;
+        }
+        if (light > dark) guess = DARK_GUESS;
+        else if (dark > light) guess = LIGHT_GUESS;
+      }
+    } catch (e) { guess = null; }
+    mediaHint.set(media, guess);
+    return guess;
+  }
+
   // What fills the window behind everything. Browsers paint the body's background across the whole window
   // when <html> has none, even below where a short page's content ends. With neither: white, or dark for
   // pages that ask for it.
@@ -62,6 +98,10 @@
     let acc = CLEAR;
     for (const el of els) {
       if (ours(el)) continue;
+      if (MEDIA.test(String(el.tagName || ""))) {
+        const guess = photoGuess(el);
+        if (guess) return Ink.over(acc, guess);
+      }
       acc = Ink.over(acc, layerOf(el));
       if (acc.a >= 0.99) return acc;
     }
