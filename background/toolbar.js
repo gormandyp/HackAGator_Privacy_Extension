@@ -59,7 +59,7 @@
     // The grade box asks for its site's grade: the same numbers the popup shows (never the sample data).
     if (msg && msg.type === "privac-site-grade" && sender && sender.tab) {
       PrivaCData.load().then((d) => {
-        const s = !d.sample && (d.sites || []).find((x) => x.domain === msg.domain);
+        const s = !d.sample && (d.sites || []).find((x) => x.domain === msg.domain && !x.example);
         reply(s ? { grade: s.grade, score: s.score, range: s.range } : null);
       }).catch(() => reply(null));
       return true;   // answers after loading

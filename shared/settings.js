@@ -13,6 +13,8 @@
                                                  see background/toolbar.js)
     tint:       "aurora" | "ocean" | "forest" | "sunset" | "rose" | "graphite"
                                                 (the color behind Liquid glass; aurora is the original wallpaper)
+    exampleData: false                          (adds example sites and 30 days of example totals for demos;
+                                                 shared/example-data.js. Real data is never changed)
   Outside the extension (opening the HTML file directly) settings live in localStorage so the look can be previewed.
 */
 (function () {
@@ -24,7 +26,8 @@
     toolbar: "panel",
     autoDecline: false,
     gradeChip: true,
-    tint: "aurora"
+    tint: "aurora",
+    exampleData: false
   };
   const APPEARANCES = ["system", "light", "dark"];
   const STYLES = ["glass", "clean"];
@@ -44,7 +47,8 @@
       toolbar: TOOLBARS.includes(s.toolbar) ? s.toolbar : DEFAULTS.toolbar,
       autoDecline: typeof s.autoDecline === "boolean" ? s.autoDecline : DEFAULTS.autoDecline,
       gradeChip: typeof s.gradeChip === "boolean" ? s.gradeChip : DEFAULTS.gradeChip,
-      tint: TINTS.includes(s.tint) ? s.tint : DEFAULTS.tint
+      tint: TINTS.includes(s.tint) ? s.tint : DEFAULTS.tint,
+      exampleData: typeof s.exampleData === "boolean" ? s.exampleData : DEFAULTS.exampleData
     };
   }
 

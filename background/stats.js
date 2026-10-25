@@ -37,7 +37,7 @@
         const data = await PrivaCData.load();
         if (!data || data.sample) return;
         const r = await chrome.storage.local.get("privacStats");
-        await chrome.storage.local.set({ privacStats: PrivaCStats.setSnapshot(r.privacStats, PrivaCStats.snapshot(data.sites)) });
+        await chrome.storage.local.set({ privacStats: PrivaCStats.setSnapshot(r.privacStats, PrivaCStats.snapshot(data.sites.filter((s) => !s.example))) });
       }).catch(e => console.warn("PrivaC: could not save today's numbers", e));
     }, 5000);
   }

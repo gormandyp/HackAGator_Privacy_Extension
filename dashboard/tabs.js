@@ -115,7 +115,11 @@
     }
     for (const sw of sheet.querySelectorAll("[data-setting-bool]")) {
       sw.checked = s[sw.dataset.settingBool];
-      sw.addEventListener("change", () => PrivaCSettings.save({ [sw.dataset.settingBool]: sw.checked }));
+      sw.addEventListener("change", async () => {
+        await PrivaCSettings.save({ [sw.dataset.settingBool]: sw.checked });
+        // Example data changes every tab: draw the dashboard again, with Settings still open.
+        if (sw.dataset.settingBool === "exampleData") { history.replaceState(null, "", location.pathname + "?settings" + location.hash); location.reload(); }
+      });
     }
   });
 

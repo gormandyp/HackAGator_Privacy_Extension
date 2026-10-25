@@ -22,7 +22,8 @@
 
   Whoever writes the background script only has to keep that object updated.
   Scores and grades are calculated HERE (computeScore) so every screen agrees.
-  If no real data exists yet, the UI shows SAMPLE_DATA with a "sample data" note.
+  If no real data exists yet, the UI shows SAMPLE_DATA with a "sample data" note. With Settings > "Show example
+  data" on, load() adds shared/example-data.js's sites (each marked example: true) and returns example: true.
 */
 (function () {
   // U.S. Commerce Department "foreign adversary" list, 15 CFR § 7.4.
@@ -274,20 +275,31 @@
   async function load() {
     if (hasChrome()) {
       try {
-        const res = await chrome.storage.local.get(["privacData", "privacLists"]);
-        if (res && res.privacData && res.privacData.sites && res.privacData.sites.length) {
+        const res = await chrome.storage.local.get(["privacData", "privacLists", "privacSettings"]);
+        const root = typeof window !== "undefined" ? window : self;
+        const real = res && res.privacData && res.privacData.sites && res.privacData.sites.length ? res.privacData : null;
+        // Settings > "Show example data" (shared/example-data.js): example sites are added to this in-memory copy,
+        // never saved. A site you really visited wins over an example one with the same name.
+        const example = !!(res && res.privacSettings && res.privacSettings.exampleData && root.PrivaCExample);
+        if (real || example) {
+          const data = example ? { sites: withExamples(real ? real.sites : [], root.PrivaCExample.sites()) } : real;
           // Add breach (HIBP) and data-broker (CA registry) facts from the downloaded public lists.
           const lists = res.privacLists || null;
-          const root = typeof window !== "undefined" ? window : self;
-          if (lists && root.PrivaCLists) root.PrivaCLists.annotate(res.privacData, lists, null);
-          annotateListed(res.privacData, await flaggedFile());
-          const out = enrich(res.privacData);
+          if (lists && root.PrivaCLists) root.PrivaCLists.annotate(data, lists, null);
+          annotateListed(data, await flaggedFile());
+          const out = enrich(data);
+          if (example) out.example = true;
           out.lists = lists ? { breachesAsOf: lists.hibp && lists.hibp.fetchedAt, brokersAsOf: lists.brokers && lists.brokers.fetchedAt } : null;
           return out;
         }
       } catch (e) { /* fall through to sample */ }
     }
     return enrich(SAMPLE_DATA);
+  }
+
+  function withExamples(realSites, examples) {
+    const seen = new Set(realSites.map((s) => s.domain));
+    return realSites.concat(examples.filter((s) => !seen.has(s.domain)));
   }
 
   // Section 1260H companies (shared/flagged-companies.json, hand-checked by Max). Marks trackers whose company is listed.

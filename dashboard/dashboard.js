@@ -12,6 +12,8 @@
 
   const data = await PrivaCData.load();
   if (data.sample) $("sample-note").hidden = false;
+  // Settings > "Show example data": say so on every tab, so nobody takes the example sites for real browsing.
+  if (data.example) Object.assign($("sample-note"), { hidden: false, textContent: "Example data", title: "Example sites are shown next to your own. Turn off in Settings > Your data." });
   const sites = [...data.sites].sort((a, b) => b.score - a.score);
 
   // ---- Sites: list on the left, the chosen site on the right ----

@@ -7,12 +7,12 @@ require("../shared/settings.js");
 const S = window.PrivaCSettings;
 
 test("defaults: follow the Mac, liquid glass, every pop-up on, policy reading on, rounded toolbar pop-up, auto-protect off, grade box on, original glass color", () => {
-  assert.deepStrictEqual(S.merge(null), { appearance: "system", style: "glass", popups: { cookie: true, acceptOnly: true, adversary: true, unsafe: true }, policyReader: true, toolbar: "panel", autoDecline: false, gradeChip: true, tint: "aurora" });
+  assert.deepStrictEqual(S.merge(null), { appearance: "system", style: "glass", popups: { cookie: true, acceptOnly: true, adversary: true, unsafe: true }, policyReader: true, toolbar: "panel", autoDecline: false, gradeChip: true, tint: "aurora", exampleData: false });
 });
 
 test("saved choices are kept; unknown or broken values fall back to defaults", () => {
   const s = S.merge({ appearance: "dark", style: "clean", popups: { adversary: false, cookie: "no", made_up: false }, policyReader: false, extra: 1 });
-  assert.deepStrictEqual(s, { appearance: "dark", style: "clean", popups: { cookie: true, acceptOnly: true, adversary: false, unsafe: true }, policyReader: false, toolbar: "panel", autoDecline: false, gradeChip: true, tint: "aurora" });
+  assert.deepStrictEqual(s, { appearance: "dark", style: "clean", popups: { cookie: true, acceptOnly: true, adversary: false, unsafe: true }, policyReader: false, toolbar: "panel", autoDecline: false, gradeChip: true, tint: "aurora", exampleData: false });
   assert.strictEqual(S.merge({ appearance: "purple", style: "neon" }).appearance, "system");
 });
 

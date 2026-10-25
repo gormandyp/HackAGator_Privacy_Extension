@@ -81,7 +81,7 @@
     // content/unsafe.js asks a few seconds after a page loads, once the grade has settled (same numbers as the popup).
     if (msg.type === "privac-site-unsafe") {
       Promise.all([ready, PrivaCData.load()]).then(([, d]) => {
-        const s = !d.sample && (d.sites || []).find((x) => x.domain === msg.domain);
+        const s = !d.sample && (d.sites || []).find((x) => x.domain === msg.domain && !x.example);
         const reasons = unsafeReasons(s);
         reply(reasons.length ? { grade: s.grade, reasons } : null);
       }).catch(() => reply(null));

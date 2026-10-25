@@ -207,7 +207,7 @@
   // Overview reads the same totals (its "This week" card), so share them once they're loaded.
   const ready = (async () => {
     const data = await PrivaCData.load();
-    stats = await loadStats(data.sample);
+    stats = await loadStats(data.sample || data.example);
     renderImpact();
     renderSafety();
     return stats;
