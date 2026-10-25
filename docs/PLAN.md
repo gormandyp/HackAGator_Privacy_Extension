@@ -2,6 +2,7 @@
 Owner areas: **core** (repo owner + Claude: background, data plumbing, merges), **data** (Josh), **ask-c** (Max), **ui** (Matthew), **demo** (Justin). One branch per person; merge to `main` when the step's check passes. Pull before every step. Spec: docs/SPEC.md.
 
 ## ⏩ Do next, before the Sun 11 AM freeze (in this order; `/next-step` should take these first)
+**In progress (2026-10-24 9:30 PM): items 1, 2 and 3 (R19i/g/h, R19k, R19b) are being done by Max's Claude on branch `askc-r19`; don't start them, start at item 4.**
 Added 2026-10-24 ~9:25 PM for Max (team ask-c/ui ideas from real-Gemma testing; details in R19 below and docs/IDEA.md):
 1. **R19i + R19g + R19h**: Ask C, done the general way: fuzzy name matching ("tik tok", "you tube") and cite-and-check on every Gemma
    answer, plus code-built "Is X safe?" answers. Fixes made-up claims like "Facebook has a history of data breaches".
