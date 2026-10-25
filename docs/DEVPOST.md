@@ -1,5 +1,5 @@
 # Devpost submission draft (paste into gatorhack2026.devpost.com; due Sun Oct 25 5:00 PM ET, aim for 4 PM)
-Checked against the code on main, 2026-10-25 (688b9cc). Before pasting, re-read docs/SPEC.md "Honesty rules" and change any number that has changed.
+Checked against the code on main, 2026-10-25 (c3036db). Before pasting, re-read docs/SPEC.md "Honesty rules" and change any number that has changed.
 
 **Prizes to select:** Best Use of Gemma (MLH; Devpost calls it "Best Use of Gemini", the UF prizes page says "Build with Gemma, Google's open model, free on the Gemini API or run locally"), Best Open Source Project (MLH; the repo is MIT licensed since 2026-10-24), Vobile Prize. The main awards need no selection. Twinly needs Twinly's own APIs, so skip it.
 
@@ -28,7 +28,7 @@ One website visit can quietly hand you to dozens of companies. Cookie banners ar
 - **Gemma 4 E2B runs inside Chrome** on the computer's graphics chip with Google's LiteRT-LM web runtime (WebGPU). On our MacBook Pro the first words of an answer appear in about 0.8 seconds (about 1.7 seconds on a Windows gaming laptop). Ollama with Gemma 4 E4B is the fallback. Nothing leaves the computer.
 - The grade is computed by code, not by the AI, so it is the same every time and every point can be traced to evidence. Gemma explains and reads; it never sets the score.
 - Questions with a factual answer (grades, "Is this site safe?", breaches, "Does this site sell my data?") are answered from PrivaC's own records by code, in a tenth of a second; Gemma explains everything else, from the same evidence.
-- 711 automated tests (Node's built-in test runner), plus live checks on real sites logged in docs/STATUS.md.
+- 714 automated tests (Node's built-in test runner), plus live checks on real sites logged in docs/STATUS.md.
 
 ## What's new (Fresh off the frontier)
 Each of these was first made public in the 12 months before the hackathon and does real work in PrivaC (dashboard > About lists dates, proof links and the files that use each one):

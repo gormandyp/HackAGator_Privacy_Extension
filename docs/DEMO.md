@@ -1,6 +1,6 @@
 # Demo and video plan (v2, 2026-10-25 overnight; presenters Matthew, Max, Justin; recorded on the repo owner's Mac)
 Video limit: **3 minutes**. Round 1 judges see only the Devpost page, this video and the repo; Monday's finals are live.
-Every site and answer below was checked in real Chrome on the ASUS G14 (Windows, Gemma 4 E2B in the browser, main dde8558, Oct 25), and the fixes made after that (main 3b915b8) were checked with the real Ask C code. Grades on the Mac will differ a little (different visits): rehearse once on the recording computer, and anything that fails twice gets cut.
+Every site and answer below was checked in real Chrome on the ASUS G14 (Windows, Gemma 4 E2B in the browser, main dde8558, Oct 25), and the fixes made after that (main c3036db) were checked with the real Ask C code, and with Gemma 4 E4B (Ollama) on the Mac. Grades on the Mac will differ a little (different visits): rehearse once on the recording computer, and anything that fails twice gets cut.
 
 ## Words used here
 - **Instant answer**: Ask C answers from PrivaC's own records in code, in about 0.1 s, with no AI. Safest on camera.
@@ -8,7 +8,8 @@ Every site and answer below was checked in real Chrome on the ASUS G14 (Windows,
 - **Tag**: the [Seen on your visit] / [HIBP] / [Government list] label after a fact, naming its source.
 
 ## Before recording (15 minutes)
-1. **Update**: GitHub Desktop → Fetch origin → Pull origin (main at 3b915b8 or newer). Then chrome://extensions → PrivaC → the **circular reload arrow**.
+1. **Update**: GitHub Desktop → Fetch origin → Pull origin (main at c3036db or newer). Then chrome://extensions → PrivaC → the **circular reload arrow**.
+   - **On the repo owner's Mac**, Pull origin stops with a conflict in shared/askc.js: the Mac's 2 local commits from Oct 24 are already on GitHub under other names. In Terminal, run `cd ~/Documents/GitHub/HackAGator_Privacy_Extension && git pull --rebase origin main` instead. It says "skipped previously applied commit" twice, then "Successfully rebased" (tested on a copy; nothing is lost).
    - **Never click Remove**: Remove deletes C's brain (2 GB). Reload keeps it, as long as PrivaC stays loaded from the same folder.
 2. **Settings** (gear, top right of the dashboard): Show the grade box **on**; Protect me automatically **off** (so C asks on camera); every pop-up switch on; Read privacy policies with Gemma **on**.
 3. **Brain**: the Ask C tab says "Gemma 4 E2B is running in your browser." Ask one question ("Who is ByteDance?") so the first, slowest load is done before recording.
@@ -45,20 +46,20 @@ Every site and answer below was checked in real Chrome on the ASUS G14 (Windows,
 | "Does wired.com sell my data?" | An honest "I don't know yet" (policy not read), the ad companies and California data brokers it loaded, and "it doesn't prove your data was sold" |
 | "Is Meta safe?" / "Is you tube safe?" | Owner names and typos work |
 | "Are you made with Gemma?" | Gemma 4 (Mar 31, 2026) inside Chrome with LiteRT-LM; nothing leaves the computer |
+| "How many data breaches happen without people knowing?" | Worked out from Have I Been Pwned's own list: half were added at least 4 months after the breach, over a third more than a year later (instant since the overnight Mac check) |
 | "Does my browsing leave my computer?" | C's privacy promise |
 | "Write me a poem" | A polite no: C sticks to privacy |
 
 **Gemma answers** (show at least one; it's the proof for Best Use of Gemma):
 | Ask | Why it's good |
 |---|---|
-| "Is any site I visited connected to China or Russia?" | On the G14 it named wired.com → ByteDance and tass.com → Yandex, with tags |
+| "Is any site I visited connected to China or Russia?" | On the G14 it named wired.com → ByteDance and tass.com → Yandex, with tags; the same on the Mac |
 | "Which data brokers have seen me?" (suggestion button) | Names the registered California data brokers seen on your visits ("Collective Roll" is the company Tracker Radar lists for stackadapt.com; the registry lists it as StackAdapt Inc.) |
-| "How many data breaches happen without people knowing?" | Worked out from Have I Been Pwned's own list (fixed overnight): half were added at least 4 months after the breach, over a third more than a year later |
-| "Who is ByteDance?" | China-based, its tracker reach; it no longer claims ByteDance is on the 1260H list (fixed overnight) |
-| "What did C do for me this week?" | Uses the C's impact numbers (fixed overnight) |
+| "Who is ByteDance?" | China-based, its tracker reach; it no longer claims ByteDance is on the 1260H list (fixed overnight, checked on the Mac) |
+| "What did C do for me this week?" | Uses the C's impact numbers (fixed overnight, checked on the Mac) |
 
 **Don't ask on camera** (known weak spots):
-- "What is wired.com collecting about me?": Gemma may treat a past breach as what the site collects.
+- "What is wired.com collecting about me?": Gemma used to give the past breach as what the site collects. Fixed, and right on the Mac (Gemma 4 E4B), but not yet seen with the in-browser brain.
 - "Check the ive been pwned list": repeats the previous answer.
 - A site you didn't open this week: an honest but flat "I don't know".
 - Long chains of follow-ups: only "why?" and "and <site>?" are built for it.
