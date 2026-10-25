@@ -458,3 +458,19 @@ test("a \"by continuing\" notice that also has a Reject button gets the decline 
   const strip = notice("By continuing to use our website, you agree to our use of cookies.");
   assert.deepStrictEqual(load(controls, { notices: [strip] }).kinds(), ["cookie"]);
 });
+
+// R19a, second look (Max, mcdonalds.com/us live, Oct 24 9:45 PM): the real strip is 835 characters long and has an
+// "Accept" button (section.tnc-banner-container, "Terms and Conditions Banner"). The 600-character limit for notices
+// skipped it, so C stayed silent. Real text, real button.
+const MCD = "Our Terms and Conditions have changed. Please take a moment to review the new McDonald's Terms and Conditions. These include updates to our Mobile Order & Pay experience (including web and guest ordering, cancellations, and refunds), MyMcDonald's Rewards program (including partner rewards, which may be subject to partner terms), stored value features like digital gift cards, and the dispute resolution and arbitration process. By continuing to use our website, you agree to the revised Terms & Conditions agreement. We are also updating our Privacy Statement to reflect how we may partner with select advertising partners to provide you with relevant advertising. You continue to have a right to opt out of the sharing of personal information for targeted advertising, which you can exercise in the McDonald's Privacy Rights Center.";
+test("McDonald's real strip (835 characters, with an Accept button): C warns once", () => {
+  assert.ok(MCD.length > 800 && MCD.length < 1000);
+  const strip = notice(MCD, ["McDonald's Terms and Conditions", "Privacy Statement", "McDonald's Privacy Rights Center"]);
+  // On the real page the Accept button isn't inside anything named like a cookie banner (closest() finds none),
+  // so the accept-only search doesn't see it: only the "by continuing" notice search can.
+  const page = load([control("Accept")], { notices: [strip] });
+  page.ctx.window.PrivaCCookieCheck();
+  assert.deepStrictEqual(page.kinds(), ["acceptOnly"]);
+  page.ctx.window.PrivaCCookieCheck();
+  assert.deepStrictEqual(page.kinds(), ["acceptOnly"], "once per page");
+});
