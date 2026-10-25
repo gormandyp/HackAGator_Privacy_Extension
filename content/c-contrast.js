@@ -141,6 +141,11 @@
     new MutationObserver(checkSoon).observe(host.shadowRoot, {
       childList: true, subtree: true, attributes: true, attributeFilter: ["src", "style", "class", "data-edge"]
     });
+    // A pop-up that slides in starts below the window, where there's nothing to look at yet: check again once it
+    // has arrived (the unsafe-site warning stayed navy on dark pages, cloud UI audit 2026-10-25).
+    if (typeof host.shadowRoot.addEventListener === "function") {
+      for (const n of ["animationend", "transitionend"]) host.shadowRoot.addEventListener(n, checkSoon);
+    }
     check(host);
   }
 

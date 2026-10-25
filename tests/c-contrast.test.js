@@ -212,3 +212,24 @@ test("the unsafe-site warning (content/unsafe.js, its own pop-up) gets white lim
   // Other things added to the page are ignored.
   pageObs.cb([{ addedNodes: [{ tagName: "DIV" }, { nodeType: 3 }] }]);
 });
+
+// Cloud UI audit, 2026-10-25: on a dark page the unsafe-site warning's C stayed navy. The warning slides up from below
+// the window, so when it was first checked C wasn't on screen yet, and nothing checked again once it arrived.
+test("the unsafe-site warning is checked again when its slide-in ends, so C turns white once he's on screen", () => {
+  const t = setup({ pageColor: "rgb(17, 24, 39)" });
+  const pageObs = t.observers.find((o) => o.target === t.ctx.document.documentElement);
+  const img = { tagName: "IMG", src: URL("c-poses/mascot-alarmed-yield-wave.svg"), getAttribute() { return this.src; }, setAttribute(n, v) { if (n === "src") this.src = v; } };
+  let top = 900;   // below the 800-pixel window while it slides in
+  const c = {
+    getBoundingClientRect: () => ({ left: 900, top, right: 1020, bottom: top + 120, width: 120, height: 120 }),
+    querySelector: (s) => (s === "img" ? img : null), querySelectorAll: () => []
+  };
+  const events = {};
+  const root = { querySelector: (s) => (s === ".c" ? c : null), addEventListener: (n, f) => { events[n] = f; } };
+  pageObs.cb([{ addedNodes: [{ tagName: "PRIVAC-UNSAFE", isConnected: true, shadowRoot: root }] }]);
+  assert.strictEqual(img.src, URL("c-poses/mascot-alarmed-yield-wave.svg"), "off screen: nothing to look at yet");
+  top = 560;
+  assert.ok(events.animationend, "listens for the slide-in to end");
+  events.animationend();
+  assert.strictEqual(img.src, URL("c-poses/dark/mascot-alarmed-yield-wave.svg"));
+});
