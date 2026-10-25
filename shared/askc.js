@@ -357,7 +357,13 @@ Steps the person can take (no tag needed):
     if (!hits.length && FOLLOW_UP.test(q) && last && !AND_ABOUT.test(q)) hits = breachSites(last.question, lists);   // "yes, its breaches"
     // "Check the ive been pwned list" names nothing: it means the last question's site or company (PLAN R19g).
     const namesNothing = (x) => !breachSites(x, lists).length && !/[a-z0-9-]+\.[a-z]{2,}/i.test(x) && !namedSites(sites || [], x).length && !namedCompanies(x, atlas).length;
-    if (!hits.length && last && namesNothing(q) && !MY_SITES.test(q)) { hits = breachSites(last.question, lists); if (!hits.length) q = last.question; }
+    // "what about quest diagnostics?" names something new, even when PrivaC doesn't know the name: it got the last
+    // question's site (LinkedIn) back (Max, real Gemma, 2026-10-25). Only "what about it/them/that?" means the last one.
+    const asksAbout = AND_ABOUT.test(q) ? q.replace(AND_ABOUT, "").replace(/[?.!,\s]+$/, "").trim() : "";
+    const newThing = asksAbout && !FOLLOW_UP.test(asksAbout) && /[a-z]{3,}/i.test(asksAbout);
+    const newName = newThing && asksAbout.split(/\s+/).length <= 5 && !/\b(?:how|why|what|when|where|who|which|should|can|could|do|does|did|is|are|was|were|my|me|mine|i|you|your|we|our)\b/i.test(asksAbout)
+      ? (asksAbout === asksAbout.toLowerCase() ? asksAbout.replace(/\b[a-z]/g, (c) => c.toUpperCase()) : asksAbout) : "";
+    if (!hits.length && last && namesNothing(q) && !MY_SITES.test(q) && !newThing) { hits = breachSites(last.question, lists); if (!hits.length) q = last.question; }
     if (hits.length) {
       const parts = hits.map(([d, b]) => `${breachHead(d, b)} [HIBP]:\n` +
         breachList(b).map((x) => `- ${x.when}, ${x.title}: ${x.count}${x.kinds ? `; exposed ${x.kinds}` : ""}.`).join("\n"));
@@ -372,7 +378,7 @@ Steps the person can take (no tag needed):
     // 2026-10-24: six wordings went three different ways, one answered about a tracker company named VISIT).
     if (!domain && !visited && !company && MY_SITES.test(q)) return yourBreaches(lists, sites || [], q, now || Date.now());
     // No breach on record. Say so for anything PrivaC knows: a web address, a site you visited, or a tracker company.
-    const subject = domain ? domain.replace(/^www\./, "") : visited ? visited.domain : company ? companyLabel(q, company) : null;
+    const subject = domain ? domain.replace(/^www\./, "") : visited ? visited.domain : company ? companyLabel(q, company) : newName || null;
     if (!subject) return null;   // nothing PrivaC knows: Gemma answers from the rest of the evidence
     const at = String(lists.hibp.fetchedAt || "").slice(0, 10).split("-");
     const updated = at.length === 3 ? ` (updated ${MONTHS[+at[1] - 1]} ${+at[2]}, ${at[0]})` : "";
