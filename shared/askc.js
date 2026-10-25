@@ -1426,7 +1426,28 @@ Steps the person can take (no tag needed):
   const TO_C = /^\s*(?:(?:are|were|do|did|have|will|would|can|could)\s+you\b(?!\s+(?:please\s+)?(?:tell|explain|show|list|give|find|check|look|compare|summari[sz]e|describe|define|say|name|recommend|suggest|think|know|believe|reckon|mean)\b)|why\s+(?:are|were|do|did|have|would|can't|cannot|won't|don't|didn't)\s+you\b|what\s+(?:are|were|have|did)\s+you\s+(?:doing|done|found|blocked|declined|stopped|caught|seen|saved)\b)/i;
   const toC = (q) => TO_C.test(spelledOut(String(q || "")));
   const TO_C_NOTE = `\n\nFor this question: the person is talking to you, C. In their question, "you" and "your" mean you (C, PrivaC), not them. Answer about yourself as "I", and say "you" only for the person.`;
+  // The Grades tab's "Explain this grading rule ..." buttons (dashboard.js) got instant record answers about your sites
+  // (G14, main 85007e5): the screen-recording list, "15 CFR 7.4" read as a site, the breach list. Each rule is explained
+  // from shared/data.js's RULES, the same words as the scoring, with a made-up example.
+  const RULE_Q = /^\s*explain this grading rule\b[^"]*"\s*([^"]+)/i;
+  const RULE_EXAMPLES = [
+    [/^tracking companies/i, "trackers", "For example, a news site that loads trackers from Google, Facebook and Criteo on most of your visits gets 15 points; one that loads 8 or more companies gets the full 40."],
+    [/^advertising/i, "ads", "For example, if two of the counted companies are Criteo (advertising) and Hotjar (screen recording), the site gets 10 more points."],
+    [/^cookie choice/i, "cookies", "For example, clicking \"Accept all\" on a site's cookie banner adds 10 points; letting C decline the extras, with the site's own consent record confirming it, makes it 0."],
+    [/^listed country/i, "flag", "For example, a site that loads a tracker from Baidu, a company based in China that is also on the 1260H list, gets 15 points, and a second such company adds nothing more. It means the company could collect data, not that your data went to a government."],
+    [/^privacy policy/i, "policy", "For example, a policy that says \"we sell personal information\" adds 15 points, and one that says it shares your data with advertising partners adds 8."],
+    [/^site'?s data breaches/i, "breach", "For example, a site whose breach was added to Have I Been Pwned 6 months ago gets 15 points; one whose only breach was 8 years ago and smaller than 100 million accounts gets 0."]
+  ];
+  function ruleAnswer(asked) {
+    const m = asked.match(RULE_Q);
+    const D = (typeof window !== "undefined" ? window : self).PrivaCData;
+    const hit = m && D && D.RULES && RULE_EXAMPLES.find(([re]) => re.test(m[1].trim()));
+    if (!hit) return null;
+    return `${D.RULES[hit[1]]}.\n\n${hit[2]}\n\nEach site's own points are under "How this grade was calculated" on the Sites tab.`;
+  }
   function cannedAnswer(asked) {
+    const rule = ruleAnswer(asked);
+    if (rule) return rule;
     for (const q of [asked, asked.replace(CALLING_C, "$1"), spelledOut(asked), spelledOut(asked).replace(CALLING_C, "$1")]) {
       if (GREETING.test(q)) return GREETING_ANSWER;
       if (THANKS.test(q)) return THANKS_ANSWER;

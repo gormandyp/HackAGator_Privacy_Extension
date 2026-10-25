@@ -199,6 +199,12 @@ Tick each one here when done. **All 8 done (checked 2026-10-25 overnight).**
     "Does nytimes share my data?" ("You haven't checked the privacy policy yet... a data breach"): nytimes.com's policy had been read,
     and a read policy with an answer fell through. Now C says when PrivaC read it, what it says, and that it's already in the grade.
     Check: tests/askc-policy-why.test.js; backtest of 184 other questions unchanged.
+  - [x] **s. Grades tab's "Explain this grading rule" buttons** **Done 2026-10-25.** The G14 (main 85007e5) found three of the six
+    got instant answers about your records instead of the rule: the screen-recording site list, "15 CFR 7.4" read as a site, and
+    the breach list. Each rule is now explained by code from shared/data.js's RULES (the scoring's own words) with a made-up
+    example, before any record answer. Check: tests/askc-grade-rules.test.js (builds the questions from dashboard.html's table);
+    Chromium with PrivaC loaded: all 6 buttons give their rule (before: the screen-recording list on one); backtest of 184 other
+    questions unchanged.
   - Also waiting to merge: `max/icon-tabs` (tab icons + names).
 
 ## Sun (freeze 11 AM)
