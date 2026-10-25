@@ -107,16 +107,14 @@
   const RULE_TILES = [["radar", "blue"], ["eye", "purple"], ["cookie", "orange"], ["globe", "red"], ["news", "indigo"], ["breach", "pink"]];
   [...document.querySelectorAll("#rubric tbody tr")].forEach((tr, i) => {
     const [g, c] = RULE_TILES[i] || ["list", "gray"];
-    tr.cells[0].innerHTML = `<div class="rule">${I.tile(g, c, "sm")}<span>${tr.cells[0].innerHTML}</span></div>`;
+    tr.classList.add(`tile-${c}`);   // the colored bar on the left matches the icon
+    tr.cells[0].innerHTML = `<div class="rule">${I.tile(g, c, "lg")}<div class="rule-body">${tr.cells[0].innerHTML}</div></div>`;
   });
   const EVIDENCE_TILES = [["eye", "blue"], ["news", "indigo"], ["server", "gray"]];
   document.querySelectorAll(".evidence > div h3").forEach((h, i) => h.insertAdjacentHTML("afterbegin", I.tile(...(EVIDENCE_TILES[i] || ["list", "gray"]), "sm")));
   for (const tr of document.querySelectorAll("#rubric tbody tr")) {
     const rule = tr.cells[0].textContent.trim();
-    const td = document.createElement("td");
-    td.className = "ask-cell";
-    td.innerHTML = ask(`Explain this grading rule in plain words, with an example: "${rule}"`, "this rule");
-    tr.appendChild(td);
+    tr.cells[1].insertAdjacentHTML("beforeend", `<span class="ask-cell">${ask(`Explain this grading rule in plain words, with an example: "${rule}"`, "this rule")}</span>`);
   }
 
   // ---- Clear data (Settings) ----

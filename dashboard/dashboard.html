@@ -120,21 +120,22 @@
 
     <!-- How grades work -->
     <section class="panel" id="panel-grades" role="tabpanel" aria-labelledby="tab-grades" hidden>
-      <div class="panel-head">
+      <div class="panel-head grades-head">
         <h1>How the grade works</h1>
-        <p>The exposure score runs from 0 (barely exposed) to 100 (heavily exposed). It's our team's rubric, not a probability that your data will be sold or breached. Only things PrivaC saw or found on record add points; anything unknown adds nothing.</p>
+        <p class="lead">0&ndash;100 exposure score. Lower means less exposure.</p>
+        <p>Only what PrivaC observes or finds on record adds points; unknowns add 0. This is our rating, not the chance your data will be sold or breached.</p>
       </div>
       <div class="rubric">
         <div class="card glass">
           <table id="rubric">
-            <thead><tr><th>What we check</th><th>Points</th><th><span class="visually-hidden">Ask C</span></th></tr></thead>
+            <thead><tr><th>What goes into your score</th><th>Points</th></tr></thead>
             <tbody>
-            <tr><td>Each outside company with trackers on the site, counted once however many web addresses it uses. Over several visits, only companies seen on at least half of them count, and companies that loaded only after you clicked Accept are listed instead (accepting costs its 10 cookie points)</td><td>5 each, up to 40</td></tr>
-            <tr><td>Each of those companies used for advertising, data brokering or screen recording</td><td>5 each, up to 20</td></tr>
-            <tr><td>Cookies: accepted all, banner had no Reject button, or no banner while the site tracks you / declined, or no banner and no tracking</td><td>10 / 0</td></tr>
-            <tr><td>Any company based in a listed foreign-adversary country or on the Pentagon's 1260H list, a site whose own web address ends in that country's code (.cn, .ru, .ir ...), a state-run news site of one of those countries (State Media Monitor), or a site whose own server address is registered there (internet registries); counted once. Unknown outside servers with those endings or addresses are shown, 0 points</td><td>15</td></tr>
-            <tr><td>Privacy policy: sells / shares / neither / not checked yet, or read but it doesn't say</td><td>15 / 8 / 0 / 0</td></tr>
-            <tr><td>The site's own data breaches (Have I Been Pwned), all listed, worst one counts: reported in the last 12 months / in the last 5 years or 100 million+ accounts / older</td><td>15 / 5 / 0</td></tr>
+            <tr><td><b class="rule-title">Tracking companies</b><p>Each outside tracking company counts once, across all its web addresses, and must appear on at least half of your visits. Companies seen only after you accept cookies are listed separately.</p></td><td><b>5 each</b><small>Up to 40</small></td></tr>
+            <tr><td><b class="rule-title">Advertising, data brokering &amp; screen recording</b><p>Add points for each counted tracking company used for any of these.</p></td><td><b>5 each</b><small>Up to 20</small></td></tr>
+            <tr><td><b class="rule-title">Cookie choice</b><p><b>10:</b> accepted all, no Reject button, or tracking without a banner. <b>0:</b> declined, or no banner and no tracking.</p></td><td><b>10 or 0</b></td></tr>
+            <tr><td><b class="rule-title">Listed country or company ties</b><p>Added once if any apply (unknown outside servers are shown, 0 points):</p><ul><li>A company based in a listed foreign-adversary country (15 CFR 7.4) or on the Pentagon's 1260H list</li><li>The site's domain ending or its own server is in one of those countries</li><li>The site is state-run news from one of those countries</li></ul></td><td><b>15</b><small>Counted once</small></td></tr>
+            <tr><td><b class="rule-title">Privacy policy</b><p><b>15:</b> says it sells data. <b>8:</b> shares with partners. <b>0:</b> neither, not checked, or unclear.</p></td><td><b>15 / 8 / 0</b></td></tr>
+            <tr><td><b class="rule-title">Site's data breaches</b><p><b>15:</b> reported within 12 months. <b>5:</b> within 5 years, or 100 million+ accounts. <b>0:</b> older, smaller ones. All are listed; only the worst counts. Source: Have I Been Pwned.</p></td><td><b>15 / 5 / 0</b></td></tr>
           </tbody>
           </table>
         </div>

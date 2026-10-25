@@ -431,18 +431,34 @@ button.fact-title:hover { text-decoration-color: var(--hair-strong); }
 .ask-form .btn:disabled { opacity: .45; cursor: wait; }
 
 /* ============ Grades ============ */
-.rubric { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr); gap: 14px; align-items: start; }
+.grades-head .lead { font-size: 15px; font-weight: 700; color: var(--text); margin: 2px 0 2px; }
+.grades-head p:not(.lead) { line-height: 1.4; max-width: none; margin-top: 0; }
+.rubric { display: grid; grid-template-columns: minmax(0, 2.4fr) minmax(0, 1fr); gap: 14px; align-items: start; }
 .rubric .card { padding: 0; overflow: hidden; }
 .rubric table { width: 100%; border-collapse: collapse; font-size: 13px; }
-.rubric th, .rubric td { text-align: left; padding: 10px 18px; vertical-align: top; }
-.rubric thead th { font-size: 12px; font-weight: 600; color: var(--text-2); border-bottom: 1px solid var(--hair); }
+.rubric th, .rubric td { text-align: left; vertical-align: top; }
+.rubric thead th { font-size: 12px; font-weight: 600; color: var(--text-2); padding: 9px 16px; border-bottom: 1px solid var(--hair); }
+.rubric thead th:last-child { width: 150px; }
 .rubric tbody tr + tr { border-top: 1px solid var(--hair); }
-.rubric td:nth-child(2) { white-space: nowrap; font-weight: 600; font-variant-numeric: tabular-nums; }
-.grades-key { display: grid; gap: 2px; padding: 8px; }
-.grades-key .k { display: grid; grid-template-columns: 26px 1fr auto; gap: 10px; align-items: center; padding: 8px 10px; border-radius: 10px; font-size: 13px; }
-.grades-key .k + .k { border-top: 1px solid var(--hair); border-radius: 0; }
-.grades-key .k b { font-family: var(--font-display); font-weight: 700; font-size: 16px; color: var(--g); }
-.grades-key .k span:last-child { color: var(--text-3); font-variant-numeric: tabular-nums; }
+.rubric tbody td { padding: 9px 16px; }
+.rubric tbody td:first-child { box-shadow: inset 3px 0 0 var(--tile, var(--t-gray)); }
+.rubric .rule { display: flex; gap: 11px; align-items: flex-start; }
+.rubric .rule .icon-tile { flex: none; width: 30px; height: 30px; border-radius: 9px; margin-top: 1px; }
+.rubric .rule .icon-tile svg { width: 17px; height: 17px; }
+.rubric .rule-title { display: block; font-size: 13.5px; font-weight: 700; color: var(--text); margin-bottom: 1px; }
+.rubric .rule-body p, .rubric .rule-body li { margin: 0; color: var(--text-2); line-height: 1.38; }
+.rubric .rule-body p b { color: var(--text); font-weight: 650; }
+.rubric .rule-body ul { margin: 1px 0; padding-left: 16px; }
+.rubric tbody td:last-child b { display: block; font-family: var(--font-display); font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; color: var(--text); }
+.rubric tbody td:last-child small { display: block; margin-top: 1px; font-size: 12px; color: var(--text-2); }
+.rubric tbody td:last-child { position: relative; padding-right: 44px; }
+.rubric .ask-cell { position: absolute; top: 7px; right: 10px; width: auto; }
+.grades-key { display: grid; gap: 0; padding: 4px 6px; }
+.grades-key .k { display: grid; grid-template-columns: 28px 1fr auto; gap: 10px; align-items: center; padding: 10px 12px; font-size: 13.5px; }
+.grades-key .k + .k { border-top: 1px solid var(--hair); }
+.grades-key .k b { font-family: var(--font-display); font-weight: 800; font-size: 21px; line-height: 1; color: var(--g); }
+.grades-key .k span:nth-child(2) { font-weight: 550; color: var(--text); }
+.grades-key .k span:last-child { color: var(--text-2); font-variant-numeric: tabular-nums; }
 .how-calc { margin-top: 14px; padding: 16px 18px; }
 .how-calc h2 { font-size: 15px; font-weight: 650; margin: 0; }
 .how-calc ol { margin: 10px 0 0; padding-left: 22px; display: grid; gap: 6px; font-size: 13px; line-height: 1.45; color: var(--text-2); }
