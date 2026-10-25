@@ -55,6 +55,20 @@ test("policy says it doesn't sell but not whether it shares: 0 now, up to 8", ()
   assert.deepStrictEqual(r.unknowns, ["the privacy policy doesn't say whether it shares"]);
 });
 
+// Docs thread, 2026-10-25: a policy that says it doesn't sell but never mentions sharing was labelled "doesn't say whether
+// it sells or shares". The label now says what the policy does say, and only the open question is left open.
+test("policy says it doesn't sell, silent on sharing: the label says so", () => {
+  const r = computeScore({ trackers: [], cookieChoice: "none", policy: { sells: false, shares: null, source: "https://x.example/privacy" } });
+  assert.strictEqual(r.parts.find((p) => p.kind === "disclosed").label, "Policy says it doesn't sell personal information, but doesn't say whether it shares");
+});
+
+test("policy says it doesn't share, silent on selling: the label says so, and only selling is unknown", () => {
+  const r = computeScore({ trackers: [], cookieChoice: "none", policy: { sells: null, shares: false, source: "https://x.example/privacy" } });
+  assert.strictEqual(r.parts.find((p) => p.kind === "disclosed").label, "Policy says it doesn't share information with partners, but doesn't say whether it sells");
+  assert.deepStrictEqual(r.unknowns, ["the privacy policy doesn't say whether it sells"]);
+  assert.deepStrictEqual(r.range, { min: 0, max: 15 });
+});
+
 test("policy says it sells: resolved, whatever it says about sharing", () => {
   const r = computeScore({ trackers: [], cookieChoice: "none", policy: { sells: true, shares: null, source: "https://x.example/privacy" } });
   assert.strictEqual(r.score, 15);
