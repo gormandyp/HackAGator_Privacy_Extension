@@ -135,3 +135,11 @@ test("asking about a company shows where it followed you, not only its own sites
   const detailed = (ctx.match(/^- [^:\n]+, visited/gm) || []).map((l) => l.slice(2, l.indexOf(",")));
   assert.ok(followed.every((s) => detailed.includes(s.domain)), `full details: ${detailed.join(", ")}`);
 });
+
+test("the breach summary uses Have I Been Pwned's readable title, not its id", () => {
+  const sites = [{ ...site(96), domain: "facebook.com", trackers: [],
+    breach: { name: "FacebookMarketplace", title: "Facebook Marketplace", breachDate: "2023-10-01", addedDate: "2024-02-01", pwnCount: 2e5, dataClasses: ["Email addresses"] } }];
+  const ctx = buildContext({ sites }, "2026-10-25", [], null, "Did any site I visited get hacked?");
+  assert.match(ctx, /facebook\.com \(Facebook Marketplace, 2023/);
+  assert.doesNotMatch(ctx, /FacebookMarketplace/);
+});

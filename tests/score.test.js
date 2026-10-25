@@ -104,3 +104,17 @@ test("a site owned by a company in a listed country gets the same single flag", 
   const both = computeScore({ trackers: [tracker("Analytics", "RU")], owner: { company: "Yandex", country: "RU" }, cookieChoice: "declined", policy: {} });
   assert.strictEqual(both.score, 5 + 15);
 });
+
+// G14, Oct 25: "Is FaceBook safe?" showed "(FacebookMarketplace, 2023)". Have I Been Pwned's Name is an id with no
+// spaces; its Title is the name people read ("Facebook Marketplace"). Every breach label uses the Title when there is one.
+test("breach labels use Have I Been Pwned's readable title, not its id", () => {
+  const breach = { name: "FacebookMarketplace", title: "Facebook Marketplace", breachDate: "2023-10-01", addedDate: "2024-02-01", pwnCount: 200000,
+    earlier: [{ name: "Facebook", title: "Facebook", breachDate: "2019-08-01", addedDate: "2021-04-04", pwnCount: 509458528 },
+      { name: "OldSiteNoTitle", breachDate: "2012-01-01", addedDate: "2013-01-01", pwnCount: 10 }] };
+  const r = computeScore({ trackers: [], breach }, Date.parse("2026-10-25"));
+  const label = r.parts.at(-1).label;
+  assert.match(label, /\(Facebook Marketplace, 2023\)/);
+  assert.match(label, /Facebook \(2019\)/);
+  assert.match(label, /OldSiteNoTitle \(2012\)/, "no title: the name is used");
+  assert.doesNotMatch(label, /FacebookMarketplace/);
+});

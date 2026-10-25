@@ -227,7 +227,7 @@
       const scored = all.map(x => ({ x, ...breachPoints(x, now) })).sort((p, q) => q.points - p.points);
       const top = scored[0];
       const others = all.filter(x => x !== top.x).sort((p, q) => (yearOf(p) < yearOf(q) ? 1 : -1));
-      const extra = others.length ? `; ${others.length} ${others.length === 1 ? "other breach" : "earlier breaches"} on record: ${others.map(x => `${x.name} (${yearOf(x)})`).join(", ")}` : "";
+      const extra = others.length ? `; ${others.length} ${others.length === 1 ? "other breach" : "earlier breaches"} on record: ${others.map(x => `${titleOf(x)} (${yearOf(x)})`).join(", ")}` : "";
       parts.push({ label: top.label + extra, points: top.points, kind: "breach", rule: RULES.breach });
     } else {
       parts.push({ label: "No breach on record in Have I Been Pwned", points: 0, kind: "breach", rule: RULES.breach });
@@ -247,13 +247,14 @@
 
   const YEAR_MS = 365.25 * 86400000;
   function yearOf(b) { return String(b.breachDate || b.addedDate).slice(0, 4); }
+  function titleOf(b) { return b.title || b.name; }   // HIBP's Title ("Facebook Marketplace"), not its id ("FacebookMarketplace")
   function breachPoints(b, now) {
     const added = Date.parse(b.addedDate || b.breachDate), happened = Date.parse(b.breachDate || b.addedDate);
     const millions = b.pwnCount ? Math.floor(b.pwnCount / 1e6) : 0;
-    if (now - added < YEAR_MS) return { points: 15, label: `Data breach reported in the last year (${b.name}, ${yearOf(b)})` };
-    if (now - happened < 5 * YEAR_MS) return { points: 5, label: `Data breach in the last 5 years (${b.name}, ${yearOf(b)})` };
-    if (millions >= 100) return { points: 5, label: `Major past data breach (${b.name}, ${yearOf(b)}, ${millions} million accounts)` };
-    return { points: 0, label: `Past data breach on record (${b.name}, ${yearOf(b)}): older than 5 years, no points` };
+    if (now - added < YEAR_MS) return { points: 15, label: `Data breach reported in the last year (${titleOf(b)}, ${yearOf(b)})` };
+    if (now - happened < 5 * YEAR_MS) return { points: 5, label: `Data breach in the last 5 years (${titleOf(b)}, ${yearOf(b)})` };
+    if (millions >= 100) return { points: 5, label: `Major past data breach (${titleOf(b)}, ${yearOf(b)}, ${millions} million accounts)` };
+    return { points: 0, label: `Past data breach on record (${titleOf(b)}, ${yearOf(b)}): older than 5 years, no points` };
   }
 
   function gradeFor(score) {

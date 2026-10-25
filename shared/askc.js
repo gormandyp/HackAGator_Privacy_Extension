@@ -824,7 +824,7 @@ Steps the person can take (no tag needed):
       if (why.size) { const w = [...why.values()]; flagged.push(`${s.domain}: ${w.slice(0, 3).join(", ")}${w.length > 3 ? ` and ${w.length - 3} more` : ""}`); }
       if (s.breach) {
         const b = s.breach, kinds = (b.dataClasses || []).slice(0, 3).join(", ").toLowerCase();
-        breached.push(`${s.domain} (${b.name}, ${yearOf(b)}${b.pwnCount ? `, ${fmtCount(b.pwnCount)} accounts` : ""}${kinds ? `: ${kinds}` : ""})`);
+        breached.push(`${s.domain} (${b.title || b.name}, ${yearOf(b)}${b.pwnCount ? `, ${fmtCount(b.pwnCount)} accounts` : ""}${kinds ? `: ${kinds}` : ""})`);
       }
       const p = s.policy || {};
       if (p.sells === true) sells.push(s.domain);

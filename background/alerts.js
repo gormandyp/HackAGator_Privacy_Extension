@@ -71,7 +71,7 @@
     if (companies.length) out.push(`It loaded ${companies.join(" and ")}.`);
     const b = site.breach;
     if (b && now - Date.parse(b.addedDate || b.breachDate) < YEAR_MS) {
-      out.push(`Have I Been Pwned lists a data breach of this site reported in the last year (${b.name}, ${String(b.breachDate || b.addedDate).slice(0, 4)}).`);
+      out.push(`Have I Been Pwned lists a data breach of this site reported in the last year (${b.title || b.name}, ${String(b.breachDate || b.addedDate).slice(0, 4)}).`);
     }
     return out;
   }

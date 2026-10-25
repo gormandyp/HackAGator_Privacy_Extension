@@ -118,3 +118,9 @@ test("\"Clear my PrivaC data\" also forgets which sites were warned, and PRIVACY
   assert.match(privacy, /unsafe-site warning already appeared today/i);
   assert.match(privacy, /Settings › Unsafe-site warnings/);
 });
+
+test("the breach reason uses Have I Been Pwned's readable title (\"Facebook Marketplace\", not \"FacebookMarketplace\")", () => {
+  const { A } = background();
+  const r = A.unsafeReasons(site({ breach: { name: "FlightDealsApp", title: "FlightDeals App", breachDate: "2026-03-02", addedDate: "2026-04-10" } }), NOW);
+  assert.deepStrictEqual(Array.from(r), ["Have I Been Pwned lists a data breach of this site reported in the last year (FlightDeals App, 2026)."]);
+});
