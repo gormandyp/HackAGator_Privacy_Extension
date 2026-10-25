@@ -4,14 +4,14 @@ Owner areas: **core** (repo owner + Claude: background, data plumbing, merges), 
 ## ⏩ Do next, before the Sun 11 AM freeze (in this order; `/next-step` should take these first)
 **Items 1-3 done (2026-10-24 ~10:30 PM, Max's Claude): R19i/g/h and R19k are on branch `askc-r19` (653 tests pass, merges cleanly with main): merge it, then ask the R19g/h check questions on the Mac. R19b was already done on main by the repo owner's Claude. Start at item 4.**
 Added 2026-10-24 ~9:25 PM for Max (team ask-c/ui ideas from real-Gemma testing; details in R19 below and docs/IDEA.md):
-1. **R19i + R19g + R19h**: Ask C, done the general way: fuzzy name matching ("tik tok", "you tube") and cite-and-check on every Gemma
+1. [x] **R19i + R19g + R19h** (branch `askc-r19`, waiting for merge): Ask C, done the general way: fuzzy name matching ("tik tok", "you tube") and cite-and-check on every Gemma
    answer, plus code-built "Is X safe?" answers. Fixes made-up claims like "Facebook has a history of data breaches".
-2. **R19k**: Ask C sees the same tracker purposes as the dashboard (it said "no record" of the malware tracker the dashboard shows).
-3. **R19b**: Ask C answers stop shrinking when they finish (clean the text while it streams).
-4. **R19a**: McDonald's-type "by continuing you agree" notices get C's "Beware!".
-5. **R19c**: C's face instead of the plain "C" icon.
+2. [x] **R19k** (branch `askc-r19`, waiting for merge): Ask C sees the same tracker purposes as the dashboard (it said "no record" of the malware tracker the dashboard shows).
+3. [x] **R19b** (done on main): Ask C answers stop shrinking when they finish (clean the text while it streams).
+4. [x] **R19a** (done on main): McDonald's-type "by continuing you agree" notices get C's "Beware!".
+5. [x] **R19c** (done on main): C's face instead of the plain "C" icon.
 6. Merge branch `max/icon-tabs` (dashboard tabs with icons + names; merges cleanly).
-7. **R19d + R19e** (home page declutter, bigger card titles): renderings for Max or the repo owner first, not straight to main.
+7. [x] **R19d + R19e** (done on main) (home page declutter, bigger card titles): renderings for Max or the repo owner first, not straight to main.
 Tick each one here when done.
 
 ## Done (Fri night) — what changed from plan v2
@@ -65,7 +65,7 @@ Tick each one here when done.
   - [x] **d. Declutter the home page** (Max): 2-3 rendered options first, reviewed by Preston or Max before main. **Done 2026-10-25 (repo owner picked rendering A):** "Cookies your sites kept" moved to the Safety tab (it repeated This week's count), Ask C buttons on rows hidden until you point at the row (still shown for the keyboard and touch screens), "Who followed you" starts with 5 companies and 6 sites, two long subtitles cut (tests/overview-declutter.test.js).
   - [x] **e. Card titles more prominent** (Max, done 2026-10-24: `.card h2` 17.5 px bold, tests/card-headers.test.js): test users weren't sure what each box was): larger, bolder "Worth knowing", "This week" etc.; render with d.
   - [ ] **f. Terms of service** (Max, IDEA "URGENT"): this is R7, still stretch. Say so in the Devpost "what's next".
-  - [ ] **g. "tik tok" breach questions (Max, 2026-10-24 9 PM, real Gemma; must be done before the Sunday 11 AM freeze).** On main `bb99bfc`:
+  - [x] **g. "tik tok" breach questions** **Done 2026-10-24 ~10:30 PM on branch `askc-r19` (Max's Claude, via R19i's name fixer): "tik tok", "you tube", "face book", "what's app", "linkdin" are recognised; answers say "TikTok (owned by ByteDance)"; "Check the ive been pwned list" keeps the company; no-breach answers give password tips only.** ** (Max, 2026-10-24 9 PM, real Gemma; must be done before the Sunday 11 AM freeze).** On main `bb99bfc`:
     "Has TikTok had any data breaches recently?" -> breach-list answer (correct), but "Has tik tok had any data breaches recently?" -> Gemma
     (no list check, no Have I Been Pwned chip, "I do not have information about specific data breaches"), and the follow-up
     "Check the ive been pwned list" -> Gemma again, with a breach claim tagged [Seen on your visit] and the after-a-breach steps.
@@ -79,7 +79,7 @@ Tick each one here when done.
     4. Breach answers with no breach on record leave out the after-a-breach steps (give "use a different password for each site and
        two-step sign-in" only).
     Check: those 3 questions in a row give list answers with the Have I Been Pwned chip; `node --test` passes; then ask them on the Mac.
-  - [ ] **h. "Is X safe?" answered from PrivaC's records (Max, 2026-10-24 9:15 PM, real Gemma; must be done before the Sunday 11 AM freeze).**
+  - [x] **h. "Is X safe?" answered from PrivaC's records** **Done on branch `askc-r19`: `safeAnswer()`: grade and what added points, owner ("YouTube is owned by Google"), foreign-adversary links, trackers labelled malware, the breach list, 2-3 tips; tracker companies ("Is Meta safe?") get what PrivaC saw; never a verdict. Made-up breach claims were already removed on main (`dropUnbackedBreaches`).** ** (Max, 2026-10-24 9:15 PM, real Gemma; must be done before the Sunday 11 AM freeze).**
     On main `40d2501`, with youtube.com visited (grade A): "Is YouTube safe?" -> Gemma had youtube.com's full grade line and "Google (Tracker
     Radar lists Youtube's trackers under Google, its owner)" in its evidence, yet answered without the grade and said Google was "tracking you
     on YouTube"; "Is you tube safe?" got no facts at all (R19g). Steps: 1 in one answer, 4+ in the other.
@@ -102,7 +102,7 @@ Tick each one here when done.
        Facebook answer.
     Check: "Is YouTube safe?", "Is you tube safe?", "is youtube.com safe", "Should I trust cnn?", "Is FaceBook safe?", "Is Meta safe?" give the same kind of answer with the
     grade and source chips; `node --test` passes; then ask them on the Mac.
-  - [ ] **i. General fixes instead of more special cases (Max, 2026-10-24 9:20 PM; do R19g and R19h this way, before the Sunday 11 AM freeze).**
+  - [x] **i. General fixes instead of more special cases** **Done on branch `askc-r19`: `fixNames()` (two words into a known name; one typo in the best-known names; 47 everyday questions swept, 0 changed) and `dropUnknownNames()` (drops Gemma sentences naming a tracker company or web address not in the evidence; ~2 ms per streamed update; tips untouched). Country names and 14 everyday-word company names (block, news, booking...) no longer count as companies. Limit: only names in Tracker Radar or your browsing can be checked.** ** (Max, 2026-10-24 9:20 PM; do R19g and R19h this way, before the Sunday 11 AM freeze).**
     Why: Gemma 4 E2B is small; it skips evidence it was given (YouTube's grade) and fills gaps from general knowledge (Facebook's "history
     of breaches"). Fixing each wording by hand doesn't end. Two mechanisms in shared/askc.js, each with tests first:
     1. **Fuzzy name matching (does R19g).** One `resolveNames(question)` used by every matcher (companies, breach sites, sites shown in full):
@@ -122,7 +122,7 @@ Tick each one here when done.
     routing, so the model picks what to look up and code still supplies every fact. Not before the freeze: one more model turn per lookup
     (about 1-2 s each in the browser) and a small model sometimes skips the call. Try with the in-browser E2B and Ollama E4B; compare with
     the backtest questions.
-  - [ ] **k. Ask C can't see trackers the dashboard shows (Max, 2026-10-24 9:25 PM, real Gemma; before the freeze).** The home page's
+  - [x] **k. Ask C can't see trackers the dashboard shows** **Done on branch `askc-r19`: every purpose with the dashboard's own counts (names shared with shared/highlights.js, checked by a test; malware, high-risk and screen recording never cut).** ** (Max, 2026-10-24 9:25 PM, real Gemma; before the freeze).** The home page's
     "What the trackers were for" shows 1 "Labelled malware" tracker (Worth knowing: "Tracker Radar labels ECO PC - Complex Solutions as
     malware. It loaded on tass.com"), but "Which trackers were labelled malware and what websites did they originate from?" got "PrivaC
     has no record of any trackers being labelled malware". Cause (reproduced on main b8ddd42): a tracker only reaches Gemma if its site is
