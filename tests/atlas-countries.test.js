@@ -3,7 +3,7 @@
 const test = require("node:test");
 const assert = require("node:assert");
 const fs = require("node:fs");
-const { country } = require("../scripts/build-atlas.js");
+const { country, readable } = require("../scripts/build-atlas.js");
 const atlas = JSON.parse(fs.readFileSync(__dirname + "/../shared/atlas.json", "utf8"));
 
 test("headquarters countries for Russian and Chinese tracker companies", () => {
@@ -20,4 +20,19 @@ test("atlas.json carries the new countries", () => {
   assert.strictEqual(atlas.domains["sputnik.ru"][2], "RU");
   assert.strictEqual(atlas.domains["google-analytics.com"][2], "US");   // nothing else changed
   assert.strictEqual(Object.keys(atlas.domains).length, 3721);
+});
+
+// G14, Oct 25: "Is wired.com safe?" said "CDNWIDGET.COM (cdnwidget.com): Tracker Radar labels it as high-risk".
+// Five Tracker Radar companies are named with their web address in capitals; PrivaC writes those in lower case.
+test("company names that are a web address in capitals are written in lower case", () => {
+  assert.strictEqual(readable("CDNWIDGET.COM"), "cdnwidget.com");
+  assert.strictEqual(readable("NIC.UA"), "nic.ua");
+  assert.strictEqual(readable("Google LLC"), "Google LLC");
+  assert.strictEqual(readable("IBM"), "IBM", "an all-caps name without a dot stays");
+  assert.strictEqual(readable("R.T.I"), "R.T.I", "initials with dots stay (Mediaset's company)");
+  assert.strictEqual(readable("Booking.com"), "Booking.com", "mixed case stays");
+  const shouting = Object.values(atlas.domains).map((v) => v[0]).concat(Object.keys(atlas.entities)).filter((n) => readable(n) !== n);
+  assert.deepStrictEqual(shouting, []);
+  assert.strictEqual(atlas.domains["cdnwidget.com"][0], "cdnwidget.com");
+  assert.deepStrictEqual(atlas.entities["cdnwidget.com"], ["cdnwidget.com"]);
 });

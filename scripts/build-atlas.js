@@ -68,11 +68,17 @@ function country(owner) {
   return key ? COUNTRY[key] : null;
 }
 
-// Re-apply COUNTRY to the existing atlas.json (keeps every domain; only fills in countries).
+// A few Tracker Radar companies are named with their web address in capitals ("CDNWIDGET.COM"): write those in lower case.
+function readable(name) {
+  return typeof name === "string" && /^[A-Z0-9-]+(?:\.[A-Z0-9-]+)*\.[A-Z]{2,}$/.test(name) ? name.toLowerCase() : name;
+}
+
+// Re-apply COUNTRY to the existing atlas.json (keeps every domain; only fills in countries and lower-cases shouted names).
 function countriesOnly(file) {
   const a = JSON.parse(fs.readFileSync(file, "utf8"));
   let n = 0;
-  for (const v of Object.values(a.domains)) { const c = country(v[0]); if (c && v[2] !== c) { v[2] = c; n++; } }
+  for (const v of Object.values(a.domains)) { v[0] = readable(v[0]); const c = country(v[0]); if (c && v[2] !== c) { v[2] = c; n++; } }
+  a.entities = Object.fromEntries(Object.entries(a.entities).map(([k, v]) => [readable(k), v]));
   fs.writeFileSync(file, JSON.stringify(a));
   console.log(`Updated ${n} domains with a country in ${file}`);
 }
@@ -89,7 +95,7 @@ for (const f of fs.readdirSync(dir)) {
   if (!hit && !(j.categories || []).length && owner && ((j.fingerprinting || 0) >= 1 || (j.cookies || 0) > 0)) hit = [null, "Tracking"];
   if (!hit) continue;
   // [company, category, country, prevalence %, fingerprinting 0-3]
-  domains[j.domain] = [owner || j.domain, hit[1], country(owner), Math.round((j.prevalence || 0) * 10000) / 100, j.fingerprinting || 0];
+  domains[j.domain] = [readable(owner) || j.domain, hit[1], country(owner), Math.round((j.prevalence || 0) * 10000) / 100, j.fingerprinting || 0];
   if (owner) owners.add(owner);
 }
 
@@ -98,7 +104,7 @@ const entities = {};
 for (const f of fs.readdirSync(path.join(src, "entities"))) {
   const e = JSON.parse(fs.readFileSync(path.join(src, "entities", f), "utf8"));
   const name = e.displayName || e.name;
-  if (owners.has(name)) entities[name] = e.properties || [];
+  if (owners.has(name)) entities[readable(name)] = e.properties || [];
 }
 
 const out = {
@@ -119,4 +125,4 @@ if (require.main === module) {
   if (!src) { console.error("Usage: node scripts/build-atlas.js <path to tracker-radar> | --countries-only"); process.exit(1); }
   if (src === "--countries-only") countriesOnly(ATLAS_FILE); else build(src);
 }
-module.exports = { country };
+module.exports = { country, readable };

@@ -186,3 +186,12 @@ test("\"Does my browsing leave my computer?\" gets C's own answer: no, and what 
   }
   assert.strictEqual((await ask("Does wired.com send my data to Google?")).calls, 1, "a question about a site's trackers still goes to Gemma");
 });
+
+// G14, Oct 25 (Q9 "Is wired.com safe?"): "CDNWIDGET.COM (cdnwidget.com): Tracker Radar labels it as high-risk". The atlas now
+// writes that company in lower case; a company named after its own web address isn't written twice.
+test("a high-risk company named after its web address isn't repeated in brackets", async () => {
+  const s = { domain: "risky.example", cookieChoice: "none", lastVisit: "2026-10-25T05:00:00Z", policy: {}, trackers: [T("cdnwidget.com", "High-risk", null, "cdnwidget.com"), T("Shady Ads", "Malware", null, "shady.example")] };
+  const r = await A.answer("Is risky.example safe?", { load: async () => ({ sites: [{ ...s, ...window.PrivaCData.computeScore(s) }] }), lists: async () => null, atlas: () => atlas, ask: async () => "unused" });
+  assert.match(r.answer, /cdnwidget\.com: Tracker Radar labels it as high-risk; Shady Ads \(shady\.example\): Tracker Radar labels it as malware/);
+  assert.doesNotMatch(r.answer, /cdnwidget\.com \(cdnwidget\.com\)/);
+});

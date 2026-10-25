@@ -549,7 +549,7 @@ Steps the person can take (no tag needed):
       const shownText = r.counted.slice(0, 3).filter((p) => D && D.RULES && p.rule === D.RULES.flag).map((p) => p.label).join(" ");
       const fresh = flags.filter((f) => !shownText.includes(f.name) || (f.listed && !/1260H/.test(shownText)));
       if (fresh.length) lines.push(`${shownText ? "Also linked here" : "Foreign-adversary links seen here"} [Seen on your visit] [Government list]: ${fresh.slice(0, 4).map((f) => f.text).join(", ")}.`);
-      const bad = [...new Set((s.trackers || []).filter((t) => t && BAD_CATS.has(t.category)).map((t) => `${t.company}${t.domain ? ` (${t.domain})` : ""}: Tracker Radar labels it as ${t.category === "Malware" ? "malware" : "high-risk"}`))];
+      const bad = [...new Set((s.trackers || []).filter((t) => t && BAD_CATS.has(t.category)).map((t) => `${t.company}${t.domain && t.domain !== String(t.company).toLowerCase() ? ` (${t.domain})` : ""}: Tracker Radar labels it as ${t.category === "Malware" ? "malware" : "high-risk"}`))];
       if (bad.length) lines.push(`${bad.join("; ")} [Tracker Radar] [Seen on your visit].`);
       const b = lists && lists.hibp && lists.hibp.byDomain ? lists.hibp.byDomain[s.domain] || s.breach : s.breach;
       const bl = breachLine(s.domain, b, lists);
