@@ -1,7 +1,7 @@
 {
   "about": "State-run news outlets in the six countries on the U.S. Commerce Department's foreign-adversary list (15 CFR 7.4). Used to flag a site you visit as state-run media (PLAN F2).",
   "checkedOn": "2026-10-24",
-  "checkedBy": "Max Glassman (with Claude)",
+  "checkedBy": "Max Glassman",
   "source": {
     "name": "State Media Monitor",
     "publisher": "Media and Journalism Research Center (MJRC)",
@@ -19,7 +19,7 @@
     "profile": "the domain is named in the outlet's State Media Monitor profile",
     "tracker-radar": "DuckDuckGo Tracker Radar lists the outlet's company as the domain's owner",
     "wikipedia": "the outlet's Wikipedia infobox lists the domain as its website",
-    "team-test": "seen by the team on 2026-10-24 (docs/HANDOFF.md)"
+    "team-test": "seen by the team on 2026-10-24 (docs/history/HANDOFF.md)"
   },
   "howToSayIt": "This site is state-run media: {name} ({country}), classified {classification} by State Media Monitor (2026). That describes who controls the outlet; it says nothing about what happens to your data.",
   "outlets": [

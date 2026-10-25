@@ -1,3 +1,5 @@
+> **History.** The team's status board and decision log during the hackathon (Fri Oct 23 to Sat Oct 24). The rows show who was doing what at the time; the decision log is still the record of why the rules are what they are. The current state is in [../PLAN.md](../PLAN.md).
+
 # Team status board
 
 Update your row every time you push. Keep it to one line per column.

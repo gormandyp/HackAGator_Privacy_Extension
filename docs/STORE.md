@@ -1,6 +1,6 @@
 # Publishing PrivaC on the Chrome Web Store
 
-Status (2026-10-24, branch `max/store-ready`, checked against the code on 2026-10-24): the code meets every Store rule we can check in code (`tests/store-ready.test.js`).
+Status (written 2026-10-24 on branch `max/store-ready`, now part of main; checked against the code on 2026-10-24): the code meets every Store rule we can check in code (`tests/store-ready.test.js`).
 PRIVACY.md and TERMS.md were checked line by line against what the code stores and sends; section 6 lists the code changes we still recommend before a public upload.
 What's left is the account, the upload and the forms below; every answer is written out so you can paste it.
 

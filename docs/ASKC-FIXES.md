@@ -1,6 +1,6 @@
-# Ask C fixes (PLAN R13): instructions for the repo owner's Claude
+# Ask C fixes (PLAN R13): instructions for the repo owner
 
-Found 2026-10-24 ~6 PM ET by Max's Claude, testing `shared/askc.js` on main (`ceeb94f`) with the real code and a fake Gemma
+Found 2026-10-24 ~6 PM ET by Max, testing `shared/askc.js` on main (`ceeb94f`) with the real code and a fake Gemma
 (48 checks: 26 probes + every question the app's own buttons send). All 454 existing tests pass; none cover these.
 **Confirmed with real Gemma on Max's Mac (in-browser brain, 2026-10-24 6:15 PM ET):** Fixes 1, 4 and 5 (see each fix's
 "Seen live" line). The answers he got are quoted under each fix.
@@ -166,7 +166,7 @@ Reload PrivaC, open Ask C, and ask each of these. Write down the answer and whic
 Also note any answer that's wrong, too long, missing source tags, or that says "the user" or "you are currently visiting";
 those go in PLAN R13's list of bad answers.
 
-## Status (2026-10-24 ~6:40 PM: all six done by Max's Claude on branch `askc-fixes`, 492 tests pass; waiting for the repo owner's review)
+## Status (2026-10-24 ~6:40 PM: all six done by Max on branch `askc-fixes`, 492 tests pass; waiting for the repo owner's review)
 - [x] Fix 1: about-C questions (confirmed live), branch `askc-fixes`
 - [x] Fix 2: grammar after "the user", branch `askc-fixes` (verb changes only where "the user" is the subject)
 - [x] Fix 3: doesn't-sell policy, branch `askc-fixes`

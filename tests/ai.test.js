@@ -148,7 +148,7 @@ test("hanging up is reported as stopped (not as 'took too long')", async () => {
   await assert.rejects(p, (e) => e.code === "STOPPED" && !/too long/.test(e.message));
 });
 
-// ---------- fixes from the independent Claude review ----------
+// ---------- fixes from the independent code review ----------
 
 test("speed: the warm-up readies the same conversation Ask C will use (same temperature, length and instructions)", async () => {
   const { AI, sent } = load({ brain: readyBrain({ state: "downloaded" }) });

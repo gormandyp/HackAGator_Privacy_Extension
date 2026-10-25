@@ -6,7 +6,7 @@ PrivaC's main download runs **Gemma 4 E2B inside Chrome**, on your computer's gr
 ## Install (about 2 minutes)
 1. Download the zip: https://github.com/gormandyp/HackAGator_Privacy_Extension/archive/refs/heads/main.zip and unzip it.
 2. In Chrome, open `chrome://extensions`, turn on **Developer mode** (top right), click **Load unpacked**, and pick the unzipped folder.
-   - If the main PrivaC is also loaded, turn it off first (both would show C's pop-ups).
+   - If the Ollama version of PrivaC is also loaded, turn it off first (both would show C's pop-ups).
 3. Click the PrivaC icon, open the dashboard, go to **Ask C**, and click **Download C's brain** (2.0 GB, one time;
    about 1 minute on fast Wi-Fi). Grades and C's pop-ups work while it downloads.
 4. When the download finishes, C loads Gemma right away (a few seconds, the card says "Getting C's brain ready"). You can
@@ -40,7 +40,7 @@ on the disk twice.
 - If the browser can't run it, the dashboard says why and Ask C uses Ollama if it's running. Everything else in PrivaC works either way.
 
 ## Speed (measured on the demo MacBook Pro, Oct 24 2026)
-| | In the browser (this branch, Gemma 4 E2B) | Ollama (main, Gemma 4 E4B) |
+| | In the browser (main, Gemma 4 E2B) | Ollama (`ollama` branch or fallback, Gemma 4 E4B) |
 |---|---|---|
 | Ask C, first words on screen | ~0.8 s | ~2.4 s |
 | Ask C, whole answer | ~2-2.5 s | ~3.7 s |

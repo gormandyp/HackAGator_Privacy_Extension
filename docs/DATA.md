@@ -1,9 +1,9 @@
 # Data sources and why each is "recent"
-Owners: Max (checked the dates and the 1260H and RegTrack files) and Josh (data lane). Merged 2026-10-24 with Claude's file-by-file table.
+Owners: Max (checked the dates and the 1260H and RegTrack files) and Josh (data lane). Merged 2026-10-24 with a file-by-file table.
 
 **Privacy rule for every source: download the whole file, match on the computer.** PrivaC never sends a site, company or cookie to any service.
 
-Checked 2026-10-23 by Max (with Claude). Every date below was read from the source itself, not from memory. Use this page for the Devpost "what makes it recent" answer and the pitch slide.
+Checked 2026-10-23 by Max. Every date below was read from the source itself, not from memory. Use this page for the Devpost "what makes it recent" answer and the pitch slide.
 
 ## Theme answer: recent (first public after Oct 23, 2025)
 
