@@ -216,3 +216,16 @@ test("\"why?\" after other questions still goes to Gemma with the conversation",
     assert.strictEqual(r.calls, 1, before);
   }
 });
+
+// G14 Q25: "and espn?" after "why?" (after "Should I trust cnn?") went to Gemma. "and <site>?" after a site's safety question,
+// a grade question or a bare "why?" gets that site's grade lines, like after a grade question.
+test("\"and espn?\" after a safety question or a bare \"why?\" gets that site's grade lines", async () => {
+  for (const history of [
+    [{ question: "Should I trust cnn?", answer: "cnn.com got a C... [Seen on your visit]" }],
+    [{ question: "Should I trust cnn?", answer: "cnn.com got a C... [Seen on your visit]" }, { question: "why?", answer: "cnn.com got a C... [Seen on your visit]" }]
+  ]) {
+    const r = await ask("and wired?", history);
+    assert.strictEqual(r.calls, 0, history.map((h) => h.question).join(" / "));
+    assert.match(r.answer, /^wired\.com got an? [A-F]:/);
+  }
+});

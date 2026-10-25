@@ -1017,7 +1017,8 @@ Steps the person can take (no tag needed):
   const BARE_WHY = /^\s*(?:why|how come|why is that|why so|but why)\s*[?!.]*\s*$/i;
   function gradeAnswer(q, sites, history) {
     const last = recent(history).slice(-1)[0];
-    const followUp = !gradeIntent(q) && last && gradeIntent(last.question) && AND_ABOUT.test(q);   // "and espn?" after a grade question
+    // "and espn?" after a grade question, a site's safety question or a bare "why?"
+    const followUp = !gradeIntent(q) && last && (gradeIntent(last.question) || SAFE_Q.test(last.question) || BARE_WHY.test(last.question)) && AND_ABOUT.test(q);
     const why = !!last && BARE_WHY.test(q) && (gradeIntent(last.question) || SAFE_Q.test(last.question)) && namedSites(sites, last.question).length === 1;
     if (!gradeIntent(q) && !followUp && !why) return null;
     const named = namedSites(sites, why ? last.question : q).slice(0, 3);
