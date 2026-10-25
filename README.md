@@ -1,163 +1,107 @@
 # PrivaC
 
-> **This is the main download: the in-browser AI version.** C's AI, Gemma 4 E2B, runs inside Chrome on your computer's graphics chip
-> (Google's LiteRT-LM, WebGPU): no Ollama needed. Setup, needs and measured speed: [docs/IN-BROWSER-AI.md](docs/IN-BROWSER-AI.md).
-> Prefer Ollama only? Download the [`ollama` branch](https://github.com/gormandyp/HackAGator_Privacy_Extension/archive/refs/heads/ollama.zip).
+**A Chrome extension that shows which companies a website hands your visit to, grades the site's privacy from A to F, and sends C, a little letter-C character, to say no to tracking cookies for you.**
+C also answers your questions about what it saw, using **Gemma 4 running inside Chrome on your own computer**: your browsing and questions never leave it.
 
-A Chrome extension that shows which companies a website connects you to, what it stores in your browser, and grades the site's privacy A to F. **C**, a letter-C character, pops up to decline cookie tracking for you and answers questions like "Who is LiveRamp and should I worry?", using **Gemma 4 running on your own computer** (here: inside Chrome).
+Built in 48 hours at Gator Hack V (UF AI Days 2026, Oct 23-25) for the "Fresh off the frontier" challenge, by a team of five mostly first-time hackers.
 
-Built at Gator Hack V (UF AI Days 2026) for the "Fresh off the frontier" challenge.
+> **This is the main download: the in-browser AI version.** Prefer the Ollama app? Download the [`ollama` branch](https://github.com/gormandyp/HackAGator_Privacy_Extension/archive/refs/heads/ollama.zip) (frozen on Oct 24; main has every later fix).
+
+## For judges: a 3-minute tour
+1. Load PrivaC (see **Install** below) and pin it from the puzzle-piece menu.
+2. Visit two or three news or shopping sites. On most sites with a cookie pop-up, **C** appears next to it: click **Protect me** and C clicks Reject for you, then says **Nice!** only when the site's own consent record confirms it. On a pop-up with no Reject button, C says **Beware!**
+3. Click the C toolbar button: the site's grade (A-F), whether it was Fully or Partly checked (and how high it could go), and every reason with its source.
+4. Open the dashboard: **Sites** (who each site connected you to), **C's impact**, **Safety** (data breaches, data brokers, companies in U.S.-listed countries), **Grades** (how the grade works, point by point) and **About** (the 2026 technology, with dates and proof links).
+5. In **Ask C**, try "Why did cnn.com get a C?" with a site you visited and its letter (answered from the score itself) and "Is any site I visited connected to China or Russia?" (written by Gemma 4 on this computer, with a source label on every fact).
+6. No Chrome handy? Open `dashboard/dashboard.html` in any browser to see the interface with sample data. Tests: `node --test` (714 passing).
+
+The demo script, with the sites and questions we checked on a Mac and a Windows laptop, is [docs/DEMO.md](docs/DEMO.md).
 
 ## What's recent (and central)
-- **Gemma 4** (Google, released March 31, 2026): C's brain, running inside Chrome with Google's **LiteRT-LM web runtime** (first published May 18, 2026; we use 0.18.0 from Oct 6, 2026), or through Ollama. Your browsing and questions never leave the computer.
+- **Gemma 4** (Google, released March 31, 2026): C's brain, running inside Chrome with Google's **LiteRT-LM web runtime** (first published May 18, 2026; we use 0.18.0 from Oct 6, 2026), or through Ollama.
 - **RegTrack** (NDSS MADWeb, February 2026; arXiv 2603.02679): measured how accepting cookies changes tracking on 743 websites. C quotes it.
 - **Pentagon 1260H list** (updated June 8, 2026, adds Alibaba and Baidu): powers the foreign-adversary flag.
 - **California Data Broker Registry 2026** and **Have I Been Pwned**: downloaded fresh every day.
 
-Judges: the dashboard's **About** tab lists each one with its date, a link to proof, and the files that use it.
+The dashboard's **About** tab lists each one with its date, a link to proof, and the files that use it.
 
 ## What it does
-- Records which trackers each page loads (3,721 known tracker domains from DuckDuckGo Tracker Radar) and which cookies it sets (labeled with the Open Cookie Database).
-- Grades each site with a rules-based exposure score (0-100). Every point is explained. See "How the grade works" on the dashboard and docs/SPEC.md.
-- C detects cookie banners, clicks "Reject" for you, checks the site saved it (OneTrust, Ensighten, CookieYes, Cookiebot, Didomi), and warns about banners that have no Reject button.
-- Flags data breaches (Have I Been Pwned), registered data brokers (California) and companies based in U.S.-listed foreign-adversary countries (15 CFR 7.4).
-- Warns before you stay on a site graded F that also loads a listed company or had a breach reported in the last year: C names the reasons and offers "Go back" or "Continue anyway" (never blocks).
-- **Ask C**: questions answered by Gemma from the evidence, with a source label on every fact.
+- **Sees** which trackers each page loads (3,721 known tracker domains from DuckDuckGo Tracker Radar) and which cookies it sets (labeled with the Open Cookie Database).
+- **Grades** each site with a rules-based exposure score (0-100) where every point is explained. See "How the grade works" on the dashboard and [docs/SPEC.md](docs/SPEC.md).
+- **Acts on cookie banners.** C finds the Reject button, clicks it for you, and checks the site saved your choice (OneTrust, Ensighten, CookieYes, Cookiebot, Didomi, GOV.UK). He warns about banners that have no Reject button.
+- **Flags** data breaches (Have I Been Pwned), registered data brokers (California) and companies based in U.S.-listed foreign-adversary countries (15 CFR 7.4) or on the Pentagon's 1260H list.
+- **Warns** before you stay on a site graded F that also loads a listed company or had a breach reported in the last year: C names the reasons and offers "Go back" or "Continue anyway" (never blocks).
+- **Ask C** answers questions from the evidence, with a source label on every fact. Questions with a factual answer (grades, breaches, "Is this site safe?", "Does this site sell my data?") are answered by code in a tenth of a second; Gemma explains the rest.
 
-## Privacy
-PrivaC downloads whole public lists and matches them on your computer. It never sends what you visit to anyone. It stores site names and cookie names only (never full addresses or cookie contents) and deletes history after 7 days. Daily totals (numbers only, no site names) are kept 90 days for the week and month views. "Clear my PrivaC data" erases your history and daily totals. Full details: [PRIVACY.md](PRIVACY.md) and [TERMS.md](TERMS.md).
+## How it works
+The grade is computed by code, never by the AI, so it's the same every time and every point traces back to evidence. Gemma reads privacy policies and explains; code checks its quotes and source tags afterwards.
+A diagram of the parts, the data shape and the message API: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
-## For judges: a 3-minute tour
-1. Load PrivaC (see **Download** below) and pin it from the puzzle-piece menu.
-2. Visit two or three news or shopping sites. On most sites with a cookie pop-up, **C** appears next to it: click **Protect me** and C clicks Reject for you, then says **Nice!** only when the site's own consent record confirms it. On a pop-up with no Reject button, C says **Beware!**
-3. Click the C toolbar button: the site's grade (A-F), whether it was Fully or Partly checked (and how high it could go), and every reason with its source.
-4. Open the dashboard: **Sites** (who each site connected you to), **C's impact**, **Safety** (data breaches, data brokers, companies in U.S.-listed countries), **Grades** (how the grade works, point by point) and **About** (the 2026 technology, with dates and proof links).
-5. In **Ask C**, try "Why did cnn.com get a C?" with a site you visited and its letter (answered from the score itself) and "Who is LiveRamp and should I worry?" (answered by Gemma 4 on this computer, with a source label on every fact).
-6. No Chrome handy? Open `dashboard/dashboard.html` in any browser to see the interface with sample data. Tests: `node --test`.
-
-## Download
+## Install
 | Version | C's AI runs on | Download |
 |---|---|---|
 | **PrivaC** (main, recommended) | Gemma 4 E2B inside Chrome (WebGPU): nothing else to install; Ollama works as a fallback | [main.zip](https://github.com/gormandyp/HackAGator_Privacy_Extension/archive/refs/heads/main.zip) · setup: [docs/IN-BROWSER-AI.md](docs/IN-BROWSER-AI.md) |
 | **PrivaC (Ollama)** | Gemma 4 E4B through the Ollama app on your computer | [ollama.zip](https://github.com/gormandyp/HackAGator_Privacy_Extension/archive/refs/heads/ollama.zip) · setup: [docs/OLLAMA.md](docs/OLLAMA.md) |
 
-Unzip, open `chrome://extensions`, turn on **Developer mode**, click **Load unpacked** and pick the unzipped folder. Load one version at a time.
-
-## Try it
-1. In Chrome, go to `chrome://extensions`, turn on **Developer mode**, click **Load unpacked**, and pick this folder.
+1. Unzip, open `chrome://extensions`, turn on **Developer mode**, click **Load unpacked** and pick the unzipped folder. Load one version at a time.
 2. Pin PrivaC (puzzle-piece menu), browse a few sites, then click the C icon and open the dashboard.
-3. In **Ask C**, click **Download C's brain** (2.0 GB, one time). Nothing else to install. Prefer Ollama? See [docs/OLLAMA.md](docs/OLLAMA.md).
+3. In **Ask C**, click **Download C's brain** (2.0 GB, one time). Grades and C's pop-ups work while it downloads.
 
-After you change any file, click the circular reload arrow on the PrivaC card in `chrome://extensions` (that keeps C's 2 GB brain; Remove deletes it, see [docs/IN-BROWSER-AI.md](docs/IN-BROWSER-AI.md#download-cs-brain-once-not-again-and-again)). Tests: `node --test`.
+After you change any file, click the circular reload arrow on PrivaC's card in `chrome://extensions` (that keeps C's brain; **Remove** deletes it).
 
-Without installing anything, you can open `dashboard/dashboard.html` or `popup/popup.html?site=flightdeals.example` to see the interface with sample data.
+## Privacy
+PrivaC downloads whole public lists and matches them on your computer. It never sends what you visit to anyone. It stores site names and cookie names only (never full addresses or cookie contents) and deletes history after 7 days. Daily totals (numbers only, no site names) are kept 90 days for the week and month views. "Clear my PrivaC data" erases your history and daily totals. Full details: [PRIVACY.md](PRIVACY.md) and [TERMS.md](TERMS.md).
 
 ## What's in this folder
 | Path | What it is |
 |---|---|
-| `popup/` | The window that opens from the toolbar icon |
-| `dashboard/` | Full page: your sites, who followed you across sites, Ask C, how grading works |
-| `content/` | C on web pages (`c-prompt.js`) and cookie-banner detection (`cookie-detector.js`) |
-| `background.js`, `background/` | Records trackers and cookies, downloads public lists, answers Ask C |
-| `shared/` | Score rules (`data.js`), Gemma bridge (`gemma.js`), Ask C brain (`askc.js`), lists, cookie labels, tracker and cookie data files |
-| `scripts/` | Rebuild `atlas.json` and `cookie-db.json` from their sources |
-| `docs/` | Idea, spec, plan, team, data sources, difficulties |
-| `icons/` | Toolbar icons, logo and C poses |
+| `manifest.json`, `background.js` | The extension's entry points |
+| `background/` | Records trackers, downloads public lists, reads privacy policies, decides when C warns |
+| `content/` | Runs on web pages: C (`c-prompt.js`), cookie-banner detection (`cookie-detector.js`), alerts, grade box |
+| `popup/` | The window that opens from the toolbar button |
+| `dashboard/` | Full page: your sites, C's impact, safety, grades, Ask C, About |
+| `offscreen/`, `vendor/litert-lm/` | C's brain: Gemma 4 running in Chrome with Google's LiteRT-LM |
+| `shared/` | Score rules (`data.js`), Ask C (`askc.js`), AI bridge (`ai.js`, `gemma.js`), lists, look, and the data files |
+| `c-poses/`, `icons/` | C's poses and the extension icons |
+| `welcome/` | The page shown on first install (what PrivaC keeps and sends) |
+| `preview/` | Test pages: C on 17 kinds of cookie pop-ups, and a demo site |
+| `scripts/` | Rebuild the data files; package the Chrome Web Store zip |
+| `store/` | Chrome Web Store screenshots |
+| `tests/` | 714 automated tests (`node --test`) |
+| `docs/` | Everything below |
+
+## Documentation
+| Read this | For |
+|---|---|
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | How the parts fit together, the data shape, the APIs |
+| [docs/SPEC.md](docs/SPEC.md) | What PrivaC does, the grading rules and the honesty rules |
+| [docs/DATA.md](docs/DATA.md) | Every data source with its date and license |
+| [docs/DEMO.md](docs/DEMO.md) | The 3-minute demo script and the checked sites and questions |
+| [docs/IN-BROWSER-AI.md](docs/IN-BROWSER-AI.md), [docs/OLLAMA.md](docs/OLLAMA.md) | Setting up C's brain, and measured speed |
+| [docs/STORE.md](docs/STORE.md) | Chrome Web Store readiness, including our own security review |
+| [docs/DEVPOST.md](docs/DEVPOST.md) | Our Devpost submission text |
+
+**How we got here** (the development record, kept as written):
+| Read this | For |
+|---|---|
+| [docs/DIFFICULTIES.md](docs/DIFFICULTIES.md) | The challenges we faced and how we solved each one |
+| [docs/IDEA.md](docs/IDEA.md) | The team's idea inbox from Friday night, with what became of each idea |
+| [docs/PLAN.md](docs/PLAN.md) | The build plan, step by step (R0-R19, F1-F5), with what was done, changed or dropped |
+| [docs/ASKC-FIXES.md](docs/ASKC-FIXES.md) | How we tested and fixed Ask C's answers (bug, repro, fix, test) |
+| [docs/TEAM.md](docs/TEAM.md) | Who built what |
+| [docs/history/](docs/history/) | Saturday's status board and decision log, the hand-off note, our AI-assistant workflow |
+
+## How we built it
+- **Plain JavaScript, no build step**, so all five of us could read and change any file.
+- **A written plan, one step at a time.** Every step in [docs/PLAN.md](docs/PLAN.md) got a failing test first, then the fix; the plan records what changed along the way and why.
+- **An AI coding assistant.** We used Claude Code to help write, test and review code. Its project instructions are in [CLAUDE.md](CLAUDE.md) and `.claude/`; every change had to pass the full test suite before it was merged.
+- **Real-browser checks** on a MacBook Pro and a Windows gaming laptop (ASUS G14) with the real in-browser Gemma: cookie pop-ups on U.K. and U.S. sites, and dozens of Ask C questions. The results drove the last round of fixes ([docs/DIFFICULTIES.md](docs/DIFFICULTIES.md)).
 
 ## Data sources and credits
-Tracker data: [DuckDuckGo Tracker Radar](https://github.com/duckduckgo/tracker-radar) (CC BY-NC-SA 4.0). Breach data: [Have I Been Pwned](https://haveibeenpwned.com) (CC BY 4.0). Cookie purposes: [Open Cookie Database](https://github.com/jkwakman/Open-Cookie-Database) (Apache 2.0). Data brokers: [California Privacy Protection Agency](https://cppa.ca.gov/data_broker_registry/). Details: [docs/DATA.md](docs/DATA.md).
+Tracker data: [DuckDuckGo Tracker Radar](https://github.com/duckduckgo/tracker-radar) (CC BY-NC-SA 4.0). Breach data: [Have I Been Pwned](https://haveibeenpwned.com) (CC BY 4.0). Cookie purposes: [Open Cookie Database](https://github.com/jkwakman/Open-Cookie-Database) (Apache 2.0). Data brokers: [California Privacy Protection Agency](https://cppa.ca.gov/data_broker_registry/). RegTrack facts, the 1260H list and State Media Monitor: [docs/DATA.md](docs/DATA.md).
 
 ## License
-PrivaC's own code is open source under the [MIT](LICENSE) license. The data files keep their own licenses (listed at the end of [LICENSE](LICENSE)); Tracker Radar's is non-commercial.
+PrivaC's own code is open source under the [MIT](LICENSE) license. The data files keep their own licenses (listed at the end of [LICENSE](LICENSE)); Tracker Radar's is non-commercial, which is fine for a hackathon and would need replacing for a commercial product.
 
 ## Team
-Josh Davis, Max Glassman, Matthew Finkelstein, Justin Smilowitz, and the repo owner (gormandyp). Teamwork rules: [docs/TEAM.md](docs/TEAM.md).
-
-## For the extension builder
-
-### Data the interface reads
-
-The interface reads one object from `chrome.storage.local` under the key `privacData`. The background script only has to keep this up to date:
-
-```js
-chrome.storage.local.set({
-  privacData: {
-    sites: [
-      {
-        domain: "example.com",
-        lastVisit: new Date().toISOString(),
-        cookieChoice: "declined",            // "declined" | "accepted" | "no-reject" | "none"
-        policy: { sells: null, shares: null, source: null }, // true / false / null if unknown
-        trackers: [
-          { domain: "doubleclick.net", company: "Google", category: "Advertising", country: "US" }
-        ]
-      }
-    ]
-  }
-});
-```
-
-- The background script (background/tracking.js) writes this; `company`, `category` and `country` come from `shared/atlas.json`. It also adds `cookies` (names only) and the data pages add `breach` and tracker `broker` from the public lists. Full shape: comments at the top of `shared/data.js`.
-- Scores and grades are calculated in `shared/data.js` (`computeScore`), so the popup and dashboard always agree. Change the rubric there, and update the "How the grade works" table in `dashboard/dashboard.html` to match.
-- Until real data exists, every screen shows the sample data with a "sample data" note.
-
-### Showing C on a website
-
-`content/c-prompt.js` is already listed in `manifest.json`. From the content script, once a cookie banner is detected:
-
-```js
-PrivaCPrompt.cookie({
-  onDecline: async () => { /* click the site's "Reject all" button */ return true; },
-  onChoose:  () => { /* open the site's cookie settings */ }
-});
-
-PrivaCPrompt.adversary({ companies: ["Yandex (Russia)"] });
-```
-
-Return `false` from `onDecline` if you couldn't find the reject button; C will tell the user where to look instead.
-
-## Before the demo
-
-- Make sure C's brain is downloaded and ready (Dashboard > Ask C). Ollama is only needed for the `ollama` branch: then check it's running and `OLLAMA_ORIGINS` is set (it resets when the Mac restarts). Full checklist: [docs/DEMO.md](docs/DEMO.md).
-- The foreign-adversary list in `shared/data.js` follows 15 CFR § 7.4 (China including Hong Kong, Cuba, Iran, North Korea, Russia, Venezuela). Double-check the current version of the regulation.
-- Fonts (Bricolage Grotesque and Figtree) are bundled in `shared/fonts/`, so the pages look the same without internet and make no Google Fonts request.
-- Tracker data from DuckDuckGo Tracker Radar has a non-commercial license; fine for a hackathon, worth mentioning if judges ask about turning PrivaC into a product.
-
-## Ask C (dashboard chat panel)
-
-Files: `dashboard/ask-c.js`, the "Ask C" section in `dashboard/dashboard.html`, and the Ask C styles at the bottom of `dashboard/dashboard.css`. It works on its own with sample answers until the AI is connected.
-
-### How Ask C talks to the AI (built: background.js + shared/askc.js)
-
-The dashboard sends one message to the background script and waits up to 90 seconds:
-
-```js
-chrome.runtime.sendMessage({ type: "askC", question: "Who is LiveRamp and should I worry?" })
-```
-
-Reply with:
-
-```js
-{
-  answer: "LiveRamp is a registered data broker. [CA Broker Registry] ...",
-  trace: [ { tool: "lookup_company" }, { tool: "where_seen", label: "Your browsing" } ],  // label is optional
-  error: "only if something went wrong"
-}
-```
-
-In the background script, answer asynchronously and `return true` so Chrome keeps the channel open:
-
-```js
-chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
-  if (msg.type === "askC") {
-    askC(msg.question).then(sendResponse).catch(e => sendResponse({ error: "I couldn't reach Gemma. Is Ollama running?" }));
-    return true;
-  }
-});
-```
-
-Source tags written exactly like these inside `answer` become colored labels: `[Seen on your visit]` `[Tracker Radar]` `[CA Broker Registry]` `[HIBP]` `[RegTrack]` `[Privacy policy]`. Put that list in Gemma's system prompt.
-
-Known tool names get friendly labels in the "C checked" line (`get_site_report`, `where_seen`, `lookup_company`, `find_companies`, `regtrack_compare`). Any other tool shows its `label`, or its name.
-
-Other parts of the dashboard can open a question with `PrivaCAsk.ask("...")`. The "Ask C" link next to each company in the cross-site table already does this.
+Josh Davis, Max Glassman, Matthew Finkelstein, Justin Smilowitz, and the repo owner (gormandyp). Who built what: [docs/TEAM.md](docs/TEAM.md).
