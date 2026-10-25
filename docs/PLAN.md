@@ -12,6 +12,7 @@ Added 2026-10-24 ~9:25 PM for Max (team ask-c/ui ideas from real-Gemma testing; 
 5. [x] **R19c** (done on main): C's face instead of the plain "C" icon.
 6. Merge branch `max/icon-tabs` (dashboard tabs with icons + names; merges cleanly).
 7. [x] **R19d + R19e** (done on main) (home page declutter, bigger card titles): renderings for Max or the repo owner first, not straight to main.
+8. Merge branch `cookie-mcd` (2026-10-24 ~10 PM, Max's Claude): C still stayed silent on the real mcdonalds.com/us strip (835 characters, has an Accept button; the 600-character limit skipped it). Limit 1,000 + test with the real text; checked in Chromium on a copy of the real strip. Merges cleanly with main and `askc-r19`.
 Tick each one here when done.
 
 ## Done (Fri night) — what changed from plan v2
